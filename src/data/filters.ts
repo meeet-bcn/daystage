@@ -1,9 +1,12 @@
 import { Concert } from '@/data/concerts';
+import { compactText, foldText } from '@/data/text';
 
 export type SortKey = 'date' | 'popular' | 'price' | 'name';
 export type WhenKey = 'all' | 'today' | 'weekend' | 'week' | 'month';
 
 export type Filters = {
+  /** Texto del buscador de Inicio. */
+  query: string;
   sort: SortKey;
   when: WhenKey;
   genres: string[];
@@ -11,6 +14,7 @@ export type Filters = {
 };
 
 export const DEFAULT_FILTERS: Filters = {
+  query: '',
   sort: 'date',
   when: 'all',
   genres: [],
@@ -39,7 +43,21 @@ export const PRICE_OPTIONS: { value: number | null; label: string }[] = [
   { value: 100, label: 'Hasta 100 €' },
 ];
 
-/** Filtros activos de la hoja (el "cuándo" se ve ya en los chips de Inicio). */
+/**
+ * ¿Coincide el concierto con la búsqueda? Cada palabra debe aparecer en el
+ * artista, la sala, el género o el telonero, sin importar acentos ni signos
+ * ("fontaines dc" encuentra "Fontaines D.C.").
+ */
+export function matchesQuery(c: Concert, query: string) {
+  const words = foldText(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+
+  const haystack = foldText([c.artist, c.venue, c.genre, c.support].join(' '));
+  const compactHaystack = compactText(haystack);
+  return words.every((w) => haystack.includes(w) || compactHaystack.includes(compactText(w)));
+}
+
+/** Filtros activos de la hoja (el "cuándo" y la búsqueda se ven ya en Inicio). */
 export function activeFilterCount(f: Filters) {
   return (f.sort !== 'date' ? 1 : 0) + f.genres.length + (f.maxPrice != null ? 1 : 0);
 }
@@ -96,6 +114,7 @@ export function applyFilters(
   const range = whenRange(f.when);
 
   const result = concerts.filter((c) => {
+    if (!matchesQuery(c, f.query)) return false;
     if (range && (c.startsAt == null || c.startsAt < range[0] || c.startsAt >= range[1])) {
       return false;
     }

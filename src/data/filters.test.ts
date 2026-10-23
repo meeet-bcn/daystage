@@ -8,6 +8,7 @@ import {
   DEFAULT_FILTERS,
   Filters,
   genresOf,
+  matchesQuery,
   WhenKey,
 } from '@/data/filters';
 
@@ -80,11 +81,54 @@ describe('applyFilters · orden', () => {
   });
 });
 
+describe('matchesQuery', () => {
+  const fontaines = makeConcert({
+    artist: 'Fontaines D.C. - D.C. EU TOUR 2026',
+    venue: 'Sant Jordi Club',
+    genre: 'Rock',
+    support: 'CHALK',
+  });
+
+  it.each([
+    ['', true],
+    ['   ', true],
+    ['fontaines', true],
+    ['FONTAINES', true],
+    ['fontaines dc', true], // sin puntos
+    ['sant jordi', true], // por sala
+    ['rock', true], // por género
+    ['chalk', true], // por telonero
+    ['fontaines apolo', false], // todas las palabras deben coincidir
+    ['madonna', false],
+  ])('"%s" → %s', (query, expected) => {
+    expect(matchesQuery(fontaines, query)).toBe(expected);
+  });
+
+  it('ignora acentos en los dos sentidos', () => {
+    const show = makeConcert({ artist: 'Poison Ruïn', venue: 'Sala Bóveda' });
+    expect(matchesQuery(show, 'poison ruin')).toBe(true);
+    expect(matchesQuery(show, 'bóveda')).toBe(true);
+    expect(matchesQuery(makeConcert({ venue: 'Sala Boveda' }), 'bóveda')).toBe(true);
+  });
+
+  it('se aplica junto al resto de filtros', () => {
+    expect(ids({ query: 'rock' })).toEqual(['vie', 'sem']); // por género
+    expect(ids({ query: 'delta' })).toEqual(['sem']);
+    expect(ids({ query: 'a', genres: ['Rock'] })).toEqual(['vie', 'sem']);
+  });
+});
+
 describe('activeFilterCount', () => {
   it('cuenta orden, géneros y precio, pero no el "cuándo"', () => {
     expect(activeFilterCount(DEFAULT_FILTERS)).toBe(0);
     expect(
-      activeFilterCount({ sort: 'price', when: 'today', genres: ['Rock', 'Pop'], maxPrice: 50 })
+      activeFilterCount({
+        query: 'rock',
+        sort: 'price',
+        when: 'today',
+        genres: ['Rock', 'Pop'],
+        maxPrice: 50,
+      })
     ).toBe(4);
   });
 });

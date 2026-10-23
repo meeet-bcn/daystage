@@ -15,6 +15,8 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ArtistCard } from '@/components/artist-card';
+import { EventImage } from '@/components/event-image';
 import { GoButton } from '@/components/go-button';
 import { useApp } from '@/data/app-context';
 import { SOURCE_NAMES } from '@/data/sources/types';
@@ -88,18 +90,8 @@ export default function ConcertDetail() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 56 }}>
-        <View>
-          {concert.hero || concert.image ? (
-            <Image source={{ uri: concert.hero || concert.image }} style={styles.hero} />
-          ) : (
-            <View style={styles.hero} />
-          )}
-          {going && (
-            <View style={styles.badge}>
-              <Ionicons name="checkmark-circle" size={18} color={COLORS.accent} />
-              <Text style={styles.badgeText}>Voy a este concierto</Text>
-            </View>
-          )}
+        <View style={{ paddingTop: insets.top }}>
+          <EventImage concert={concert} going={going} goingLabel="Voy a este concierto" />
         </View>
 
         <View style={styles.body}>
@@ -173,6 +165,7 @@ export default function ConcertDetail() {
                   Ticketmaster no da más detalles de este concierto.
                 </Text>
               )}
+              <ArtistCard eventName={concert.artist} genre={concert.genre} />
             </View>
           )}
 
@@ -248,7 +241,6 @@ export default function ConcertDetail() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   center: { alignItems: 'center', justifyContent: 'center' },
-  hero: { width: '100%', height: 440, backgroundColor: COLORS.surface },
   back: {
     position: 'absolute',
     left: 16,
@@ -259,19 +251,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badge: {
-    position: 'absolute',
-    left: 20,
-    bottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  badgeText: { color: COLORS.accent, fontSize: 15, fontWeight: '800' },
   body: { padding: 20 },
   date: {
     color: COLORS.accent,

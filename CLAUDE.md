@@ -32,6 +32,9 @@ src/
   components/
     go-button.tsx           # Botón "Voy": confeti y háptica. Es el componente central de la marca
     chip.tsx                # Chip en píldora (filtros, opciones)
+    search-bar.tsx          # Buscador en píldora (Inicio)
+    event-image.tsx         # Foto 16:9 del concierto, igual en Inicio y en el detalle: ticketera abajo a la izquierda, "Voy" abajo a la derecha
+    source-badge.tsx        # Insignia de la ticketera: su nombre en una pastilla blanca, con "+N" si hay más
     profile-avatar.tsx      # Avatar circular: foto opcional con icono de reserva
     screen-title.tsx        # Título grande con el punto melocotón, para pantallas de pestaña
     app-tabs.tsx            # NativeTabs (iOS/Android): Inicio · Descubrir · meeet in, con el badge de no leídos
@@ -45,6 +48,9 @@ src/
       ticketmaster.ts       # Discovery API → Concert
     merge.ts                # Deduplica entre fuentes (mismo día + sala + artista) y junta las ofertas
     format.ts               # formatDate / toTimestamp / formatPriceRange, comunes a todas las fuentes
+    text.ts                 # foldText / compactText / headlinerName: comparaciones sin acentos ni signos, y artista principal de un evento
+    musicbrainz.ts          # Info de artistas (tipo, país, géneros, enlaces). pickArtist solo acepta coincidencias seguras
+  hooks/use-artist-info.ts  # Carga la info de MusicBrainz para el detalle (Info › "Sobre el artista", artist-card.tsx)
     event-info.ts           # Limpia los textos de Ticketmaster: reseña (`description`, o `info` sin la logística) + puertas, telonero y edad. Descarta los eventos "Test ..."
     filters.ts              # Tipos y opciones de filtros + applyFilters() (funciones puras)
     app-context.tsx         # AppProvider / useApp(): conciertos, "Voy", myConcerts, filtros, visibleConcerts, no leídos
@@ -118,6 +124,10 @@ No escribas colores hex en las pantallas. Si necesitas uno nuevo, añádelo a `C
 - Las constantes de ajuste visual van en `UPPER_SNAKE_CASE` al principio del archivo.
 - El estado global va por `useApp()`. No añadas librerías de estado sin preguntar.
 - **Varias ticketeras:** un concierto tiene `offers` (una por fuente, la más barata primero). Nunca uses una URL de compra suelta. Los ids llevan el prefijo de la fuente (`ticketmaster-…`). Fever, DICE, Entradas.com y The Project aún no tienen acceso (no hay API pública: hace falta un acuerdo de socio). Cuando lo haya, sus claves irán en un backend propio, nunca en `EXPO_PUBLIC_*`.
+- **MusicBrainz:**
+  - Normas: máximo 1 petición por segundo (`throttledGet` ya encola y reintenta los 503) y un User-Agent con contacto (`EXPO_PUBLIC_MUSICBRAINZ_CONTACT` en `.env.local`). Las peticiones se hacen solo al abrir el detalle de un concierto, nunca en bucle sobre la lista.
+  - Licencia: gratis para uso no comercial y mientras la app no sea pública (plan "Stealth Start-Up" de MetaBrainz). **Al lanzar la app, contratar un plan comercial** (Bronze, desde 100 $/mes) o mover estas consultas a un backend con caché.
+  - Ante la duda entre homónimos, `pickArtist` devuelve null: mejor no mostrar nada que mostrar a otro artista. No relajes esa regla sin tests.
 - Toda la transformación de datos externos se hace en `src/data/`. Las pantallas consumen el tipo `Concert` y nunca la respuesta cruda de Ticketmaster.
 - Los campos `info` y `pleaseNote` de Ticketmaster vienen en texto plano (es/en/ca) con la letra pequeña mezclada. Si aparece un nuevo tipo de aviso, añade su encabezado a `LOGISTICS_MARKERS` en `event-info.ts`. No muestres nunca el texto crudo.
 - Usa `useSafeAreaInsets()` para los márgenes superiores en las pantallas con cabecera propia (`headerShown: false`). En las pantallas que están dentro de `(tabs)`, suma `BottomTabInset` al margen inferior para que la barra de pestañas no tape el contenido.
@@ -127,6 +137,7 @@ No escribas colores hex en las pantallas. Si necesitas uno nuevo, añádelo a `C
 
 ## Deuda conocida
 
+- La insignia de la ticketera muestra su **nombre en texto**, no su logo. Se probó con el logo oficial de Ticketmaster y se descartó porque no funcionaba bien en la foto (2026-10-23).
 - Los iconos y el splash son tipográficos y provisionales. Cuando haya un logo diseñado, sustituye los PNG respetando tamaños y proporciones: `splash-icon.png` debe ser 3:1, porque `splash-overlay.tsx` lo pinta con `aspectRatio: 3`.
 - Los cambios de icono o splash solo se ven en un build nuevo (`npx expo run:ios|android` o EAS). Expo Go no los muestra.
 - `README.md` es el de la plantilla.

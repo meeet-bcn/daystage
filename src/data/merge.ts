@@ -3,19 +3,11 @@
 // sus ofertas de compra.
 
 import type { Concert, TicketOffer } from '@/data/concerts';
-
-// Minúsculas, sin acentos, espacios ni signos: "Fontaines D.C." y "FONTAINES DC" → "fontainesdc"
-function normalize(text: string) {
-  return text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '');
-}
+import { compactText as normalize, headlinerName } from '@/data/text';
 
 // "Fontaines D.C. - D.C. EU TOUR 2026" → "fontainesdc"; "Niall Horan: Dinner Party" → "niallhoran"
 function headliner(name: string) {
-  return normalize(name.split(/\s[-–—|·]\s|:\s/)[0]);
+  return normalize(headlinerName(name));
 }
 
 function sameArtist(a: string, b: string) {

@@ -1,10 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import {
   ActivityIndicator,
   Animated,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,8 +13,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/chip';
+import { EventImage } from '@/components/event-image';
 import { GoButton } from '@/components/go-button';
 import { ProfileAvatar } from '@/components/profile-avatar';
+import { SearchBar } from '@/components/search-bar';
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
 import { Concert } from '@/data/concerts';
@@ -52,7 +52,8 @@ export default function HomeScreen() {
   const scrollY = useAnimatedValue(0);
   const filterCount = activeFilterCount(filters);
   const sortLabel = SORT_OPTIONS.find((o) => o.key === filters.sort)?.label.toLowerCase();
-  const isFiltered = filterCount > 0 || filters.when !== 'all';
+  const searching = filters.query.trim().length > 0;
+  const isFiltered = filterCount > 0 || filters.when !== 'all' || searching;
 
   const shrink = (from: number, to: number) =>
     scrollY.interpolate({
@@ -84,6 +85,8 @@ export default function HomeScreen() {
         data={visibleConcerts}
         keyExtractor={(item: Concert) => item.id}
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
           useNativeDriver: false,
@@ -94,6 +97,14 @@ export default function HomeScreen() {
         }}
         ListHeaderComponent={
           <View style={styles.listHeader}>
+            <View style={styles.search}>
+              <SearchBar
+                value={filters.query}
+                onChangeText={(query) => setFilters((f) => ({ ...f, query }))}
+                placeholder="Artista, sala o género"
+              />
+            </View>
+
             <View style={styles.notice}>
               <View style={styles.betaTag}>
                 <Text style={styles.betaTagText}>BETA</Text>
@@ -141,9 +152,13 @@ export default function HomeScreen() {
             )}
             {concerts.length > 0 && visibleConcerts.length === 0 && isFiltered && (
               <View style={styles.emptyFiltered}>
-                <Text style={styles.message}>Ningún concierto coincide con tus filtros.</Text>
+                <Text style={styles.message}>
+                  {searching && filterCount === 0 && filters.when === 'all'
+                    ? `Ningún concierto coincide con «${filters.query.trim()}».`
+                    : 'Ningún concierto coincide con tus filtros.'}
+                </Text>
                 <Pressable onPress={resetFilters} hitSlop={8}>
-                  <Text style={styles.link}>Quitar filtros</Text>
+                  <Text style={styles.link}>{searching ? 'Borrar búsqueda y filtros' : 'Quitar filtros'}</Text>
                 </Pressable>
               </View>
             )}
@@ -157,19 +172,7 @@ export default function HomeScreen() {
               style={styles.card}
               onPress={() => router.push({ pathname: '/concert/[id]', params: { id: item.id } })}
             >
-              <View>
-                {item.image ? (
-                  <Image source={{ uri: item.image }} style={styles.image} />
-                ) : (
-                  <View style={styles.image} />
-                )}
-                {going && (
-                  <View style={styles.badge}>
-                    <Ionicons name="checkmark-circle" size={16} color={COLORS.accent} />
-                    <Text style={styles.badgeText}>Voy</Text>
-                  </View>
-                )}
-              </View>
+              <EventImage concert={item} going={going} />
 
               <View style={styles.cardBody}>
                 <View style={{ flex: 1 }}>
@@ -264,6 +267,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.line,
   },
   listHeader: { marginBottom: 20 },
+  search: { paddingHorizontal: 20, marginBottom: 16 },
   notice: {
     alignSelf: 'center',
     flexDirection: 'row',
@@ -289,20 +293,6 @@ const styles = StyleSheet.create({
   emptyFiltered: { gap: 12 },
   link: { color: COLORS.accent, fontSize: 15, fontWeight: '700', paddingHorizontal: 20 },
   card: { marginBottom: 32 },
-  image: { width: '100%', aspectRatio: 16 / 9, backgroundColor: COLORS.surface },
-  badge: {
-    position: 'absolute',
-    left: 20,
-    bottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  badgeText: { color: COLORS.accent, fontSize: 14, fontWeight: '800' },
   cardBody: {
     flexDirection: 'row',
     alignItems: 'flex-end',
