@@ -1,12 +1,14 @@
 // Persistencia local (expo-sqlite/kv-store). Solo datos del usuario en este
-// móvil: planes y perfil. Los conciertos se vuelven a pedir a la API.
+// móvil: planes, lista de deseos, perfil y ajustes. Los conciertos se vuelven a pedir a la API.
 
 import Storage from 'expo-sqlite/kv-store';
 
 /** Las claves llevan versión: si cambia la forma de los datos, se sube y se empieza de cero. */
 export const STORAGE_KEYS = {
   plans: 'meeet.plans.v1',
+  wishlist: 'meeet.wishlist.v1',
   profile: 'meeet.profile.v1',
+  settings: 'meeet.settings.v1',
 } as const;
 
 /** Lectura síncrona, para el estado inicial. Ante datos ausentes o corruptos, `fallback`. */

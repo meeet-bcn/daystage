@@ -1,9 +1,15 @@
+import { useAudioPlayer } from 'expo-audio';
 import { BlurView } from 'expo-blur';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import { router, useNavigation } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  FlatList,
+  LayoutAnimation,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,27 +17,22 @@ import {
   useAnimatedValue,
   View,
 } from 'react-native';
+import Reanimated, { Keyframe } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/chip';
 import { EventImage } from '@/components/event-image';
 import { GoButton } from '@/components/go-button';
-import {
-  TITLE_LINE_HEIGHT,
-  TITLE_SIZE,
-  TITLE_SPACING,
-  TITLE_TOP,
-} from '@/components/screen-title';
+import { ImagotipoAnimado } from '@/components/imagotipo';
+import { SparkleBurst } from '@/components/meeet-in-burst';
+import { WishButton } from '@/components/wish-button';
+import { TITLE_LINE_HEIGHT, TITLE_SIZE, TITLE_SPACING, TITLE_TOP } from '@/components/screen-title';
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
 import { Concert } from '@/data/concerts';
-import {
-  activeFilterCount,
-  dateRangeLabel,
-  LANGUAGES,
-  SORT_OPTIONS,
-} from '@/data/filters';
-import { COLORS } from '@/theme';
+import { activeFilterCount, dateRangeLabel, LANGUAGES, SORT_OPTIONS } from '@/data/filters';
+import { useTheme, useThemedStyles } from '@/hooks/use-theme';
+import { COLORS, Theme } from '@/theme';
 
 // Ajustes del banner (puedes tocar estos números)
 const LOGO_MAX = 72; // tamaño del logo arriba del todo
@@ -46,8 +47,21 @@ const SLOGAN_H = 22; // altura del lema
 const TOOLS_GAP = 14; // aire entre el logo (o el aviso) y los chips, también con el logo encogido
 const NOTICE_H = 40; // aviso de la beta (pastilla de 32 + aire); se esconde al hacer scroll
 const SCROLL_RANGE = 80; // cuánto scroll dura la animación
+// Tirar hacia abajo para recargar
+const PULL_TRIGGER = 80; // pt que hay que tirar para que, al soltar, recargue
+const REFRESH_SPACE = 64; // hueco para el imagotipo mientras recarga
+const REFRESH_MIN_MS = 600; // lo mínimo que se ve la animación, aunque cargue antes
+
+// Al terminar de recargar, el imagotipo crece y se desvanece mientras estallan los destellos
+const LOGO_POP = new Keyframe({
+  0: { opacity: 1, transform: [{ scale: 1 }] },
+  40: { opacity: 1, transform: [{ scale: 1.25 }] },
+  100: { opacity: 0, transform: [{ scale: 1.7 }] },
+}).duration(300);
 
 export default function HomeScreen() {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const {
     concerts,
@@ -62,12 +76,51 @@ export default function HomeScreen() {
     loadMore,
     hasMore,
     loadingMore,
+    refreshConcerts,
+    settings,
   } = useApp();
   const scrollY = useAnimatedValue(0);
+  const listRef = useRef<FlatList<Concert>>(null);
+  const navigation = useNavigation();
+  // Recarga: cargando (imagotipo en el hueco) → explosión al terminar → nada
+  const [refreshPhase, setRefreshPhase] = useState<'idle' | 'loading' | 'burst'>('idle');
+  const refreshing = refreshPhase !== 'idle';
+  const refreshSound = useAudioPlayer(require('@/assets/sounds/refresh.wav'));
+
+  // Tocar Inicio estando ya en Inicio sube arriba del todo (además de lo que haga
+  // iOS). El tipo de useNavigation no incluye 'tabPress' de NativeTabs: de ahí el cast
+  useEffect(
+    () =>
+      navigation.addListener('tabPress' as never, () => {
+        if (navigation.isFocused()) listRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }),
+    [navigation]
+  );
+
+  // Al soltar tras tirar lo bastante, recarga con el imagotipo animado
+  const onScrollEndDrag = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (refreshing || e.nativeEvent.contentOffset.y > -PULL_TRIGGER) return;
+    setRefreshPhase('loading');
+    if (settings.sounds) {
+      refreshSound.seekTo(0);
+      refreshSound.play();
+    }
+    if (settings.haptics) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const minimum = new Promise((resolve) => setTimeout(resolve, REFRESH_MIN_MS));
+    Promise.all([refreshConcerts(), minimum]).finally(() => setRefreshPhase('burst'));
+  };
+
+  // Tras la explosión, el hueco se cierra con suavidad en vez de dar un salto
+  const endRefresh = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setRefreshPhase('idle');
+  };
   // Alto de los chips, fijos en la cabecera: la lista empieza debajo
   const [toolsHeight, setToolsHeight] = useState(0);
   const filterCount = activeFilterCount(filters);
   const sortLabel = SORT_OPTIONS.find((o) => o.key === filters.sort)?.label.toLowerCase();
+  // Donde empieza la lista: bajo la cabecera fija ya desplegada
+  const listTop = insets.top + TOP_MAX + LINE_MAX + SLOGAN_H + NOTICE_H + toolsHeight + PAD_MAX;
   const isFiltered = filterCount > 0 || filters.dates != null;
   const languages = LANGUAGES.filter((l) => filters.languages.includes(l.code));
 
@@ -98,7 +151,56 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Imagotipo de "tirar para recargar": queda detrás de la lista y asoma en el hueco */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.pull,
+          { top: listTop + 8 },
+          {
+            opacity: refreshing
+              ? 1
+              : scrollY.interpolate({
+                  inputRange: [-PULL_TRIGGER, -16],
+                  outputRange: [1, 0],
+                  extrapolate: 'clamp',
+                }),
+            transform: [
+              {
+                scale: refreshing
+                  ? 1
+                  : scrollY.interpolate({
+                      inputRange: [-PULL_TRIGGER, 0],
+                      outputRange: [1, 0.4],
+                      extrapolate: 'clamp',
+                    }),
+              },
+            ],
+          },
+        ]}
+      >
+        {refreshPhase === 'burst' ? (
+          <View style={styles.burst}>
+            <SparkleBurst onEnd={endRefresh} />
+          </View>
+        ) : (
+          <Reanimated.View exiting={LOGO_POP}>
+            <ImagotipoAnimado height={36} />
+          </Reanimated.View>
+        )}
+      </Animated.View>
+
+      {/* Primera carga al abrir la app: el imagotipo animado en el centro */}
+      {loading && (
+        <View pointerEvents="none" style={styles.firstLoad}>
+          <ImagotipoAnimado height={72} />
+          <Text style={styles.firstLoadText}>Buscando conciertos…</Text>
+        </View>
+      )}
+
       <Animated.FlatList
+        ref={listRef}
+        onScrollEndDrag={onScrollEndDrag}
         data={visibleConcerts}
         keyExtractor={(item: Concert) => item.id}
         showsVerticalScrollIndicator={false}
@@ -115,13 +217,13 @@ export default function HomeScreen() {
         windowSize={7}
         removeClippedSubviews
         ListFooterComponent={
-          loadingMore ? <ActivityIndicator color={COLORS.accent} style={styles.more} /> : null
+          loadingMore ? <ActivityIndicator color={theme.accent} style={styles.more} /> : null
         }
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
           useNativeDriver: false,
         })}
         contentContainerStyle={{
-          paddingTop: insets.top + TOP_MAX + LINE_MAX + SLOGAN_H + NOTICE_H + toolsHeight + PAD_MAX,
+          paddingTop: listTop + (refreshing ? REFRESH_SPACE : 0),
           paddingBottom: insets.bottom + BottomTabInset + 32,
         }}
         ListHeaderComponent={
@@ -136,7 +238,6 @@ export default function HomeScreen() {
               </Text>
             )}
 
-            {loading && <ActivityIndicator color={COLORS.accent} style={{ marginTop: 32 }} />}
             {error && (
               <Text style={styles.message}>No se han podido cargar los conciertos: {error}</Text>
             )}
@@ -179,7 +280,11 @@ export default function HomeScreen() {
                       : `${count} ${count === 1 ? 'persona va' : 'personas van'}`}
                   </Text>
                 </View>
-                <GoButton isGoing={going} onPress={() => toggleGoing(item)} />
+                {/* Corazón (lista de deseos) junto a "Meeet In!" */}
+                <View style={styles.cardActions}>
+                  <WishButton concert={item} />
+                  <GoButton isGoing={going} onPress={() => toggleGoing(item)} />
+                </View>
               </View>
             </Pressable>
           );
@@ -199,8 +304,8 @@ export default function HomeScreen() {
               { fontSize: logoSize, lineHeight: logoLine, letterSpacing: logoSpacing },
             ]}
           >
-            {/* Las "eee" en la escala del salmón, de clara a oscura */}
-            m<Text style={{ color: COLORS.peach }}>e</Text>
+            {/* Las "eee" en la escala del salmón, de clara a oscura */}m
+            <Text style={{ color: COLORS.peach }}>e</Text>
             <Text style={{ color: COLORS.peachMid }}>e</Text>
             <Text style={{ color: COLORS.peachDeep }}>e</Text>t
             <Text style={{ color: COLORS.accent }}>.</Text>
@@ -226,10 +331,7 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
 
-        <View
-          style={styles.tools}
-          onLayout={(e) => setToolsHeight(e.nativeEvent.layout.height)}
-        >
+        <View style={styles.tools} onLayout={(e) => setToolsHeight(e.nativeEvent.layout.height)}>
           {concerts.length > 0 && (
             <ScrollView
               horizontal
@@ -274,97 +376,108 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    paddingHorizontal: 20,
-    overflow: 'hidden',
-  },
-  glass: { backgroundColor: 'rgba(255,255,255,0.45)' },
-  logoRow: { justifyContent: 'center' },
-  // Logo, lema y aviso beta, centrados
-  logo: {
-    alignSelf: 'center',
-    color: COLORS.text,
-    fontWeight: '700',
-  },
-  slogan: {
-    alignSelf: 'center',
-    color: COLORS.muted,
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: '500',
-    letterSpacing: 0.2,
-    marginTop: -6,
-    overflow: 'hidden',
-  },
-  line: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: COLORS.line,
-  },
-  listHeader: { marginBottom: 20 },
-  noticeBox: { overflow: 'hidden', justifyContent: 'center' },
-  notice: {
-    alignSelf: 'center',
-    height: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: COLORS.surface,
-    paddingLeft: 8,
-    paddingRight: 14,
-    borderRadius: 20,
-  },
-  betaTag: {
-    backgroundColor: COLORS.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  betaTagText: { color: COLORS.white, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 },
-  noticeText: { color: COLORS.muted, fontSize: 13, fontWeight: '500', flexShrink: 1 },
-  // Los chips llegan hasta el borde de la pantalla al deslizarlos
-  // El lema sube 6 pt sobre el logo (marginTop: -6): aquí se compensa para
-  // que, ya encogido, los chips no pisen el logo
-  tools: { paddingTop: TOOLS_GAP },
-  toolbarScroll: { marginHorizontal: -20 },
-  toolbar: { gap: 8, paddingHorizontal: 20 },
-  results: { color: COLORS.muted, fontSize: 13, paddingHorizontal: 20 },
-  message: { color: COLORS.muted, fontSize: 15, marginTop: 24, paddingHorizontal: 20 },
-  emptyFiltered: { gap: 12 },
-  more: { marginBottom: 24 },
-  link: { color: COLORS.accent, fontSize: 15, fontWeight: '700', paddingHorizontal: 20 },
-  card: { marginBottom: 32 },
-  cardBody: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    gap: 12,
-  },
-  date: {
-    color: COLORS.accent,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  artist: {
-    color: COLORS.text,
-    fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-    marginTop: 4,
-  },
-  venue: { color: COLORS.muted, fontSize: 15, marginTop: 2 },
-  going: { color: COLORS.muted, fontSize: 13, marginTop: 10 },
-});
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    header: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 10,
+      paddingHorizontal: 20,
+      overflow: 'hidden',
+    },
+    glass: { backgroundColor: 'rgba(255,255,255,0.45)' },
+    logoRow: { justifyContent: 'center' },
+    // Logo, lema y aviso beta, centrados
+    logo: {
+      alignSelf: 'center',
+      color: COLORS.text,
+      fontWeight: '700',
+    },
+    slogan: {
+      alignSelf: 'center',
+      color: COLORS.muted,
+      fontSize: 15,
+      lineHeight: 20,
+      fontWeight: '500',
+      letterSpacing: 0.2,
+      marginTop: -6,
+      overflow: 'hidden',
+    },
+    line: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: COLORS.line,
+    },
+    listHeader: { marginBottom: 20 },
+    pull: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+    burst: { width: 1, height: 36 }, // centro de la explosión, donde estaba el imagotipo
+    firstLoad: {
+      ...StyleSheet.absoluteFill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 14,
+    },
+    firstLoadText: { color: COLORS.muted, fontSize: 15, fontWeight: '500' },
+    noticeBox: { overflow: 'hidden', justifyContent: 'center' },
+    notice: {
+      alignSelf: 'center',
+      height: 32,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: COLORS.surface,
+      paddingLeft: 8,
+      paddingRight: 14,
+      borderRadius: 20,
+    },
+    betaTag: {
+      backgroundColor: theme.accent,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 10,
+    },
+    betaTagText: { color: COLORS.white, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 },
+    noticeText: { color: COLORS.muted, fontSize: 13, fontWeight: '500', flexShrink: 1 },
+    // Los chips llegan hasta el borde de la pantalla al deslizarlos
+    // El lema sube 6 pt sobre el logo (marginTop: -6): aquí se compensa para
+    // que, ya encogido, los chips no pisen el logo
+    tools: { paddingTop: TOOLS_GAP },
+    toolbarScroll: { marginHorizontal: -20 },
+    toolbar: { gap: 8, paddingHorizontal: 20 },
+    results: { color: COLORS.muted, fontSize: 13, paddingHorizontal: 20 },
+    message: { color: COLORS.muted, fontSize: 15, marginTop: 24, paddingHorizontal: 20 },
+    emptyFiltered: { gap: 12 },
+    more: { marginBottom: 24 },
+    link: { color: theme.accent, fontSize: 15, fontWeight: '700', paddingHorizontal: 20 },
+    card: { marginBottom: 32 },
+    cardBody: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      gap: 12,
+    },
+    cardActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    date: {
+      color: theme.accent,
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    artist: {
+      color: COLORS.text,
+      fontSize: 22,
+      fontWeight: '700',
+      letterSpacing: -0.4,
+      marginTop: 4,
+    },
+    venue: { color: COLORS.muted, fontSize: 15, marginTop: 2 },
+    going: { color: COLORS.muted, fontSize: 13, marginTop: 10 },
+  });

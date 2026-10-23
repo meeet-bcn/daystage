@@ -16,6 +16,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useTheme } from '@/hooks/use-theme';
 import { COLORS } from '@/theme';
 
 // Ajustes del efecto
@@ -24,13 +25,16 @@ import { COLORS } from '@/theme';
 const FOOTER_HEIGHT = 56;
 const SPIN_MS = 3200; // una vuelta completa del degradado
 
-const BRAND_GRADIENT = `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.peach}, ${COLORS.lavender}, ${COLORS.accent}, ${COLORS.peach})`;
+// El acento de tu tema con el melocotón y la lavanda de la marca
+const gradientFor = (accent: string) =>
+  `linear-gradient(135deg, ${accent}, ${COLORS.peach}, ${COLORS.lavender}, ${accent}, ${COLORS.peach})`;
 
 type Size = { width: number; height: number };
 type Edge = { left: number; top: number; width: number; height: number };
 
 /** Una franja del borde que deja ver su trozo del degradado giratorio. */
 function Stroke({ edge, size, spin }: { edge: Edge; size: Size; spin: SharedValue<number> }) {
+  const { accent } = useTheme();
   // Cuadrado mayor que la diagonal, centrado en la foto, para cubrir la franja en cualquier giro
   const side = Math.hypot(size.width, size.height) * 1.05;
   const spinStyle = useAnimatedStyle(() => ({
@@ -42,6 +46,7 @@ function Stroke({ edge, size, spin }: { edge: Edge; size: Size; spin: SharedValu
       <Animated.View
         style={[
           styles.gradient,
+          { experimental_backgroundImage: gradientFor(accent) },
           {
             width: side,
             height: side,
@@ -84,6 +89,7 @@ export function HoloFrame({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  edge: { position: 'absolute', overflow: 'hidden' },
-  gradient: { position: 'absolute', experimental_backgroundImage: BRAND_GRADIENT },
+  // Al 80 %: se intuye la foto del artista a través del degradado
+  edge: { position: 'absolute', overflow: 'hidden', opacity: 0.8 },
+  gradient: { position: 'absolute' },
 });

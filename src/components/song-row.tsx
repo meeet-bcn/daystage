@@ -4,7 +4,8 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ProfileSong } from '@/data/songs';
-import { COLORS } from '@/theme';
+import { useTheme, useThemedStyles } from '@/hooks/use-theme';
+import { COLORS, Theme } from '@/theme';
 
 type Props = {
   song: ProfileSong;
@@ -18,6 +19,8 @@ type Props = {
 
 /** Canción con carátula, título, artista y botón para oír su fragmento. */
 export function SongRow({ song, playing, onTogglePlay, onPress, trailing }: Props) {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -49,27 +52,28 @@ export function SongRow({ song, playing, onTogglePlay, onPress, trailing }: Prop
         accessibilityRole="button"
         accessibilityLabel={playing ? 'Pausar fragmento' : 'Escuchar fragmento'}
       >
-        <Ionicons name={playing ? 'pause' : 'play'} size={16} color={COLORS.accent} />
+        <Ionicons name={playing ? 'pause' : 'play'} size={16} color={theme.accent} />
       </Pressable>
       {trailing}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  pressed: { opacity: 0.6 },
-  artwork: { width: 48, height: 48, borderRadius: 8, backgroundColor: COLORS.surface },
-  noArtwork: { alignItems: 'center', justifyContent: 'center' },
-  text: { flex: 1 },
-  title: { color: COLORS.text, fontSize: 15, fontWeight: '700', letterSpacing: -0.3 },
-  artist: { color: COLORS.muted, fontSize: 13, marginTop: 2 },
-  play: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: COLORS.accentSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    pressed: { opacity: 0.6 },
+    artwork: { width: 48, height: 48, borderRadius: 8, backgroundColor: COLORS.surface },
+    noArtwork: { alignItems: 'center', justifyContent: 'center' },
+    text: { flex: 1 },
+    title: { color: COLORS.text, fontSize: 15, fontWeight: '700', letterSpacing: -0.3 },
+    artist: { color: COLORS.muted, fontSize: 13, marginTop: 2 },
+    play: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: theme.accentSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  });

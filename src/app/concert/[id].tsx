@@ -19,10 +19,12 @@ import { ArtistCard } from '@/components/artist-card';
 import { EventImage } from '@/components/event-image';
 import { GoButton } from '@/components/go-button';
 import { SongCard } from '@/components/song-card';
+import { WishButton } from '@/components/wish-button';
 import { useApp } from '@/data/app-context';
 import { SOURCE_NAMES } from '@/data/sources/types';
 import { useTopSong } from '@/hooks/use-top-song';
-import { COLORS } from '@/theme';
+import { useTheme, useThemedStyles } from '@/hooks/use-theme';
+import { COLORS, Theme } from '@/theme';
 
 // El chat de cada concierto no va aquí: solo se abre desde la pestaña Meeet in
 type Tab = 'info' | 'lugar';
@@ -32,6 +34,8 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 export default function ConcertDetail() {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { concerts, plans, isGoing, toggleGoing, goingCount } = useApp();
@@ -46,7 +50,7 @@ export default function ConcertDetail() {
       <View style={[styles.container, styles.center]}>
         <Text style={styles.muted}>Evento no encontrado</Text>
         <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
-          <Text style={{ color: COLORS.accent, fontWeight: '700' }}>Volver</Text>
+          <Text style={{ color: theme.accent, fontWeight: '700' }}>Volver</Text>
         </Pressable>
       </View>
     );
@@ -105,7 +109,6 @@ export default function ConcertDetail() {
           showSource={false}
         />
 
-
         <View style={styles.body}>
           <Text style={styles.date}>{concert.date}</Text>
           <Text style={styles.artist}>{concert.artist}</Text>
@@ -117,7 +120,10 @@ export default function ConcertDetail() {
                 ? 'Sé el primero en apuntarte'
                 : `${count} ${count === 1 ? 'persona va' : 'personas van'}`}
             </Text>
-            <GoButton isGoing={going} onPress={() => toggleGoing(concert)} />
+            <View style={styles.goingActions}>
+              <WishButton concert={concert} />
+              <GoButton isGoing={going} onPress={() => toggleGoing(concert)} />
+            </View>
           </View>
 
           <View style={styles.actions}>
@@ -142,7 +148,7 @@ export default function ConcertDetail() {
                 >
                   <Text style={styles.offerName}>{SOURCE_NAMES[offer.source]}</Text>
                   {offer.price ? <Text style={styles.offerPrice}>{offer.price}</Text> : null}
-                  <Ionicons name="open-outline" size={18} color={COLORS.accent} />
+                  <Ionicons name="open-outline" size={18} color={theme.accent} />
                 </Pressable>
               ))}
             </View>
@@ -202,7 +208,7 @@ export default function ConcertDetail() {
                       longitude: concert.longitude as number,
                     }}
                     title={concert.venue}
-                    pinColor={COLORS.accent}
+                    pinColor={theme.accent}
                   />
                 </MapView>
               )}
@@ -211,11 +217,11 @@ export default function ConcertDetail() {
 
               <View style={styles.mapButtons}>
                 <Pressable style={styles.mapButton} onPress={() => Linking.openURL(appleUrl)}>
-                  <Ionicons name="navigate" size={16} color={COLORS.accent} />
+                  <Ionicons name="navigate" size={16} color={theme.accent} />
                   <Text style={styles.mapButtonText}>Apple Maps</Text>
                 </Pressable>
                 <Pressable style={styles.mapButton} onPress={() => Linking.openURL(googleUrl)}>
-                  <Ionicons name="map" size={16} color={COLORS.accent} />
+                  <Ionicons name="map" size={16} color={theme.accent} />
                   <Text style={styles.mapButtonText}>Google Maps</Text>
                 </Pressable>
               </View>
@@ -232,7 +238,6 @@ export default function ConcertDetail() {
               ) : null}
             </View>
           )}
-
         </View>
       </ScrollView>
 
@@ -243,114 +248,128 @@ export default function ConcertDetail() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { alignItems: 'center', justifyContent: 'center' },
-  back: {
-    position: 'absolute',
-    left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  body: { padding: 20 },
-  date: {
-    color: COLORS.accent,
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  artist: {
-    color: COLORS.text,
-    fontSize: 34,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-    marginTop: 6,
-  },
-  venue: { color: COLORS.muted, fontSize: 18, marginTop: 4 },
-  goingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  going: { color: COLORS.muted, fontSize: 15, flexShrink: 1, marginRight: 12 },
-  actions: { flexDirection: 'row', gap: 12, marginTop: 20 },
-  buy: {
-    flex: 1,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: COLORS.text,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buyText: { color: COLORS.white, fontSize: 15, fontWeight: '700', paddingHorizontal: 16 },
-  offers: { marginTop: 16, backgroundColor: COLORS.surface, borderRadius: 20, padding: 16 },
-  offersTitle: {
-    color: COLORS.muted,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  offerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-  offerName: { flex: 1, color: COLORS.text, fontSize: 16, fontWeight: '600' },
-  offerPrice: { color: COLORS.muted, fontSize: 15 },
-  shareBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  segmented: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: 4,
-    marginTop: 28,
-    marginBottom: 20,
-  },
-  segment: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
-  segmentActive: {
-    backgroundColor: COLORS.white,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  segmentText: { color: COLORS.muted, fontSize: 14, fontWeight: '600' },
-  segmentTextActive: { color: COLORS.text },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    gap: 16,
-  },
-  infoRowLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
-  infoLabel: { color: COLORS.muted, fontSize: 15 },
-  infoValue: { color: COLORS.text, fontSize: 15, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
-  paragraph: { color: COLORS.text, fontSize: 16, lineHeight: 24, marginTop: 16 },
-  map: { width: '100%', height: 240, borderRadius: 20, marginBottom: 16 },
-  placeName: { color: COLORS.text, fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
-  muted: { color: COLORS.muted, fontSize: 15, marginTop: 4 },
-  mapButtons: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  mapButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: COLORS.accentSoft,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  mapButtonText: { color: COLORS.accent, fontSize: 14, fontWeight: '700' },
-  sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700', marginTop: 28 },
-  seatmap: { width: '100%', height: 280, marginTop: 12, backgroundColor: COLORS.surface, borderRadius: 16 },
-});
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    center: { alignItems: 'center', justifyContent: 'center' },
+    back: {
+      position: 'absolute',
+      left: 16,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255,255,255,0.92)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    body: { padding: 20 },
+    date: {
+      color: theme.accent,
+      fontSize: 13,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    artist: {
+      color: COLORS.text,
+      fontSize: 34,
+      fontWeight: '800',
+      letterSpacing: -0.8,
+      marginTop: 6,
+    },
+    venue: { color: COLORS.muted, fontSize: 18, marginTop: 4 },
+    goingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 20,
+    },
+    going: { color: COLORS.muted, fontSize: 15, flexShrink: 1, marginRight: 12 },
+    goingActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    actions: { flexDirection: 'row', gap: 12, marginTop: 20 },
+    buy: {
+      flex: 1,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: COLORS.text,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buyText: { color: COLORS.white, fontSize: 15, fontWeight: '700', paddingHorizontal: 16 },
+    offers: { marginTop: 16, backgroundColor: COLORS.surface, borderRadius: 20, padding: 16 },
+    offersTitle: {
+      color: COLORS.muted,
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    offerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
+    offerName: { flex: 1, color: COLORS.text, fontSize: 16, fontWeight: '600' },
+    offerPrice: { color: COLORS.muted, fontSize: 15 },
+    shareBtn: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: COLORS.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    segmented: {
+      flexDirection: 'row',
+      backgroundColor: COLORS.surface,
+      borderRadius: 14,
+      padding: 4,
+      marginTop: 28,
+      marginBottom: 20,
+    },
+    segment: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
+    segmentActive: {
+      backgroundColor: COLORS.white,
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 2 },
+    },
+    segmentText: { color: COLORS.muted, fontSize: 14, fontWeight: '600' },
+    segmentTextActive: { color: COLORS.text },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      gap: 16,
+    },
+    infoRowLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
+    infoLabel: { color: COLORS.muted, fontSize: 15 },
+    infoValue: {
+      color: COLORS.text,
+      fontSize: 15,
+      fontWeight: '600',
+      flexShrink: 1,
+      textAlign: 'right',
+    },
+    paragraph: { color: COLORS.text, fontSize: 16, lineHeight: 24, marginTop: 16 },
+    map: { width: '100%', height: 240, borderRadius: 20, marginBottom: 16 },
+    placeName: { color: COLORS.text, fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
+    muted: { color: COLORS.muted, fontSize: 15, marginTop: 4 },
+    mapButtons: { flexDirection: 'row', gap: 10, marginTop: 16 },
+    mapButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: theme.accentSoft,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 20,
+    },
+    mapButtonText: { color: theme.accent, fontSize: 14, fontWeight: '700' },
+    sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700', marginTop: 28 },
+    seatmap: {
+      width: '100%',
+      height: 280,
+      marginTop: 12,
+      backgroundColor: COLORS.surface,
+      borderRadius: 16,
+    },
+  });

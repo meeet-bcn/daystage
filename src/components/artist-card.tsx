@@ -5,9 +5,13 @@ import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native
 import { Chip } from '@/components/chip';
 import type { ArtistLinkKind } from '@/data/musicbrainz';
 import { useArtistInfo } from '@/hooks/use-artist-info';
-import { COLORS } from '@/theme';
+import { useThemedStyles } from '@/hooks/use-theme';
+import { COLORS, Theme } from '@/theme';
 
-const LINKS: Record<ArtistLinkKind, { label: string; icon: ComponentProps<typeof Ionicons>['name'] }> = {
+const LINKS: Record<
+  ArtistLinkKind,
+  { label: string; icon: ComponentProps<typeof Ionicons>['name'] }
+> = {
   spotify: { label: 'Spotify', icon: 'musical-notes' },
   apple: { label: 'Apple Music', icon: 'logo-apple' },
   youtube: { label: 'YouTube', icon: 'logo-youtube' },
@@ -22,6 +26,7 @@ type Props = { eventName: string; genre: string };
 
 /** "Sobre el artista": datos de MusicBrainz. No pinta nada si no se encuentra. */
 export function ArtistCard({ eventName, genre }: Props) {
+  const styles = useThemedStyles(makeStyles);
   const { info, loading } = useArtistInfo(eventName, genre);
 
   if (loading) {
@@ -70,35 +75,36 @@ export function ArtistCard({ eventName, genre }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  loading: { paddingVertical: 28 },
-  card: { marginTop: 28 },
-  sectionTitle: {
-    color: COLORS.muted,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  name: {
-    color: COLORS.text,
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    marginTop: 8,
-  },
-  facts: { color: COLORS.muted, fontSize: 15, marginTop: 2 },
-  genres: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
-  genre: {
-    color: COLORS.accent,
-    backgroundColor: COLORS.accentSoft,
-    fontSize: 13,
-    fontWeight: '600',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  links: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
-  credit: { color: COLORS.muted, fontSize: 11, marginTop: 14 },
-});
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    loading: { paddingVertical: 28 },
+    card: { marginTop: 28 },
+    sectionTitle: {
+      color: COLORS.muted,
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    name: {
+      color: COLORS.text,
+      fontSize: 20,
+      fontWeight: '700',
+      letterSpacing: -0.3,
+      marginTop: 8,
+    },
+    facts: { color: COLORS.muted, fontSize: 15, marginTop: 2 },
+    genres: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
+    genre: {
+      color: theme.accent,
+      backgroundColor: theme.accentSoft,
+      fontSize: 13,
+      fontWeight: '600',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    links: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
+    credit: { color: COLORS.muted, fontSize: 11, marginTop: 14 },
+  });

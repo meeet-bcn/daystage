@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { SongRow } from '@/components/song-row';
 import type { ProfileSong } from '@/data/songs';
@@ -12,7 +12,16 @@ import { COLORS } from '@/theme';
  * Tarjeta de una canción con su fragmento y el enlace a Apple Music: la del
  * perfil y la del artista en el detalle de un concierto.
  */
-export function SongCard({ song, title }: { song: ProfileSong; title?: string }) {
+export function SongCard({
+  song,
+  title,
+  style,
+}: {
+  song: ProfileSong;
+  title?: string;
+  /** Para teñirla (p. ej. cristal sobre el fondo del perfil). */
+  style?: StyleProp<ViewStyle>;
+}) {
   const preview = useSongPreview();
   const { stop } = preview;
 
@@ -20,7 +29,7 @@ export function SongCard({ song, title }: { song: ProfileSong; title?: string })
   useFocusEffect(useCallback(() => stop, [stop]));
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, style]}>
       {title ? <Text style={styles.title}>{title}</Text> : null}
       <SongRow
         song={song}

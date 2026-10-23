@@ -16,7 +16,11 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="concert/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="edit-profile" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="edit-profile"
+            options={{ headerShown: false, presentation: 'modal' }}
+          />
           <Stack.Screen
             name="calendar"
             options={{

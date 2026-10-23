@@ -1,7 +1,12 @@
-// Iconos de la barra de pestañas que no existen como SF Symbol ni en Ionicons:
-// la casa de Inicio (sin puerta) y el imagotipo de meeet in (dos círculos que
-// se encuentran). Cada uno en versión normal (trazo) y seleccionada (relleno),
-// a 1x, 2x y 3x. Son negros sobre transparente: la barra los tiñe (template).
+// Iconos de la barra de pestañas, como PNG: la casa de Inicio (sin puerta),
+// el imagotipo de meeet in (dos círculos que se encuentran) y, desde la fuente
+// de Ionicons, las estrellas de Descubrir y el usuario de Perfil. Cada uno en
+// versión normal (trazo) y seleccionada (relleno), a 1x, 2x y 3x. Son negros
+// sobre transparente: la barra los tiñe (template).
+//
+// Los de Ionicons van como PNG y no con NativeTabs.Trigger.VectorIcon porque
+// este se carga de forma asíncrona: si el seleccionado llega antes que el
+// normal, react-native-screens da un error de render.
 //
 // Uso: swift scripts/generate-tab-icons.swift
 
@@ -46,6 +51,28 @@ func circles(_ ctx: CGContext, filled: Bool) {
   }
 }
 
+// Fuente de Ionicons de @expo/vector-icons y el código de cada glifo (Ionicons.json)
+let IONICONS = "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf"
+let GLYPH_SIZE: CGFloat = 24 // el tamaño al que pinta VectorIcon
+
+func ionicon(_ ctx: CGContext, _ codepoint: UInt32) {
+  let url = URL(fileURLWithPath: IONICONS) as CFURL
+  let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url) as! [CTFontDescriptor]
+  let font = CTFontCreateWithFontDescriptor(descriptors[0], GLYPH_SIZE, nil)
+  var chars = Array(String(UnicodeScalar(codepoint)!).utf16)
+  var glyph = CGGlyph(0)
+  CTFontGetGlyphsForCharacters(font, &chars, &glyph, 1)
+  // Centrado por la caja real del glifo; el contexto está volteado (origen arriba)
+  var box = CGRect.zero
+  CTFontGetBoundingRectsForGlyphs(font, .horizontal, &glyph, &box, 1)
+  ctx.saveGState()
+  ctx.translateBy(x: (SIZE - box.width) / 2 - box.minX, y: (SIZE + box.height) / 2 + box.minY)
+  ctx.scaleBy(x: 1, y: -1)
+  var origin = CGPoint.zero
+  CTFontDrawGlyphs(font, &glyph, &origin, 1, ctx)
+  ctx.restoreGState()
+}
+
 func render(_ name: String, scale: CGFloat, draw: (CGContext) -> Void) throws {
   let px = Int(SIZE * scale)
   let ctx = CGContext(
@@ -70,5 +97,9 @@ for scale: CGFloat in [1, 2, 3] {
   try render("home-fill", scale: scale) { house($0, filled: true) }
   try render("meeet-in", scale: scale) { circles($0, filled: false) }
   try render("meeet-in-fill", scale: scale) { circles($0, filled: true) }
+  try render("discover", scale: scale) { ionicon($0, 0xF58D) } // sparkles-outline
+  try render("discover-fill", scale: scale) { ionicon($0, 0xF58C) } // sparkles
+  try render("profile", scale: scale) { ionicon($0, 0xF4AA) } // person-circle-outline
+  try render("profile-fill", scale: scale) { ionicon($0, 0xF4A9) } // person-circle
 }
 print("Iconos de pestaña generados en \(OUT_DIR)")

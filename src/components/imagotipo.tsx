@@ -39,7 +39,13 @@ export function Imagotipo({ height }: { height: number }) {
       <View style={[styles.circle, circle, styles.peach, { left: OFFSET_X * r, top: 0 }]} />
       {/* El lavanda recorta una copia del melocotón: lo que queda dentro es el cruce */}
       <View
-        style={[styles.circle, circle, styles.lavender, styles.clip, { left: 0, top: OFFSET_Y * r }]}
+        style={[
+          styles.circle,
+          circle,
+          styles.lavender,
+          styles.clip,
+          { left: 0, top: OFFSET_Y * r },
+        ]}
       >
         <View
           style={[styles.circle, circle, styles.cross, { left: OFFSET_X * r, top: -OFFSET_Y * r }]}

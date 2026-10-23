@@ -15,6 +15,7 @@ import { applyFilters, DEFAULT_FILTERS, Filters, genresOf } from '@/data/filters
 import { mergeConcerts } from '@/data/merge';
 import { splitPlans } from '@/data/plans';
 import { EMPTY_PROFILE, Profile } from '@/data/profile';
+import { DEFAULT_SETTINGS, Settings, withDefaults } from '@/data/settings';
 import { loadJSON, saveJSON, STORAGE_KEYS } from '@/data/storage';
 
 /** Mensaje del chat de un concierto. */
@@ -39,16 +40,36 @@ type AppState = {
    * pedir al bajar) y libera las fotos de la memoria. Al quitar las fechas.
    */
   trimConcerts: () => void;
+  /**
+   * Tirar hacia abajo en Inicio: vuelve a pedir la primera página y deja solo
+   * esa. Si falla, se queda la lista que había. Resuelve al terminar.
+   */
+  refreshConcerts: () => Promise<void>;
   isGoing: (id: string) => boolean;
   toggleGoing: (concert: Concert) => void;
+  /**
+   * El último "Meeet In!" que acabas de darle, para celebrarlo con brillos en
+   * su foto. `at` distingue un toque de otro; se limpia al acabar la animación.
+   */
+  celebration: { id: string; at: number } | null;
+  endCelebration: () => void;
   goingCount: (concert: Concert) => number;
   /** Todos los conciertos a los que has dicho "Voy", también los ya pasados. */
   plans: Concert[];
+  /** Lista de deseos (corazón): conciertos que te interesan, por fecha. Guarda copia como los planes. */
+  wishlist: Concert[];
+  isWished: (id: string) => boolean;
+  toggleWish: (concert: Concert) => void;
   /** Planes que aún no han pasado, el más cercano primero (pestaña meeet in). */
   myConcerts: Concert[];
 
   profile: Profile;
   updateProfile: (changes: Partial<Profile>) => void;
+
+  settings: Settings;
+  updateSettings: (changes: Partial<Settings>) => void;
+  /** Ajustes › Borrar mis datos: planes, perfil, ajustes y chats de este móvil. */
+  clearUserData: () => void;
 
   filters: Filters;
   setFilters: (update: (current: Filters) => Filters) => void;
@@ -61,8 +82,9 @@ type AppState = {
    * Chat de cada concierto (se abre desde Meeet in). Aún no hay servidor: los
    * mensajes son solo los tuyos y viven en memoria hasta cerrar la app.
    */
-  messagesFor: (id: string) => ChatMessage[];
-  sendMessage: (id: string, text: string) => void;
+  /** Mensajes de una sala de chat (`chatRoomKey`: general o de un idioma). */
+  messagesFor: (room: string) => ChatMessage[];
+  sendMessage: (room: string, text: string) => void;
 
   /** Mensajes de chat sin leer por concierto. Aún no hay chat real: siempre vacío. */
   unreadCount: (id: string) => number;
@@ -93,10 +115,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [myEvents, setMyEvents] = useState<Record<string, Concert>>(() =>
     loadJSON(STORAGE_KEYS.plans, {})
   );
+  const [wishes, setWishes] = useState<Record<string, Concert>>(() =>
+    loadJSON(STORAGE_KEYS.wishlist, {})
+  );
   const [profile, setProfile] = useState<Profile>(() => ({
     ...EMPTY_PROFILE,
     ...loadJSON(STORAGE_KEYS.profile, {}),
   }));
+  const [settings, setSettings] = useState<Settings>(() =>
+    withDefaults(loadJSON(STORAGE_KEYS.settings, {}))
+  );
+  const [celebration, setCelebration] = useState<{ id: string; at: number } | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [unread] = useState<Record<string, number>>({});
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
@@ -156,16 +185,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
     Image.clearMemoryCache();
   }, []);
 
+  const refreshConcerts = useCallback(async () => {
+    // Una página que estuviera llegando ya no vale
+    generation.current += 1;
+    const requestedIn = generation.current;
+    requesting.current = true;
+    try {
+      const result = await fetchConcerts({ page: 0 });
+      if (requestedIn !== generation.current) return;
+      const until = lastDate(result.concerts);
+      firstPage.current = {
+        ids: new Set(result.concerts.map((c) => c.id)),
+        hasMore: result.hasMore,
+        until,
+      };
+      setRaw(result.concerts);
+      setNextPage(1);
+      setHasMore(result.hasMore);
+      setLoadedUntil(until);
+      setError(null);
+    } catch (e) {
+      console.warn('[refresh] No se han podido recargar los conciertos:', e);
+    } finally {
+      if (requestedIn === generation.current) requesting.current = false;
+    }
+  }, []);
+
   const concerts = useMemo(() => mergeConcerts(raw), [raw]);
 
   useEffect(() => saveJSON(STORAGE_KEYS.plans, myEvents), [myEvents]);
+  useEffect(() => saveJSON(STORAGE_KEYS.wishlist, wishes), [wishes]);
   useEffect(() => saveJSON(STORAGE_KEYS.profile, profile), [profile]);
+  useEffect(() => saveJSON(STORAGE_KEYS.settings, settings), [settings]);
 
   const value = useMemo<AppState>(() => {
     const goingCount = (c: Concert) => c.going + (myEvents[c.id] ? 1 : 0);
     const unreadCount = (id: string) => unread[id] ?? 0;
     // Datos frescos de la API si el concierto sigue en ella; si no, la copia
-    const plans = Object.values(myEvents).map((saved) => concerts.find((c) => c.id === saved.id) ?? saved);
+    const fresh = (saved: Concert) => concerts.find((c) => c.id === saved.id) ?? saved;
+    const plans = Object.values(myEvents).map(fresh);
+    const wishlist = Object.values(wishes)
+      .map(fresh)
+      .sort((a, b) => (a.startsAt ?? Infinity) - (b.startsAt ?? Infinity));
     const myConcerts = splitPlans(plans).upcoming;
 
     return {
@@ -180,17 +241,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadedUntil,
       addConcerts,
       trimConcerts,
+      refreshConcerts,
       isGoing: (id) => id in myEvents,
-      toggleGoing: (concert) =>
+      toggleGoing: (concert) => {
+        const joining = !(concert.id in myEvents);
         setMyEvents(({ [concert.id]: existing, ...rest }) =>
           existing ? rest : { ...rest, [concert.id]: concert }
-        ),
+        );
+        setCelebration(joining ? { id: concert.id, at: Date.now() } : null);
+      },
+      celebration,
+      endCelebration: () => setCelebration(null),
       goingCount,
       plans,
       myConcerts,
+      wishlist,
+      isWished: (id) => id in wishes,
+      toggleWish: (concert) =>
+        setWishes(({ [concert.id]: existing, ...rest }) =>
+          existing ? rest : { ...rest, [concert.id]: concert }
+        ),
 
       profile,
       updateProfile: (changes) => setProfile((current) => ({ ...current, ...changes })),
+
+      settings,
+      updateSettings: (changes) => setSettings((current) => ({ ...current, ...changes })),
+      clearUserData: () => {
+        setMyEvents({});
+        setWishes({});
+        setProfile(EMPTY_PROFILE);
+        setSettings(DEFAULT_SETTINGS);
+        setMessages({});
+        setFilters(DEFAULT_FILTERS);
+      },
 
       filters,
       setFilters,
@@ -198,10 +282,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       visibleConcerts: applyFilters(concerts, filters, goingCount),
       genres: genresOf(concerts),
 
-      messagesFor: (id) => messages[id] ?? [],
-      sendMessage: (id, text) => {
+      messagesFor: (room) => messages[room] ?? [],
+      sendMessage: (room, text) => {
         const message = { id: `${Date.now()}`, text, sentAt: Date.now() };
-        setMessages((current) => ({ ...current, [id]: [...(current[id] ?? []), message] }));
+        setMessages((current) => ({ ...current, [room]: [...(current[room] ?? []), message] }));
       },
 
       unreadCount,
@@ -218,8 +302,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadPage,
     addConcerts,
     trimConcerts,
+    refreshConcerts,
     myEvents,
+    wishes,
     profile,
+    settings,
+    celebration,
     filters,
     unread,
     messages,

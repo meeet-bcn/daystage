@@ -13,7 +13,8 @@ import { SearchBar } from '@/components/search-bar';
 import { SongRow } from '@/components/song-row';
 import { ProfileSong, searchSongs } from '@/data/songs';
 import { useSongPreview } from '@/hooks/use-song-preview';
-import { COLORS } from '@/theme';
+import { useTheme, useThemedStyles } from '@/hooks/use-theme';
+import { COLORS, Theme } from '@/theme';
 
 // Ajustes de la búsqueda
 const MIN_CHARS = 2;
@@ -41,6 +42,8 @@ export function SongPicker({ visible, onPick, onClose }: Props) {
 }
 
 function SongSearch({ onPick, onClose }: Omit<Props, 'visible'>) {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const [term, setTerm] = useState('');
   const [results, setResults] = useState<{ term: string; songs: ProfileSong[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +99,7 @@ function SongSearch({ onPick, onClose }: Omit<Props, 'visible'>) {
         keyboardDismissMode="on-drag"
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListHeaderComponent={loading ? <ActivityIndicator color={COLORS.accent} /> : null}
+        ListHeaderComponent={loading ? <ActivityIndicator color={theme.accent} /> : null}
         ListEmptyComponent={
           loading ? null : (
             <Text style={styles.empty}>
@@ -123,28 +126,29 @@ function SongSearch({ onPick, onClose }: Omit<Props, 'visible'>) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 14,
-  },
-  title: { color: COLORS.text, fontSize: 17, fontWeight: '700' },
-  cancel: { color: COLORS.accent, fontSize: 16, fontWeight: '700' },
-  search: { paddingHorizontal: 20, paddingBottom: 12 },
-  list: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
-  separator: { height: 14 },
-  empty: {
-    color: COLORS.muted,
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-    paddingHorizontal: 12,
-    paddingTop: 24,
-  },
-  credit: { color: COLORS.muted, fontSize: 12, textAlign: 'center', marginTop: 24 },
-});
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingTop: 18,
+      paddingBottom: 14,
+    },
+    title: { color: COLORS.text, fontSize: 17, fontWeight: '700' },
+    cancel: { color: theme.accent, fontSize: 16, fontWeight: '700' },
+    search: { paddingHorizontal: 20, paddingBottom: 12 },
+    list: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 },
+    separator: { height: 14 },
+    empty: {
+      color: COLORS.muted,
+      fontSize: 15,
+      lineHeight: 22,
+      textAlign: 'center',
+      paddingHorizontal: 12,
+      paddingTop: 24,
+    },
+    credit: { color: COLORS.muted, fontSize: 12, textAlign: 'center', marginTop: 24 },
+  });

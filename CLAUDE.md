@@ -27,15 +27,18 @@ src/
       descubrir.tsx         # Descubrir: recomendaciones según tus gustos (de momento, un placeholder)
       buscar.tsx            # Buscar (botón de búsqueda del sistema en la barra): conciertos cargados + búsqueda en las ticketeras
       meeet-in.tsx          # meeet in: próximos planes y acceso al chat, con su burbuja de no leídos
-      perfil.tsx            # Perfil estilo Instagram: nick, foto, meeet in / seguidores / seguidos, bio y cuadrícula de planes (pasados al 50 %)
+      perfil.tsx            # Perfil estilo Instagram: nick, foto, meeet in / seguidores / seguidos, bio, fondo y cuadrícula en tres columnas: Meeet in (próximos), Lista de deseos y Pasados
     concert/[id].tsx        # Detalle (fuera de las pestañas): hero, "Meeet In!", comprar entrada, compartir, fragmento de la canción más popular del artista, pestañas Información/Lugar (sin chat)
-    chat/[id].tsx           # Chat de un concierto, solo desde Meeet in: el evento y su fecha arriba (sin foto ni comprar) y los mensajes
+    chat/[id].tsx           # Chat de un concierto, solo desde Meeet in: el evento y su fecha arriba (sin foto ni comprar), salas General e Idioma (tu idioma principal)
+    settings.tsx            # Ajustes (Perfil › engranaje): idioma principal, privacidad, notificaciones, vibración, caché, borrar datos, información
     filters.tsx             # Hoja nativa (formSheet): ordenar, género, precio
     calendar.tsx            # Hoja del calendario: intervalo de días, con punto en los días con conciertos; al bajar por los meses pide más páginas y "Quitar fechas" vacía la caché (`trimConcerts`)
     language.tsx            # Hoja del idioma de la gente que quieres conocer (aún no filtra: no hay asistentes)
     edit-profile.tsx        # Modal de editar perfil: foto, nick (@, reglas tipo Instagram), nombre, pronombres, bio, canción y redes (Instagram, TikTok, X); solo se aplica al pulsar "Guardar"
   components/
     go-button.tsx           # Botón "Meeet In!" (antes "Voy"): confeti y háptica. Es el componente central de la marca
+    wish-button.tsx         # Corazón de la lista de deseos (junto a "Meeet In!" en Inicio y en el detalle)
+    meeet-in-burst.tsx      # Destellos al darle a "Meeet In!" (salen de la insignia de la foto)
     imagotipo.tsx           # Imagotipo de la marca (dos círculos), con Views. `ImagotipoAnimado`: los círculos se juntan en uno y se separan, en bucle (insignia "Meeet In!")
     chip.tsx                # Chip en píldora (filtros, opciones)
     search-bar.tsx          # Buscador en píldora (Inicio)
@@ -47,7 +50,8 @@ src/
     song-row.tsx            # Fila de canción: carátula, título, artista y play del fragmento
     song-picker.tsx         # Hoja para buscar en Apple Music y elegir la canción del perfil
     profile-song.tsx        # Tarjeta de la canción en Perfil, con el enlace a Apple Music
-    screen-title.tsx        # Título grande con el punto melocotón, para pantallas de pestaña
+    screen-title.tsx        # Título grande con el punto violeta, y ScreenSubtitle
+    screen-header.tsx       # Cabecera fija de cristal de las pestañas (título y, si hace falta, buscador): la lista pasa por debajo
     app-tabs.tsx            # NativeTabs (iOS/Android): Inicio · Descubrir · Meeet in · Perfil, con el badge de no leídos
     app-tabs.web.tsx        # Barra de pestañas para web (expo-router/ui), con un punto rojo como badge
     splash-overlay*.tsx     # Relevo del splash nativo con fundido (en web no hace nada)
@@ -69,6 +73,7 @@ src/
     filters.ts              # Tipos y opciones de filtros + applyFilters() (funciones puras)
     app-context.tsx         # AppProvider / useApp(): conciertos, "Voy" (guarda copia del concierto), plans, myConcerts, profile, filtros, no leídos
     plans.ts                # isPast / splitPlans / companionsLabel: próximos frente a ya pasados ("X personas van contigo")
+    settings.ts             # Ajustes (tipo, valores por defecto, withDefaults) y salas de chat (chatRoomKey)
     profile.ts              # Tipo Profile, límites y reglas del nick (normalizeNick, nickError)
     profile-photo.ts        # Elegir foto (expo-image-picker, recorte cuadrado) y guardarla en documentos (expo-file-system)
     storage.ts              # Persistencia local (expo-sqlite/kv-store): planes y perfil, claves versionadas (`meeet.plans.v1`…)
@@ -90,18 +95,27 @@ scripts/generate-tab-icons.swift      # Iconos propios de la barra (casa sin pue
 - Conciertos por páginas de 20 (`PAGE_SIZE` en `ticketmaster.ts`), por fecha: Inicio pide la siguiente con `loadMore` al acercarse al final (`onEndReached`). Los filtros se aplican sobre lo cargado; si dejan la lista corta, FlatList sigue pidiendo páginas solo. Barcelona tiene ~130 conciertos de música en Ticketmaster (con el área metropolitana solo salen 3 más).
 - Buscar no se queda en lo cargado: también pregunta a las ticketeras (`keyword`) y suma lo que encuentra al estado (`addConcerts`) para que el detalle pueda abrirlo.
 - Fotos con `expo-image` (caché en memoria y disco), salvo en `tab-avatar.tsx`, que necesita la `Image` de React Native para capturarla.
-- El chat de un concierto solo se abre desde la pestaña Meeet in (`/chat/[id]`), nunca desde el detalle. Solo lleva el evento y su fecha. Aún no hay servidor: los mensajes (`messagesFor`/`sendMessage`) viven en memoria y solo los ve quien los escribe; la pantalla lo avisa.
+- El chat de un concierto solo se abre desde la pestaña Meeet in (`/chat/[id]`), nunca desde el detalle. Solo lleva el evento y su fecha. Tiene dos salas: "General" y la de tu idioma principal (`settings.mainLanguage`); cada idioma es una sala distinta (`chatRoomKey`). Aún no hay servidor: los mensajes (`messagesFor`/`sendMessage`) viven en memoria y solo los ve quien los escribe; la pantalla lo avisa.
 - El botón y la insignia de "vas a un concierto" dicen "Meeet In!" (internamente sigue siendo `isGoing`/`toggleGoing`). En frases normales ("¡Voy a …! ¿Te vienes?") se puede seguir usando "voy".
 - Marco de "Voy": pie de foto de `FOOTER_HEIGHT` pt con el degradado de la marca girando, dentro de la foto y bajo la insignia "Voy" (si cambias su posición en `event-image.tsx`, ajusta el alto). Se probaron trazos finos arriba/abajo y en los 4 lados. Sin efecto holográfico (se probó tinte, reflejo y brillo y se descartó). Respeta "Reducir movimiento". Activo en Inicio y en el detalle.
 - Datos del usuario (planes, perfil) se guardan en el móvil con `storage.ts`: se cargan de forma síncrona en el estado inicial y se guardan en un `useEffect`. Si cambias la forma de un dato guardado, sube la versión de su clave.
 - Canción del perfil: se busca con la API de búsqueda de iTunes (`songs.ts`, gratis y sin clave) y se oye su fragmento de 30 s con `expo-audio` (`use-song-preview.ts`, un reproductor por pantalla). Condiciones de Apple: el fragmento solo en streaming, nunca descargado, y siempre con el enlace "Escuchar en Apple Music" al lado. La búsqueda solo se lanza mientras escribes en el selector (con espera de 350 ms). En Perfil, la música se para al cambiar de pestaña.
 - Redes sociales del perfil: se guarda solo el usuario (sin "@" ni URL; `normalizeHandle` acepta el enlace pegado) y el enlace se construye con `SOCIAL_NETWORKS` en `profile.ts`. Para añadir una red, añádela ahí y a `SOCIAL_ORDER`. Se abren con el enlace web (https), que salta a la app si está instalada.
 - Foto de perfil: la URI del selector está en la caché y puede desaparecer. Solo se guarda en el perfil tras copiarla a `Paths.document` (`saveProfilePhoto`), con un nombre nuevo cada vez para que no se vea la foto vieja en caché. La foto anterior se borra.
-- La pestaña Perfil muestra tu foto en círculo: NativeTabs no recorta, así que `tab-avatar.tsx` pinta el círculo oculto bajo las pestañas y lo captura en PNG (`react-native-view-shot`), normal y con aro violeta al seleccionarla. Se guarda en `profile.tabIcons` con la foto y el tamaño de los que sale, y se regenera si alguno no coincide (`currentTabIcons`). Sin foto, icono del sistema. Requiere `renderingMode="original"` (si no, iOS lo tiñe) y pasar `scale` en la fuente (si no, sale a tamaño de píxel).
-- Iconos de la barra en iOS: todos como imagen (PNG propios de `assets/images/tabs` o `NativeTabs.Trigger.VectorIcon` de Ionicons), nunca SF Symbols mezclados: el símbolo coloca su etiqueta más baja que las imágenes. Inicio = casa sin puerta, Descubrir = las `sparkles` de Ionicons (las de "Recomendaciones para ti"), Meeet in = imagotipo de dos círculos, Perfil = tu foto o `person-circle`.
+- La pestaña Perfil muestra tu foto en círculo: NativeTabs no recorta, así que `tab-avatar.tsx` pinta el círculo oculto bajo las pestañas y lo captura en PNG (`react-native-view-shot`), normal y con un aro del acento del tema al seleccionarla. Se guarda en `profile.tabIcons` con la foto, el tamaño y el color del aro de los que sale, y se regenera si alguno no coincide (`currentTabIcons`): al cambiar de fondo, el aro cambia de color. Sin foto, icono del sistema. Requiere `renderingMode="original"` (si no, iOS lo tiñe) y pasar `scale` en la fuente (si no, sale a tamaño de píxel).
+- Iconos de la barra en iOS: todos como imagen (PNG de `assets/images/tabs`), nunca SF Symbols mezclados: el símbolo coloca su etiqueta más baja que las imágenes. Inicio = casa sin puerta, Descubrir = las `sparkles` de Ionicons (las de "Recomendaciones para ti"), Meeet in = imagotipo de dos círculos, Perfil = tu foto o `person-circle`.
 - Canción del artista en el detalle: `fetchTopSong` coge el primer resultado de iTunes del artista principal (iTunes ordena por relevancia, no da la popularidad). Si hay homónimos (varios `artistId` con ese nombre), `pickTopSong` devuelve null.
 - Los nombres de pestaña y los títulos de pantalla van con mayúscula inicial, también "Meeet in" (Inicio · Descubrir · Meeet in · Perfil). El logo, en cambio, siempre en minúscula: `meeet.`.
 - En Inicio, el logo, el lema y el aviso beta van centrados (también el logo encogido).
+- Las demás pestañas (Descubrir, Meeet in, Perfil, Buscar) llevan `ScreenHeader`: cabecera fija de cristal (blur + blanco al 45 %, como Inicio), puesta después de la lista, que recibe su alto como `paddingTop`. En Perfil ese margen va dentro del bloque del degradado, para que el fondo se vea a través del cristal. El subtítulo (`ScreenSubtitle`) va en la lista y se desplaza.
+- Recargar Inicio: suena `assets/sounds/refresh.wav` (generado con `scripts/generate-sounds.py`; ajuste "Sonidos") y vibra; al terminar, el imagotipo crece y se desvanece mientras estallan los destellos (`SparkleBurst`), y el hueco se cierra con `LayoutAnimation`.
+- Inicio y el imagotipo animado (`ImagotipoAnimado`): sale en la primera carga (en el centro) y al tirar hacia abajo para recargar. El "tirar para recargar" es propio (`onScrollEndDrag` + `refreshConcerts`), porque el RefreshControl de iOS solo admite su ruedecita: el imagotipo va detrás de la lista y asoma en el hueco. Tocar Inicio estando en Inicio sube arriba (`tabPress`).
+- Al darle a "Meeet In!" (`toggleGoing`), `celebration` guarda ese concierto: su foto hace entrar la insignia con rebote, un reflejo y destellos (`MeeetInBurst`), y al acabar se limpia (`endCelebration`). Con "Reducir movimiento", sin destellos.
+- Ajustes en `storage.ts` (`meeet.settings.v1`), cargados con `withDefaults` para que los campos nuevos tomen su valor inicial. Privacidad y notificaciones aún solo se guardan (no hay cuentas ni notificaciones): la pantalla lo dice. La vibración sí se aplica (`GoButton`).
+- Lista de deseos (`wishlist`, `toggleWish`): conciertos que te interesan aunque no vayas. Como los planes, guarda una copia del concierto (`meeet.wishlist.v1`) para que no desaparezca al pasar.
+- Fondo del perfil (`profile.background`, `PROFILE_BACKGROUNDS` en `theme.ts`): pasteles en degradado suave, armónicos o complementarios. Se pinta detrás de la cabecera de Perfil (con un relleno del color de arriba para cuando tiras hacia abajo) y es público: lo verá quien entre en tu perfil cuando haya perfiles de otros.
+- Todas las pestañas llevan `disableAutomaticContentInsets`: cada pantalla pone su margen superior, y si no, NativeTabs suma otra vez la zona segura (en Perfil se veía una franja blanca sobre el fondo). Si añades una pestaña, pónselo también.
+- Iconos de la barra: siempre PNG de `generate-tab-icons.swift` (los de Ionicons se dibujan desde su fuente). `NativeTabs.Trigger.VectorIcon` se carga de forma asíncrona y, si el icono seleccionado llega antes que el normal, react-native-screens da un error de render.
 - Los títulos de pestaña (`ScreenTitle`) ocupan la misma caja que el logo de Inicio encogido (`TITLE_SIZE`, `TITLE_LINE_HEIGHT`, `TITLE_TOP`), así que quedan a la misma altura. Inicio importa esas constantes: cámbialas solo ahí.
 - Hojas `formSheet` en iOS: si el primer hijo nativo de la pantalla es (o contiene) un ScrollView, su contenido no se pinta. Pon delante otra vista; una vacía necesita `collapsable={false}`, porque si no React Native la elimina al aplanar. Tampoco uses `zIndex` en una capa superpuesta: también deja la lista en blanco. Para una cabecera fija de cristal sobre una lista, usa `stickyHeaderIndices={[0]}` (ver `calendar.tsx`).
 - En pantallas cuyo margen superior pones tú (`ScreenTitle`, fotos a sangre), añade `contentInsetAdjustmentBehavior="never"` al ScrollView/FlatList: si no, iOS suma otra vez la zona segura (~59 pt) y el contenido baja.
@@ -139,6 +153,8 @@ En prosa, "MEEET" o "meeet". Nunca "Meet" ni "Meeet".
 | `surface`    | `#F5F5F7` | Placeholders de imagen, controles segmentados, chips |
 | `line`       | `#E5E5EA` | Separadores hairline |
 | `background` / `white` | `#FFFFFF` | Fondo |
+
+**Tema según el fondo del perfil:** el acento de toda la app (botones, chips activos, fechas, pestañas, indicadores, pie de "Meeet In!", punto de los títulos) sale del fondo que eliges en Editar perfil (`PROFILE_BACKGROUNDS[...].accent/accentSoft`). En código, **nunca `COLORS.accent` ni `COLORS.accentSoft` en pantallas o componentes**: usa `useTheme()` y, en estilos, `const makeStyles = (theme: Theme) => StyleSheet.create({...})` + `useThemedStyles(makeStyles)`. `COLORS.accent` (violeta de marca) solo para la identidad: punto del logotipo `meeet.` de Inicio, imagotipo, destellos, iconos y splash. Un fondo nuevo necesita un acento con contraste ≥ 3:1 sobre blanco (lo comprueba `theme.test.ts`).
 
 No escribas colores hex en las pantallas. Si necesitas uno nuevo, añádelo a `COLORS`. Las únicas excepciones admitidas son los blancos translúcidos de los efectos de cristal (`rgba(255,255,255,0.45–0.94)`).
 

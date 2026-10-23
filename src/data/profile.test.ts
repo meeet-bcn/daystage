@@ -1,11 +1,14 @@
 import { describe, expect, it } from '@jest/globals';
 
 import {
+  formatPronouns,
   handleError,
   nickError,
   normalizeHandle,
   normalizeNick,
+  parsePronouns,
   SOCIAL_NETWORKS,
+  togglePronoun,
 } from '@/data/profile';
 
 describe('normalizeNick', () => {
@@ -76,5 +79,24 @@ describe('SOCIAL_NETWORKS', () => {
     expect(SOCIAL_NETWORKS.instagram.url('jordi')).toBe('https://www.instagram.com/jordi');
     expect(SOCIAL_NETWORKS.tiktok.url('jordi')).toBe('https://www.tiktok.com/@jordi');
     expect(SOCIAL_NETWORKS.x.url('jordi')).toBe('https://x.com/jordi');
+  });
+});
+
+describe('pronombres', () => {
+  it('se eligen, se quitan y como mucho tres', () => {
+    let picked: string[] = [];
+    picked = togglePronoun(picked, 'ella');
+    picked = togglePronoun(picked, 'she/her');
+    expect(picked).toEqual(['ella', 'she/her']);
+    expect(togglePronoun(picked, 'ella')).toEqual(['she/her']);
+    const three = togglePronoun(picked, 'elle');
+    expect(togglePronoun(three, 'él')).toEqual(three);
+  });
+
+  it('se guardan unidos y se leen de vuelta, descartando lo que no es una opción', () => {
+    expect(formatPronouns(['ella', 'she/her'])).toBe('ella · she/her');
+    expect(parsePronouns('ella · she/her')).toEqual(['ella', 'she/her']);
+    expect(parsePronouns('')).toEqual([]);
+    expect(parsePronouns('lo que escribí antes')).toEqual([]);
   });
 });

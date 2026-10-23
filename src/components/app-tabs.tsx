@@ -1,11 +1,12 @@
-import { Ionicons } from '@expo/vector-icons';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 import { currentTabIcons, TabAvatarMaker, tabIconSources } from '@/components/tab-avatar';
 import { useApp } from '@/data/app-context';
+import { useTheme } from '@/hooks/use-theme';
 import { COLORS } from '@/theme';
 
 export default function AppTabs() {
+  const theme = useTheme();
   const { unreadTotal, profile } = useApp();
   // Solo si las miniaturas son de la foto actual (si no, aún se están generando)
   const avatar = currentTabIcons(profile);
@@ -14,20 +15,23 @@ export default function AppTabs() {
     <>
       {/* Antes que las pestañas, para que queden encima y lo tapen */}
       <TabAvatarMaker />
+      {/* disableAutomaticContentInsets en cada pestaña: cada pantalla pone ya su margen
+          superior (ScreenTitle, cabecera de Inicio); si no, iOS suma otra vez la zona segura */}
       <NativeTabs
         backgroundColor={COLORS.background}
-        tintColor={COLORS.accent}
-        iconColor={{ default: COLORS.muted, selected: COLORS.accent }}
-        indicatorColor={COLORS.accentSoft}
+        tintColor={theme.accent}
+        iconColor={{ default: COLORS.muted, selected: theme.accent }}
+        indicatorColor={theme.accentSoft}
         badgeBackgroundColor={COLORS.danger}
         labelStyle={{
           default: { color: COLORS.muted },
-          selected: { color: COLORS.accent },
+          selected: { color: theme.accent },
         }}
       >
-        <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger name="index" disableAutomaticContentInsets>
           <NativeTabs.Trigger.Label>Inicio</NativeTabs.Trigger.Label>
-          {/* Casa sin puerta y el imagotipo de meeet in: scripts/generate-tab-icons.swift */}
+          {/* Todos los iconos son PNG de scripts/generate-tab-icons.swift: VectorIcon se
+              carga de forma asíncrona y, si el seleccionado llega antes, la barra falla */}
           <NativeTabs.Trigger.Icon
             src={{
               default: require('@/assets/images/tabs/home.png'),
@@ -37,19 +41,19 @@ export default function AppTabs() {
           />
         </NativeTabs.Trigger>
 
-        <NativeTabs.Trigger name="descubrir">
+        <NativeTabs.Trigger name="descubrir" disableAutomaticContentInsets>
           <NativeTabs.Trigger.Label>Descubrir</NativeTabs.Trigger.Label>
           {/* Las mismas estrellas que la tarjeta "Recomendaciones para ti" */}
           <NativeTabs.Trigger.Icon
             src={{
-              default: <NativeTabs.Trigger.VectorIcon family={Ionicons} name="sparkles-outline" />,
-              selected: <NativeTabs.Trigger.VectorIcon family={Ionicons} name="sparkles" />,
+              default: require('@/assets/images/tabs/discover.png'),
+              selected: require('@/assets/images/tabs/discover-fill.png'),
             }}
             md="auto_awesome"
           />
         </NativeTabs.Trigger>
 
-        <NativeTabs.Trigger name="meeet-in">
+        <NativeTabs.Trigger name="meeet-in" disableAutomaticContentInsets>
           <NativeTabs.Trigger.Label>Meeet in</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon
             src={{
@@ -66,7 +70,7 @@ export default function AppTabs() {
           )}
         </NativeTabs.Trigger>
 
-        <NativeTabs.Trigger name="perfil">
+        <NativeTabs.Trigger name="perfil" disableAutomaticContentInsets>
           <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
           {/* Con foto, su miniatura circular en sus colores; si no, un icono genérico.
               Siempre imagen, no SF Symbol, como las demás: si no, su etiqueta queda más baja */}
@@ -79,10 +83,8 @@ export default function AppTabs() {
           ) : (
             <NativeTabs.Trigger.Icon
               src={{
-                default: (
-                  <NativeTabs.Trigger.VectorIcon family={Ionicons} name="person-circle-outline" />
-                ),
-                selected: <NativeTabs.Trigger.VectorIcon family={Ionicons} name="person-circle" />,
+                default: require('@/assets/images/tabs/profile.png'),
+                selected: require('@/assets/images/tabs/profile-fill.png'),
               }}
               md="account_circle"
             />
@@ -90,7 +92,7 @@ export default function AppTabs() {
         </NativeTabs.Trigger>
 
         {/* Botón de búsqueda del sistema: en iOS 26 va aparte, en un círculo a la derecha */}
-        <NativeTabs.Trigger name="buscar" role="search">
+        <NativeTabs.Trigger name="buscar" disableAutomaticContentInsets role="search">
           <NativeTabs.Trigger.Label>Buscar</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon md="search" />
         </NativeTabs.Trigger>

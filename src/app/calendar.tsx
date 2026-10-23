@@ -15,7 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '@/data/app-context';
 import { dateRangeLabel, dayStart, pickDay } from '@/data/filters';
-import { COLORS } from '@/theme';
+import { useTheme, useThemedStyles } from '@/hooks/use-theme';
+import { COLORS, Theme } from '@/theme';
 
 // Ajustes del calendario
 const MONTHS_AHEAD = 12; // Ticketmaster publica conciertos hasta con un año de antelación
@@ -45,6 +46,8 @@ function monthWeeks(year: number, month: number) {
 }
 
 export default function CalendarSheet() {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const {
     filters,
@@ -132,7 +135,7 @@ export default function CalendarSheet() {
                 <Text style={styles.subtitle}>
                   {range ? dateRangeLabel(range) : '¿Qué días estás en Barcelona?'}
                 </Text>
-                {loadingMore && <ActivityIndicator size="small" color={COLORS.accent} />}
+                {loadingMore && <ActivityIndicator size="small" color={theme.accent} />}
               </View>
             </View>
             {range ? (
@@ -230,84 +233,85 @@ export default function CalendarSheet() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { flex: 1 },
-  top: { overflow: 'hidden' },
-  glass: { backgroundColor: 'rgba(255,255,255,0.6)' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 28,
-  },
-  title: { color: COLORS.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 },
-  subtitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-  subtitle: { color: COLORS.muted, fontSize: 15 },
-  reset: { color: COLORS.accent, fontSize: 15, fontWeight: '700', marginTop: 8 },
-  weekdays: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginTop: 20,
-    paddingBottom: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.line,
-  },
-  weekday: { flex: 1, textAlign: 'center', color: COLORS.muted, fontSize: 12, fontWeight: '700' },
-  months: { paddingHorizontal: 20 },
-  month: { marginTop: 20 },
-  monthTitle: {
-    color: COLORS.text,
-    fontSize: 17,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  week: { flexDirection: 'row' },
-  cell: { flex: 1, height: DAY_SIZE + 6, alignItems: 'center', justifyContent: 'center' },
-  band: {
-    position: 'absolute',
-    top: 3,
-    height: DAY_SIZE,
-    width: '50%',
-    backgroundColor: COLORS.accentSoft,
-  },
-  bandLeft: { left: 0 },
-  bandRight: { right: 0 },
-  day: {
-    width: DAY_SIZE,
-    height: DAY_SIZE,
-    borderRadius: DAY_SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayEdge: { backgroundColor: COLORS.accent },
-  dayText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
-  todayText: { color: COLORS.accent, fontWeight: '800' },
-  pastText: { color: COLORS.line },
-  edgeText: { color: COLORS.white, fontWeight: '800' },
-  dot: {
-    position: 'absolute',
-    bottom: 7,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.accent,
-  },
-  dotEdge: { backgroundColor: COLORS.white },
-  footer: {
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: COLORS.line,
-  },
-  apply: {
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: COLORS.text,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  applyText: { color: COLORS.white, fontSize: 17, fontWeight: '700' },
-});
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    scroll: { flex: 1 },
+    top: { overflow: 'hidden' },
+    glass: { backgroundColor: 'rgba(255,255,255,0.6)' },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingTop: 28,
+    },
+    title: { color: COLORS.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 },
+    subtitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+    subtitle: { color: COLORS.muted, fontSize: 15 },
+    reset: { color: theme.accent, fontSize: 15, fontWeight: '700', marginTop: 8 },
+    weekdays: {
+      flexDirection: 'row',
+      paddingHorizontal: 20,
+      marginTop: 20,
+      paddingBottom: 8,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: COLORS.line,
+    },
+    weekday: { flex: 1, textAlign: 'center', color: COLORS.muted, fontSize: 12, fontWeight: '700' },
+    months: { paddingHorizontal: 20 },
+    month: { marginTop: 20 },
+    monthTitle: {
+      color: COLORS.text,
+      fontSize: 17,
+      fontWeight: '700',
+      marginBottom: 8,
+    },
+    week: { flexDirection: 'row' },
+    cell: { flex: 1, height: DAY_SIZE + 6, alignItems: 'center', justifyContent: 'center' },
+    band: {
+      position: 'absolute',
+      top: 3,
+      height: DAY_SIZE,
+      width: '50%',
+      backgroundColor: theme.accentSoft,
+    },
+    bandLeft: { left: 0 },
+    bandRight: { right: 0 },
+    day: {
+      width: DAY_SIZE,
+      height: DAY_SIZE,
+      borderRadius: DAY_SIZE / 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    dayEdge: { backgroundColor: theme.accent },
+    dayText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
+    todayText: { color: theme.accent, fontWeight: '800' },
+    pastText: { color: COLORS.line },
+    edgeText: { color: COLORS.white, fontWeight: '800' },
+    dot: {
+      position: 'absolute',
+      bottom: 7,
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: theme.accent,
+    },
+    dotEdge: { backgroundColor: COLORS.white },
+    footer: {
+      backgroundColor: COLORS.background,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: COLORS.line,
+    },
+    apply: {
+      height: 54,
+      borderRadius: 27,
+      backgroundColor: COLORS.text,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    applyText: { color: COLORS.white, fontSize: 17, fontWeight: '700' },
+  });

@@ -5,10 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chip } from '@/components/chip';
 import { useApp } from '@/data/app-context';
 import { LANGUAGES } from '@/data/filters';
-import { COLORS } from '@/theme';
+import { useThemedStyles } from '@/hooks/use-theme';
+import { COLORS, Theme } from '@/theme';
 
 /** Hoja del chip "Idioma": en qué idiomas quieres hablar con la gente que vas a conocer. */
 export default function LanguageSheet() {
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { filters, setFilters } = useApp();
 
@@ -63,30 +65,31 @@ export default function LanguageSheet() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { backgroundColor: COLORS.background },
-  content: { padding: 20, paddingTop: 28 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { color: COLORS.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 },
-  reset: { color: COLORS.accent, fontSize: 15, fontWeight: '700' },
-  subtitle: { color: COLORS.muted, fontSize: 15, lineHeight: 21, marginTop: 8 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 24 },
-  note: {
-    color: COLORS.muted,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 24,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: COLORS.surface,
-  },
-  apply: {
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: COLORS.text,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 28,
-  },
-  applyText: { color: COLORS.white, fontSize: 17, fontWeight: '700' },
-});
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { backgroundColor: COLORS.background },
+    content: { padding: 20, paddingTop: 28 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    title: { color: COLORS.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.6 },
+    reset: { color: theme.accent, fontSize: 15, fontWeight: '700' },
+    subtitle: { color: COLORS.muted, fontSize: 15, lineHeight: 21, marginTop: 8 },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 24 },
+    note: {
+      color: COLORS.muted,
+      fontSize: 13,
+      lineHeight: 19,
+      marginTop: 24,
+      padding: 14,
+      borderRadius: 14,
+      backgroundColor: COLORS.surface,
+    },
+    apply: {
+      height: 54,
+      borderRadius: 27,
+      backgroundColor: COLORS.text,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 28,
+    },
+    applyText: { color: COLORS.white, fontSize: 17, fontWeight: '700' },
+  });

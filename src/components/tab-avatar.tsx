@@ -10,7 +10,7 @@ import { captureRef } from 'react-native-view-shot';
 import { useApp } from '@/data/app-context';
 import { deleteTabIcons, keepTabIcon } from '@/data/profile-photo';
 import { Profile, TabIcons } from '@/data/profile';
-import { COLORS } from '@/theme';
+import { themeFor } from '@/theme';
 
 // Ajustes del icono
 const ICON_SIZE = 26; // lado del PNG en pt, como los demás iconos de la barra (tabs/*.png)
@@ -18,9 +18,17 @@ const PHOTO_SIZE = 24; // foto sin seleccionar
 const RING_WIDTH = 1.8; // aro violeta de la pestaña seleccionada
 const RING_GAP = 1.2; // aire transparente entre el aro y la foto
 
-/** Las miniaturas del perfil si son de su foto actual y del tamaño actual; si no, null. */
-export function currentTabIcons({ photo, tabIcons }: Profile) {
-  return photo && tabIcons?.photo === photo && tabIcons.size === ICON_SIZE ? tabIcons : null;
+/**
+ * Las miniaturas del perfil si son de su foto actual, del tamaño actual y con
+ * el aro del color de su tema (cambia con el fondo del perfil); si no, null.
+ */
+export function currentTabIcons({ photo, tabIcons, background }: Profile) {
+  return photo &&
+    tabIcons?.photo === photo &&
+    tabIcons.size === ICON_SIZE &&
+    tabIcons.accent === themeFor(background).accent
+    ? tabIcons
+    : null;
 }
 
 /** Fuentes de imagen para `NativeTabs.Trigger.Icon`, a escala de pantalla. */
@@ -43,6 +51,8 @@ export function TabAvatarMaker() {
   const busy = useRef(false);
 
   const { photo, tabIcons } = profile;
+  // El aro de la pestaña seleccionada, con el acento del fondo del perfil
+  const accent = themeFor(profile.background).accent;
   if (!photo || currentTabIcons(profile)) return null;
 
   const onLoad = async (key: 'normal' | 'selected') => {
@@ -56,6 +66,7 @@ export function TabAvatarMaker() {
       const icons: TabIcons = {
         photo,
         size: ICON_SIZE,
+        accent,
         normal: keepTabIcon(await captureRef(normal, options), 'normal'),
         selected: keepTabIcon(await captureRef(selected, options), 'selected'),
       };
@@ -75,7 +86,7 @@ export function TabAvatarMaker() {
         <Image source={{ uri: photo }} style={styles.photo} onLoad={() => onLoad('normal')} />
       </View>
       <View ref={selected} collapsable={false} style={styles.canvas}>
-        <View style={styles.ring}>
+        <View style={[styles.ring, { borderColor: accent }]}>
           <Image
             source={{ uri: photo }}
             style={styles.photoSelected}
@@ -105,7 +116,6 @@ const styles = StyleSheet.create({
     height: ICON_SIZE,
     borderRadius: ICON_SIZE / 2,
     borderWidth: RING_WIDTH,
-    borderColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },

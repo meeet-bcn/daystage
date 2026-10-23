@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Chip } from '@/components/chip';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { SongPicker } from '@/components/song-picker';
 import { SongRow } from '@/components/song-row';
@@ -16,7 +17,11 @@ import {
   NICK_MAX,
   normalizeHandle,
   normalizeNick,
-  PRONOUNS_MAX,
+  formatPronouns,
+  parsePronouns,
+  PRONOUN_OPTIONS,
+  PRONOUNS_PICK_MAX,
+  togglePronoun,
   SOCIAL_NETWORKS,
   SOCIAL_ORDER,
   Socials,
@@ -24,19 +29,33 @@ import {
 import { deleteTabIcons, pickProfilePhoto, saveProfilePhoto } from '@/data/profile-photo';
 import { ProfileSong } from '@/data/songs';
 import { useSongPreview } from '@/hooks/use-song-preview';
-import { COLORS } from '@/theme';
+import { useTheme, useThemedStyles } from '@/hooks/use-theme';
+import {
+  COLORS,
+  PROFILE_BACKGROUNDS,
+  ProfileBackground,
+  profileGradient,
+  Theme,
+  themeFor,
+} from '@/theme';
 
 export default function EditProfileScreen() {
+  const styles = useThemedStyles(makeStyles);
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { profile, updateProfile } = useApp();
 
   // Borrador: nada se aplica hasta pulsar "Guardar"
   const [nick, setNick] = useState(profile.nick);
   const [name, setName] = useState(profile.name);
-  const [pronouns, setPronouns] = useState(profile.pronouns);
+  // Se eligen de una lista, no se escriben
+  const [pronouns, setPronouns] = useState(() => parsePronouns(profile.pronouns));
   const [bio, setBio] = useState(profile.bio);
   const [socials, setSocials] = useState<Socials>(profile.socials);
   const [song, setSong] = useState<ProfileSong | null>(profile.song);
+  const [background, setBackground] = useState<ProfileBackground>(profile.background);
+  // Vista previa: el acento del fondo elegido, antes de guardar
+  const draftTheme = themeFor(background);
   const [pickingSong, setPickingSong] = useState(false);
   const preview = useSongPreview();
   const [photo, setPhoto] = useState(profile.photo);
@@ -47,10 +66,11 @@ export default function EditProfileScreen() {
   const changed =
     nick !== profile.nick ||
     name.trim() !== profile.name ||
-    pronouns.trim() !== profile.pronouns ||
+    formatPronouns(pronouns) !== profile.pronouns ||
     bio.trim() !== profile.bio ||
     SOCIAL_ORDER.some((n) => socials[n] !== profile.socials[n]) ||
     song?.id !== profile.song?.id ||
+    background !== profile.background ||
     photo !== profile.photo;
   const canSave = changed && !error && socialErrors.every((e) => !e);
 
@@ -67,10 +87,11 @@ export default function EditProfileScreen() {
       updateProfile({
         nick,
         name: name.trim(),
-        pronouns: pronouns.trim(),
+        pronouns: formatPronouns(pronouns),
         bio: bio.trim(),
         socials,
         song,
+        background,
         photo: saved,
         ...(!saved && { tabIcons: null }),
       });
@@ -93,7 +114,11 @@ export default function EditProfileScreen() {
           hitSlop={10}
           accessibilityState={{ disabled: !canSave }}
         >
-          <Text style={[styles.save, !canSave && styles.saveDisabled]}>Guardar</Text>
+          <Text
+            style={[styles.save, { color: draftTheme.accent }, !canSave && styles.saveDisabled]}
+          >
+            Guardar
+          </Text>
         </Pressable>
       </View>
 
@@ -145,16 +170,20 @@ export default function EditProfileScreen() {
           maxLength={NAME_MAX}
         />
 
-        <Text style={styles.label}>Pronombres</Text>
-        <TextInput
-          value={pronouns}
-          onChangeText={setPronouns}
-          placeholder="ella, él, elle…"
-          placeholderTextColor={COLORS.muted}
-          style={styles.field}
-          autoCapitalize="none"
-          maxLength={PRONOUNS_MAX}
-        />
+        <View style={styles.labelRow}>
+          <Text style={styles.label}>Pronombres</Text>
+          <Text style={styles.counter}>Hasta {PRONOUNS_PICK_MAX}</Text>
+        </View>
+        <View style={styles.pronouns}>
+          {PRONOUN_OPTIONS.map((option) => (
+            <Chip
+              key={option}
+              label={option}
+              active={pronouns.includes(option)}
+              onPress={() => setPronouns((current) => togglePronoun(current, option))}
+            />
+          ))}
+        </View>
 
         <View style={styles.labelRow}>
           <Text style={styles.label}>Biografía</Text>
@@ -172,6 +201,42 @@ export default function EditProfileScreen() {
           maxLength={BIO_MAX}
           textAlignVertical="top"
         />
+
+        <View style={styles.labelRow}>
+          <Text style={styles.label}>Fondo del perfil</Text>
+          <Text style={styles.counter}>{PROFILE_BACKGROUNDS[background].label}</Text>
+        </View>
+        {/* Lo ve cualquiera que entre en tu perfil */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.swatchesScroll}
+          contentContainerStyle={styles.swatches}
+        >
+          {(Object.keys(PROFILE_BACKGROUNDS) as ProfileBackground[]).map((key) => (
+            <Pressable
+              key={key}
+              onPress={() => setBackground(key)}
+              style={[
+                styles.swatchRing,
+                background === key && { borderColor: PROFILE_BACKGROUNDS[key].accent },
+              ]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: background === key }}
+              accessibilityLabel={`Fondo ${PROFILE_BACKGROUNDS[key].label}`}
+            >
+              <View
+                style={[
+                  styles.swatch,
+                  { experimental_backgroundImage: profileGradient(key) },
+                  key === 'none' && styles.swatchNone,
+                ]}
+              >
+                {key === 'none' && <Ionicons name="close" size={18} color={COLORS.muted} />}
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
 
         <Text style={styles.label}>Canción</Text>
         {song ? (
@@ -198,7 +263,7 @@ export default function EditProfileScreen() {
           />
         ) : (
           <Pressable style={[styles.field, styles.addSong]} onPress={() => setPickingSong(true)}>
-            <Ionicons name="musical-notes" size={18} color={COLORS.accent} />
+            <Ionicons name="musical-notes" size={18} color={theme.accent} />
             <Text style={styles.addSongText}>Añadir canción</Text>
           </Pressable>
         )}
@@ -247,56 +312,78 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: COLORS.line,
-  },
-  cancel: { color: COLORS.text, fontSize: 16 },
-  title: { color: COLORS.text, fontSize: 17, fontWeight: '700' },
-  save: { color: COLORS.accent, fontSize: 16, fontWeight: '700' },
-  saveDisabled: { opacity: 0.35 },
-  content: { padding: 20 },
-  photo: { alignItems: 'center', gap: 12, marginBottom: 12 },
-  photoActions: { flexDirection: 'row', gap: 20 },
-  link: { color: COLORS.accent, fontSize: 15, fontWeight: '700' },
-  linkMuted: { color: COLORS.muted, fontSize: 15, fontWeight: '600' },
-  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  label: {
-    color: COLORS.muted,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginTop: 24,
-    marginBottom: 8,
-  },
-  counter: { color: COLORS.muted, fontSize: 12, marginBottom: 8 },
-  field: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: COLORS.text,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  fieldError: { borderColor: COLORS.danger },
-  nickField: { flexDirection: 'row', alignItems: 'center', paddingVertical: 0 },
-  at: { color: COLORS.muted, fontSize: 16, marginRight: 2 },
-  nickInput: { flex: 1, color: COLORS.text, fontSize: 16, paddingVertical: 12 },
-  bio: { minHeight: 96 },
-  socials: { gap: 10 },
-  addSong: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  addSongText: { color: COLORS.accent, fontSize: 16, fontWeight: '700' },
-  socialIcon: { marginRight: 10 },
-  error: { color: COLORS.danger, fontSize: 13, marginTop: 6 },
-});
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: COLORS.background },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingTop: 18,
+      paddingBottom: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: COLORS.line,
+    },
+    cancel: { color: COLORS.text, fontSize: 16 },
+    title: { color: COLORS.text, fontSize: 17, fontWeight: '700' },
+    save: { color: theme.accent, fontSize: 16, fontWeight: '700' },
+    saveDisabled: { opacity: 0.35 },
+    content: { padding: 20 },
+    photo: { alignItems: 'center', gap: 12, marginBottom: 12 },
+    photoActions: { flexDirection: 'row', gap: 20 },
+    link: { color: theme.accent, fontSize: 15, fontWeight: '700' },
+    linkMuted: { color: COLORS.muted, fontSize: 15, fontWeight: '600' },
+    labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+    label: {
+      color: COLORS.muted,
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      marginTop: 24,
+      marginBottom: 8,
+    },
+    counter: { color: COLORS.muted, fontSize: 12, marginBottom: 8 },
+    field: {
+      backgroundColor: COLORS.surface,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: COLORS.text,
+      fontSize: 16,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    fieldError: { borderColor: COLORS.danger },
+    nickField: { flexDirection: 'row', alignItems: 'center', paddingVertical: 0 },
+    at: { color: COLORS.muted, fontSize: 16, marginRight: 2 },
+    nickInput: { flex: 1, color: COLORS.text, fontSize: 16, paddingVertical: 12 },
+    bio: { minHeight: 96 },
+    socials: { gap: 10 },
+    pronouns: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    // Las muestras llegan hasta el borde al deslizar
+    swatchesScroll: { marginHorizontal: -20 },
+    swatches: { gap: 10, paddingHorizontal: 20 },
+    swatchRing: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      borderWidth: 2,
+      borderColor: 'transparent',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    swatch: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    swatchNone: { borderWidth: 1, borderColor: COLORS.line },
+    addSong: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    addSongText: { color: theme.accent, fontSize: 16, fontWeight: '700' },
+    socialIcon: { marginRight: 10 },
+    error: { color: COLORS.danger, fontSize: 13, marginTop: 6 },
+  });
