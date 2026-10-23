@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/chip';
 import { useApp } from '@/data/app-context';
-import { PRICE_OPTIONS, SORT_OPTIONS, WHEN_OPTIONS } from '@/data/filters';
+import { PRICE_OPTIONS, SORT_OPTIONS } from '@/data/filters';
 import { COLORS } from '@/theme';
 
 export default function FiltersSheet() {
@@ -39,18 +39,6 @@ export default function FiltersSheet() {
             label={o.label}
             active={filters.sort === o.key}
             onPress={() => setFilters((f) => ({ ...f, sort: o.key }))}
-          />
-        ))}
-      </View>
-
-      <Text style={styles.sectionTitle}>Cuándo</Text>
-      <View style={styles.chips}>
-        {WHEN_OPTIONS.map((o) => (
-          <Chip
-            key={o.key}
-            label={o.label}
-            active={filters.when === o.key}
-            onPress={() => setFilters((f) => ({ ...f, when: o.key }))}
           />
         ))}
       </View>

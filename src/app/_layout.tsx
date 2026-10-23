@@ -15,7 +15,28 @@ export default function RootLayout() {
         <Stack screenOptions={{ contentStyle: { backgroundColor: COLORS.background } }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="concert/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="edit-profile" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen
+            name="calendar"
+            options={{
+              headerShown: false,
+              presentation: 'formSheet',
+              sheetAllowedDetents: [1],
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 28,
+            }}
+          />
+          <Stack.Screen
+            name="language"
+            options={{
+              headerShown: false,
+              presentation: 'formSheet',
+              sheetAllowedDetents: [0.6, 1],
+              sheetGrabberVisible: true,
+              sheetCornerRadius: 28,
+            }}
+          />
           <Stack.Screen
             name="filters"
             options={{

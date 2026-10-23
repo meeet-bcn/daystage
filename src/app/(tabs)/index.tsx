@@ -1,5 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -21,11 +22,15 @@ import {
   TITLE_SPACING,
   TITLE_TOP,
 } from '@/components/screen-title';
-import { SearchBar } from '@/components/search-bar';
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
 import { Concert } from '@/data/concerts';
-import { activeFilterCount, SORT_OPTIONS, WHEN_OPTIONS } from '@/data/filters';
+import {
+  activeFilterCount,
+  dateRangeLabel,
+  LANGUAGES,
+  SORT_OPTIONS,
+} from '@/data/filters';
 import { COLORS } from '@/theme';
 
 // Ajustes del banner (puedes tocar estos números)
@@ -34,10 +39,12 @@ const LOGO_MIN = TITLE_SIZE; // ya encogido: igual que los títulos de Descubrir
 const LINE_MAX = 83; // altura de la caja del logo grande
 const LINE_MIN = TITLE_LINE_HEIGHT; // caja del logo encogido = la de los títulos de pestaña
 const PAD_MAX = 8; // aire inferior con el logo grande
-const PAD_MIN = 20; // aire inferior con el logo encogido
+const PAD_MIN = 12; // aire inferior con el logo encogido (bajo los chips)
 const TOP_MAX = 50; // aire superior con el logo grande
 const TOP_MIN = TITLE_TOP; // aire superior con el logo encogido (= títulos de pestaña)
 const SLOGAN_H = 22; // altura del lema
+const TOOLS_GAP = 14; // aire entre el logo (o el aviso) y los chips, también con el logo encogido
+const NOTICE_H = 40; // aviso de la beta (pastilla de 32 + aire); se esconde al hacer scroll
 const SCROLL_RANGE = 80; // cuánto scroll dura la animación
 
 export default function HomeScreen() {
@@ -51,14 +58,18 @@ export default function HomeScreen() {
     toggleGoing,
     goingCount,
     filters,
-    setFilters,
     resetFilters,
+    loadMore,
+    hasMore,
+    loadingMore,
   } = useApp();
   const scrollY = useAnimatedValue(0);
+  // Alto de los chips, fijos en la cabecera: la lista empieza debajo
+  const [toolsHeight, setToolsHeight] = useState(0);
   const filterCount = activeFilterCount(filters);
   const sortLabel = SORT_OPTIONS.find((o) => o.key === filters.sort)?.label.toLowerCase();
-  const searching = filters.query.trim().length > 0;
-  const isFiltered = filterCount > 0 || filters.when !== 'all' || searching;
+  const isFiltered = filterCount > 0 || filters.dates != null;
+  const languages = LANGUAGES.filter((l) => filters.languages.includes(l.code));
 
   const shrink = (from: number, to: number) =>
     scrollY.interpolate({
@@ -73,6 +84,7 @@ export default function HomeScreen() {
   const headerPadTop = shrink(insets.top + TOP_MAX, insets.top + TOP_MIN);
   const headerPadBottom = shrink(PAD_MAX, PAD_MIN);
   const sloganHeight = shrink(SLOGAN_H, 0);
+  const noticeHeight = shrink(NOTICE_H, 0);
   const sloganOpacity = scrollY.interpolate({
     inputRange: [0, SCROLL_RANGE * 0.5],
     outputRange: [1, 0],
@@ -93,59 +105,35 @@ export default function HomeScreen() {
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         scrollEventThrottle={16}
+        // Al acercarse al final se pide la siguiente página (también si los
+        // filtros dejan la lista corta: FlatList avisa en cuanto no la llena)
+        onEndReached={loadMore}
+        onEndReachedThreshold={1.5}
+        // Rendimiento: tarjetas grandes con foto, se pintan pocas a la vez
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        windowSize={7}
+        removeClippedSubviews
+        ListFooterComponent={
+          loadingMore ? <ActivityIndicator color={COLORS.accent} style={styles.more} /> : null
+        }
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
           useNativeDriver: false,
         })}
         contentContainerStyle={{
-          paddingTop: insets.top + TOP_MAX + LINE_MAX + PAD_MAX + 4 + SLOGAN_H,
+          paddingTop: insets.top + TOP_MAX + LINE_MAX + SLOGAN_H + NOTICE_H + toolsHeight + PAD_MAX,
           paddingBottom: insets.bottom + BottomTabInset + 32,
         }}
         ListHeaderComponent={
           <View style={styles.listHeader}>
-            <View style={styles.search}>
-              <SearchBar
-                value={filters.query}
-                onChangeText={(query) => setFilters((f) => ({ ...f, query }))}
-                placeholder="Artista, sala o género"
-              />
-            </View>
-
-            <View style={styles.notice}>
-              <View style={styles.betaTag}>
-                <Text style={styles.betaTagText}>BETA</Text>
-              </View>
-              <Text style={styles.noticeText}>Solo disponible en Barcelona</Text>
-            </View>
-
             {concerts.length > 0 && (
-              <>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.toolbar}
-                >
-                  <Chip
-                    icon="options-outline"
-                    label={filterCount > 0 ? `Filtros · ${filterCount}` : 'Filtros'}
-                    active={filterCount > 0}
-                    onPress={() => router.push('/filters')}
-                  />
-                  {WHEN_OPTIONS.filter((o) => o.key !== 'all').map((o) => (
-                    <Chip
-                      key={o.key}
-                      label={o.label}
-                      active={filters.when === o.key}
-                      onPress={() =>
-                        setFilters((f) => ({ ...f, when: f.when === o.key ? 'all' : o.key }))
-                      }
-                    />
-                  ))}
-                </ScrollView>
-                <Text style={styles.results}>
-                  {visibleConcerts.length}{' '}
-                  {visibleConcerts.length === 1 ? 'concierto' : 'conciertos'} · por {sortLabel}
-                </Text>
-              </>
+              <Text style={styles.results}>
+                {/* Mientras queden páginas, "20+": aún no están todos */}
+                {visibleConcerts.length}
+                {hasMore ? '+' : ''}{' '}
+                {visibleConcerts.length === 1 && !hasMore ? 'concierto' : 'conciertos'} · por{' '}
+                {sortLabel}
+              </Text>
             )}
 
             {loading && <ActivityIndicator color={COLORS.accent} style={{ marginTop: 32 }} />}
@@ -155,15 +143,12 @@ export default function HomeScreen() {
             {!loading && !error && concerts.length === 0 && (
               <Text style={styles.message}>No hay conciertos disponibles ahora mismo.</Text>
             )}
-            {concerts.length > 0 && visibleConcerts.length === 0 && isFiltered && (
+            {/* Solo cuando ya están todos: si quedan páginas, aún pueden aparecer */}
+            {concerts.length > 0 && visibleConcerts.length === 0 && isFiltered && !hasMore && (
               <View style={styles.emptyFiltered}>
-                <Text style={styles.message}>
-                  {searching && filterCount === 0 && filters.when === 'all'
-                    ? `Ningún concierto coincide con «${filters.query.trim()}».`
-                    : 'Ningún concierto coincide con tus filtros.'}
-                </Text>
+                <Text style={styles.message}>Ningún concierto coincide con tus filtros.</Text>
                 <Pressable onPress={resetFilters} hitSlop={8}>
-                  <Text style={styles.link}>{searching ? 'Borrar búsqueda y filtros' : 'Quitar filtros'}</Text>
+                  <Text style={styles.link}>Quitar filtros</Text>
                 </Pressable>
               </View>
             )}
@@ -214,7 +199,11 @@ export default function HomeScreen() {
               { fontSize: logoSize, lineHeight: logoLine, letterSpacing: logoSpacing },
             ]}
           >
-            meeet<Text style={{ color: COLORS.peach }}>.</Text>
+            {/* Las "eee" en la escala del salmón, de clara a oscura */}
+            m<Text style={{ color: COLORS.peach }}>e</Text>
+            <Text style={{ color: COLORS.peachMid }}>e</Text>
+            <Text style={{ color: COLORS.peachDeep }}>e</Text>t
+            <Text style={{ color: COLORS.accent }}>.</Text>
           </Animated.Text>
         </Animated.View>
 
@@ -224,6 +213,60 @@ export default function HomeScreen() {
         >
           Every event. Everyone.
         </Animated.Text>
+
+        {/* El aviso se esconde con el lema; los chips quedan siempre a mano */}
+        <Animated.View style={[styles.noticeBox, { height: noticeHeight, opacity: sloganOpacity }]}>
+          <View style={styles.notice}>
+            <View style={styles.betaTag}>
+              <Text style={styles.betaTagText}>BETA</Text>
+            </View>
+            <Text style={styles.noticeText} numberOfLines={1}>
+              Solo Barcelona · Ticketmaster
+            </Text>
+          </View>
+        </Animated.View>
+
+        <View
+          style={styles.tools}
+          onLayout={(e) => setToolsHeight(e.nativeEvent.layout.height)}
+        >
+          {concerts.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              style={styles.toolbarScroll}
+              contentContainerStyle={styles.toolbar}
+            >
+              <Chip
+                icon="options-outline"
+                label={filterCount > 0 ? `Filtros · ${filterCount}` : 'Filtros'}
+                active={filterCount > 0}
+                onPress={() => router.push('/filters')}
+              />
+              {/* Muchos son turistas: buscan sus días en Barcelona */}
+              <Chip
+                icon="calendar-outline"
+                label={filters.dates ? dateRangeLabel(filters.dates) : 'Calendario'}
+                active={filters.dates != null}
+                onPress={() => router.push('/calendar')}
+              />
+              {/* El idioma de la gente que quieres conocer */}
+              <Chip
+                icon="chatbubbles-outline"
+                label={
+                  languages.length === 0
+                    ? 'Idioma'
+                    : languages.length === 1
+                      ? languages[0].label
+                      : `Idioma · ${languages.length}`
+                }
+                active={languages.length > 0}
+                onPress={() => router.push('/language')}
+              />
+            </ScrollView>
+          )}
+        </View>
 
         <Animated.View style={[styles.line, { opacity: lineOpacity }]} />
       </Animated.View>
@@ -244,13 +287,14 @@ const styles = StyleSheet.create({
   },
   glass: { backgroundColor: 'rgba(255,255,255,0.45)' },
   logoRow: { justifyContent: 'center' },
+  // Logo, lema y aviso beta, centrados
   logo: {
-    alignSelf: 'flex-start',
-    color: COLORS.accent,
-    fontWeight: '800',
+    alignSelf: 'center',
+    color: COLORS.text,
+    fontWeight: '700',
   },
   slogan: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     color: COLORS.muted,
     fontSize: 15,
     lineHeight: 20,
@@ -268,14 +312,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.line,
   },
   listHeader: { marginBottom: 20 },
-  search: { paddingHorizontal: 20, marginBottom: 16 },
+  noticeBox: { overflow: 'hidden', justifyContent: 'center' },
   notice: {
     alignSelf: 'center',
+    height: 32,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     backgroundColor: COLORS.surface,
-    paddingVertical: 8,
     paddingLeft: 8,
     paddingRight: 14,
     borderRadius: 20,
@@ -287,11 +331,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   betaTagText: { color: COLORS.white, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 },
-  noticeText: { color: COLORS.muted, fontSize: 13, fontWeight: '500' },
-  toolbar: { gap: 8, paddingHorizontal: 20, marginTop: 20 },
-  results: { color: COLORS.muted, fontSize: 13, paddingHorizontal: 20, marginTop: 12 },
+  noticeText: { color: COLORS.muted, fontSize: 13, fontWeight: '500', flexShrink: 1 },
+  // Los chips llegan hasta el borde de la pantalla al deslizarlos
+  // El lema sube 6 pt sobre el logo (marginTop: -6): aquí se compensa para
+  // que, ya encogido, los chips no pisen el logo
+  tools: { paddingTop: TOOLS_GAP },
+  toolbarScroll: { marginHorizontal: -20 },
+  toolbar: { gap: 8, paddingHorizontal: 20 },
+  results: { color: COLORS.muted, fontSize: 13, paddingHorizontal: 20 },
   message: { color: COLORS.muted, fontSize: 15, marginTop: 24, paddingHorizontal: 20 },
   emptyFiltered: { gap: 12 },
+  more: { marginBottom: 24 },
   link: { color: COLORS.accent, fontSize: 15, fontWeight: '700', paddingHorizontal: 20 },
   card: { marginBottom: 32 },
   cardBody: {

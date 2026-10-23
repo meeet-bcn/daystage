@@ -5,11 +5,12 @@ import type { Concert } from '@/data/concerts';
 import {
   activeFilterCount,
   applyFilters,
+  dateRangeLabel,
   DEFAULT_FILTERS,
   Filters,
   genresOf,
   matchesQuery,
-  WhenKey,
+  pickDay,
 } from '@/data/filters';
 
 // Miércoles 21 de octubre de 2026, 12:00 (hora local)
@@ -17,9 +18,27 @@ const NOW = new Date(2026, 9, 21, 12, 0);
 const at = (day: number, month = 9) => new Date(2026, month, day, 21, 0).getTime();
 
 const today = makeConcert({ id: 'hoy', artist: 'Charlie', startsAt: at(21), priceMin: 40 });
-const friday = makeConcert({ id: 'vie', artist: 'alfa', startsAt: at(23), priceMin: 15, genre: 'Rock' });
-const sunday = makeConcert({ id: 'dom', artist: 'Bravo', startsAt: at(25), priceMin: null, genre: 'Pop' });
-const nextWeek = makeConcert({ id: 'sem', artist: 'Delta', startsAt: at(28), priceMin: 60, genre: 'Rock' });
+const friday = makeConcert({
+  id: 'vie',
+  artist: 'alfa',
+  startsAt: at(23),
+  priceMin: 15,
+  genre: 'Rock',
+});
+const sunday = makeConcert({
+  id: 'dom',
+  artist: 'Bravo',
+  startsAt: at(25),
+  priceMin: null,
+  genre: 'Pop',
+});
+const nextWeek = makeConcert({
+  id: 'sem',
+  artist: 'Delta',
+  startsAt: at(28),
+  priceMin: 60,
+  genre: 'Rock',
+});
 const november = makeConcert({ id: 'nov', artist: 'Eco', startsAt: at(5, 10), priceMin: 20 });
 const noDate = makeConcert({ id: 'tbc', artist: 'Ánimo', startsAt: null, priceMin: 10 });
 const ALL = [november, noDate, sunday, today, nextWeek, friday];
@@ -35,23 +54,44 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('applyFilters · cuándo', () => {
-  it('sin filtro devuelve todo por fecha, con las fechas por confirmar al final', () => {
+const day = (d: number, month = 9) => new Date(2026, month, d).getTime();
+
+describe('applyFilters · calendario', () => {
+  it('sin fechas devuelve todo por fecha, con las fechas por confirmar al final', () => {
     expect(ids({})).toEqual(['hoy', 'vie', 'dom', 'sem', 'nov', 'tbc']);
   });
 
-  it.each<[WhenKey, string[]]>([
-    ['today', ['hoy']],
-    ['weekend', ['vie', 'dom']],
-    ['week', ['hoy', 'vie', 'dom']],
-    ['month', ['hoy', 'vie', 'dom', 'sem']],
-  ])('%s', (when, expected) => {
-    expect(ids({ when })).toEqual(expected);
+  it('incluye el primer y el último día del intervalo', () => {
+    expect(ids({ dates: { from: day(23), to: day(25) } })).toEqual(['vie', 'dom']);
+    expect(ids({ dates: { from: day(28), to: day(28) } })).toEqual(['sem']);
+    expect(ids({ dates: { from: day(26), to: day(5, 10) } })).toEqual(['sem', 'nov']);
+  });
+});
+
+describe('pickDay', () => {
+  it('primer toque, un día; segundo posterior, cierra el intervalo', () => {
+    const one = pickDay(null, day(23));
+    expect(one).toEqual({ from: day(23), to: day(23) });
+    expect(pickDay(one, day(27))).toEqual({ from: day(23), to: day(27) });
   });
 
-  it('en sábado, "este finde" empieza hoy', () => {
-    jest.setSystemTime(new Date(2026, 9, 24, 10, 0));
-    expect(ids({ when: 'weekend' })).toEqual(['dom']);
+  it('un día anterior o un intervalo ya cerrado empiezan de nuevo', () => {
+    expect(pickDay({ from: day(23), to: day(23) }, day(20))).toEqual({
+      from: day(20),
+      to: day(20),
+    });
+    expect(pickDay({ from: day(23), to: day(27) }, day(30))).toEqual({
+      from: day(30),
+      to: day(30),
+    });
+  });
+});
+
+describe('dateRangeLabel', () => {
+  it('un día, mismo mes y meses distintos', () => {
+    expect(dateRangeLabel({ from: day(24), to: day(24) })).toBe('24 oct');
+    expect(dateRangeLabel({ from: day(24), to: day(27) })).toBe('24 – 27 oct');
+    expect(dateRangeLabel({ from: day(30), to: day(2, 10) })).toBe('30 oct – 2 nov');
   });
 });
 
@@ -110,12 +150,6 @@ describe('matchesQuery', () => {
     expect(matchesQuery(show, 'bóveda')).toBe(true);
     expect(matchesQuery(makeConcert({ venue: 'Sala Boveda' }), 'bóveda')).toBe(true);
   });
-
-  it('se aplica junto al resto de filtros', () => {
-    expect(ids({ query: 'rock' })).toEqual(['vie', 'sem']); // por género
-    expect(ids({ query: 'delta' })).toEqual(['sem']);
-    expect(ids({ query: 'a', genres: ['Rock'] })).toEqual(['vie', 'sem']);
-  });
 });
 
 describe('activeFilterCount', () => {
@@ -123,9 +157,9 @@ describe('activeFilterCount', () => {
     expect(activeFilterCount(DEFAULT_FILTERS)).toBe(0);
     expect(
       activeFilterCount({
-        query: 'rock',
         sort: 'price',
-        when: 'today',
+        dates: { from: day(21), to: day(21) },
+        languages: ['en'],
         genres: ['Rock', 'Pop'],
         maxPrice: 50,
       })

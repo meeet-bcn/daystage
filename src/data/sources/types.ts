@@ -11,12 +11,18 @@ export const SOURCE_NAMES: Record<TicketSource, string> = {
   theproject: 'The Project',
 };
 
+/** Qué página pedir (desde 0) y, si se busca, el texto de la búsqueda. */
+export type EventQuery = { page: number; keyword?: string };
+
+/** Una página de resultados y si quedan más. */
+export type EventPage = { concerts: Concert[]; hasMore: boolean };
+
 /**
- * Una ticketera. `fetchEvents` devuelve conciertos de Barcelona ya
- * convertidos al modelo de MEEET, con una sola oferta (la suya) en `offers`.
- * La fusión de duplicados entre fuentes se hace después, en `merge.ts`.
+ * Una ticketera. `fetchEvents` devuelve una página de conciertos de Barcelona,
+ * por fecha, ya convertidos al modelo de MEEET y con una sola oferta (la suya)
+ * en `offers`. La fusión de duplicados entre fuentes se hace después, en `merge.ts`.
  */
 export type EventProvider = {
   source: TicketSource;
-  fetchEvents: () => Promise<Concert[]>;
+  fetchEvents: (query: EventQuery) => Promise<EventPage>;
 };

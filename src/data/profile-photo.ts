@@ -5,6 +5,8 @@
 import { File, Paths } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 
+import type { TabIcons } from '@/data/profile';
+
 /** Abre la galería. Devuelve la URI temporal de la foto recortada, o null si se cancela. */
 export async function pickProfilePhoto(): Promise<string | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -39,4 +41,19 @@ export function saveProfilePhoto(uri: string, previous: string): string {
     if (old.exists) old.delete();
   }
   return saved;
+}
+
+/** Copia a documentos un PNG temporal (las miniaturas de la pestaña) con nombre nuevo. */
+export function keepTabIcon(tmpUri: string, name: 'normal' | 'selected'): string {
+  const destination = new File(Paths.document, `tab-${name}-${Date.now()}.png`);
+  new File(tmpUri).moveSync(destination);
+  return destination.uri;
+}
+
+/** Borra las miniaturas de la pestaña que ya no se usan. */
+export function deleteTabIcons(icons: TabIcons | null) {
+  for (const uri of icons ? [icons.normal, icons.selected] : []) {
+    const file = new File(uri);
+    if (isSaved(uri) && file.exists) file.delete();
+  }
 }

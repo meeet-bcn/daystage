@@ -1,6 +1,5 @@
-import { mergeConcerts } from '@/data/merge';
 import { PROVIDERS } from '@/data/sources';
-import type { TicketSource } from '@/data/sources/types';
+import type { EventPage, EventQuery, TicketSource } from '@/data/sources/types';
 
 /** Dónde comprar entradas para un concierto. */
 export type TicketOffer = {
@@ -40,17 +39,22 @@ export type Concert = {
 };
 
 /**
- * Pide los conciertos a todas las ticketeras a la vez. Si alguna falla se
- * sigue con las demás; solo da error si fallan todas.
+ * Pide una página de conciertos a todas las ticketeras a la vez (sin fusionar:
+ * eso se hace con todas las páginas juntas, `mergeConcerts`). Si alguna falla
+ * se sigue con las demás; solo da error si fallan todas. Quedan más páginas
+ * mientras alguna ticketera tenga más.
  */
-export async function fetchConcerts(): Promise<Concert[]> {
-  const results = await Promise.allSettled(PROVIDERS.map((p) => p.fetchEvents()));
+export async function fetchConcerts(query: EventQuery): Promise<EventPage> {
+  const results = await Promise.allSettled(PROVIDERS.map((p) => p.fetchEvents(query)));
 
   const concerts: Concert[] = [];
   const errors: string[] = [];
+  let hasMore = false;
   results.forEach((result, i) => {
-    if (result.status === 'fulfilled') concerts.push(...result.value);
-    else {
+    if (result.status === 'fulfilled') {
+      concerts.push(...result.value.concerts);
+      hasMore ||= result.value.hasMore;
+    } else {
       const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
       errors.push(message);
       console.warn(`[${PROVIDERS[i].source}] ${message}`);
@@ -59,5 +63,5 @@ export async function fetchConcerts(): Promise<Concert[]> {
 
   if (errors.length === PROVIDERS.length) throw new Error(errors[0]);
 
-  return mergeConcerts(concerts);
+  return { concerts, hasMore };
 }

@@ -2,23 +2,33 @@ import { Concert } from '@/data/concerts';
 import { compactText, foldText } from '@/data/text';
 
 export type SortKey = 'date' | 'popular' | 'price' | 'name';
-export type WhenKey = 'all' | 'today' | 'weekend' | 'week' | 'month';
+
+/**
+ * Intervalo de días, ambos incluidos: `from` y `to` son la medianoche (hora
+ * local) del primer y del último día. Un solo día: `from === to`.
+ */
+export type DateRange = { from: number; to: number };
 
 export type Filters = {
-  /** Texto del buscador de Inicio. */
-  query: string;
   sort: SortKey;
-  when: WhenKey;
+  /** Calendario de Inicio, o null para cualquier fecha. */
+  dates: DateRange | null;
   genres: string[];
   maxPrice: number | null;
+  /**
+   * Idiomas de la gente que quieres conocer (códigos de LANGUAGES). Aún no
+   * filtra conciertos: no hay asistentes reales. Cuando los haya, aquí se
+   * cruzará con el idioma de cada uno.
+   */
+  languages: string[];
 };
 
 export const DEFAULT_FILTERS: Filters = {
-  query: '',
   sort: 'date',
-  when: 'all',
+  dates: null,
   genres: [],
   maxPrice: null,
+  languages: [],
 };
 
 export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -28,12 +38,16 @@ export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'name', label: 'A – Z' },
 ];
 
-export const WHEN_OPTIONS: { key: WhenKey; label: string }[] = [
-  { key: 'all', label: 'Cuando sea' },
-  { key: 'today', label: 'Hoy' },
-  { key: 'weekend', label: 'Este finde' },
-  { key: 'week', label: 'Esta semana' },
-  { key: 'month', label: 'Este mes' },
+/** Idiomas para conocer gente, cada uno escrito en su idioma (la app la usan turistas). */
+export const LANGUAGES: { code: string; label: string }[] = [
+  { code: 'es', label: 'Español' },
+  { code: 'ca', label: 'Català' },
+  { code: 'en', label: 'English' },
+  { code: 'fr', label: 'Français' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'it', label: 'Italiano' },
+  { code: 'pt', label: 'Português' },
+  { code: 'nl', label: 'Nederlands' },
 ];
 
 export const PRICE_OPTIONS: { value: number | null; label: string }[] = [
@@ -57,7 +71,7 @@ export function matchesQuery(c: Concert, query: string) {
   return words.every((w) => haystack.includes(w) || compactHaystack.includes(compactText(w)));
 }
 
-/** Filtros activos de la hoja (el "cuándo" y la búsqueda se ven ya en Inicio). */
+/** Filtros activos de la hoja (las fechas y los idiomas tienen su propio chip en Inicio). */
 export function activeFilterCount(f: Filters) {
   return (f.sort !== 'date' ? 1 : 0) + f.genres.length + (f.maxPrice != null ? 1 : 0);
 }
@@ -72,31 +86,38 @@ function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
-const DAY = 24 * 60 * 60 * 1000;
+/** Medianoche (hora local) del día de `time`. */
+export function dayStart(time: number) {
+  return startOfDay(new Date(time));
+}
 
-/** Rango [desde, hasta) en ms para cada opción de "cuándo". */
-function whenRange(when: WhenKey, now = new Date()): [number, number] | null {
-  const today = startOfDay(now);
-  const weekday = now.getDay(); // 0 = domingo
-  const daysToSunday = (7 - weekday) % 7;
-  const endOfWeek = today + (daysToSunday + 1) * DAY;
+/** Medianoche `days` días después (con Date, para no fallar en los cambios de hora). */
+export function addDays(day: number, days: number) {
+  const d = new Date(day);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days).getTime();
+}
 
-  switch (when) {
-    case 'all':
-      return null;
-    case 'today':
-      return [today, today + DAY];
-    case 'weekend': {
-      // De viernes a domingo; si ya estamos en finde, desde hoy
-      const inWeekend = weekday === 5 || weekday === 6 || weekday === 0;
-      const from = inWeekend ? today : today + (5 - weekday) * DAY;
-      return [from, endOfWeek];
-    }
-    case 'week':
-      return [today, endOfWeek];
-    case 'month':
-      return [today, new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime()];
-  }
+/**
+ * Siguiente intervalo al tocar `day` en el calendario: el primer toque marca
+ * un día; el segundo, si es posterior, cierra el intervalo; si es anterior o
+ * el intervalo ya estaba cerrado, se empieza de nuevo desde ese día.
+ */
+export function pickDay(range: DateRange | null, day: number): DateRange {
+  if (range && range.from === range.to && day > range.from) return { from: range.from, to: day };
+  return { from: day, to: day };
+}
+
+const shortDate = (time: number, withMonth: boolean) =>
+  new Date(time).toLocaleDateString(
+    'es-ES',
+    withMonth ? { day: 'numeric', month: 'short' } : { day: 'numeric' }
+  );
+
+/** "24 oct", "24 – 27 oct" o "30 oct – 2 nov". */
+export function dateRangeLabel({ from, to }: DateRange) {
+  if (from === to) return shortDate(from, true);
+  const sameMonth = new Date(from).getMonth() === new Date(to).getMonth();
+  return `${shortDate(from, !sameMonth)} – ${shortDate(to, true)}`;
 }
 
 // Los valores desconocidos (null) van siempre al final
@@ -106,15 +127,10 @@ function compareNullable(a: number | null, b: number | null) {
   return a - b;
 }
 
-export function applyFilters(
-  concerts: Concert[],
-  f: Filters,
-  goingCount: (c: Concert) => number
-) {
-  const range = whenRange(f.when);
+export function applyFilters(concerts: Concert[], f: Filters, goingCount: (c: Concert) => number) {
+  const range = f.dates ? [f.dates.from, addDays(f.dates.to, 1)] : null;
 
   const result = concerts.filter((c) => {
-    if (!matchesQuery(c, f.query)) return false;
     if (range && (c.startsAt == null || c.startsAt < range[0] || c.startsAt >= range[1])) {
       return false;
     }

@@ -1,52 +1,55 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { HoloFrame } from '@/components/holo-frame';
+import { ImagotipoAnimado } from '@/components/imagotipo';
 import { SourceBadge } from '@/components/source-badge';
 import type { Concert } from '@/data/concerts';
 import { COLORS } from '@/theme';
 
-const SOURCE_POSITION = { top: 14, left: 20 };
-
 type Props = {
   concert: Concert;
   going: boolean;
-  /** Texto de la insignia "Voy" (más largo en el detalle). */
-  goingLabel?: string;
   /** Pie de foto con degradado si vas al concierto. */
   holo?: boolean;
-  /** Dónde va la ticketera; por defecto, arriba a la izquierda con el margen estándar. */
-  sourcePosition?: { top: number; left: number };
+  /** Insignia de la ticketera arriba a la izquierda (en el detalle no: ya está en "Comprar"). */
+  showSource?: boolean;
 };
 
 /**
  * Foto 16:9 del concierto, la misma en Inicio y en el detalle: ticketera
- * arriba a la izquierda y "Voy" abajo a la izquierda, sobre el pie de foto.
+ * arriba a la izquierda (solo en Inicio) y "Meeet In!" abajo a la izquierda, sobre el pie de foto.
  */
 export function EventImage({
   concert,
   going,
-  goingLabel = 'Voy',
   holo = false,
-  sourcePosition = SOURCE_POSITION,
+  showSource = true,
 }: Props) {
   const uri = concert.image || concert.hero;
 
-  const image = uri ? <Image source={{ uri }} style={styles.image} /> : <View style={styles.image} />;
+  const image = uri ? (
+    <Image source={{ uri }} style={styles.image} transition={200} />
+  ) : (
+    <View style={styles.image} />
+  );
 
   return (
     <View>
       {/* El marco va solo sobre la foto, por debajo de las insignias */}
       {holo && going ? <HoloFrame>{image}</HoloFrame> : image}
 
-      <View style={[styles.source, sourcePosition]}>
-        <SourceBadge offers={concert.offers} />
-      </View>
+      {showSource && (
+        <View style={styles.source}>
+          <SourceBadge offers={concert.offers} />
+        </View>
+      )}
 
       {going && (
         <View style={styles.going}>
-          <Ionicons name="checkmark-circle" size={16} color={COLORS.accent} />
-          <Text style={styles.goingText}>{goingLabel}</Text>
+          {/* Los dos círculos se juntan y se separan: vas a conocer gente */}
+          <ImagotipoAnimado height={16} />
+          <Text style={styles.goingText}>Meeet In!</Text>
         </View>
       )}
     </View>
@@ -55,14 +58,14 @@ export function EventImage({
 
 const styles = StyleSheet.create({
   image: { width: '100%', aspectRatio: 16 / 9, backgroundColor: COLORS.surface },
-  source: { position: 'absolute' },
+  source: { position: 'absolute', top: 14, left: 20 },
   going: {
     position: 'absolute',
     left: 20,
     bottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
     height: 28,
     paddingHorizontal: 12,
     borderRadius: 14,

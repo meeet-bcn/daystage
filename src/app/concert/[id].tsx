@@ -18,27 +18,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArtistCard } from '@/components/artist-card';
 import { EventImage } from '@/components/event-image';
 import { GoButton } from '@/components/go-button';
+import { SongCard } from '@/components/song-card';
 import { useApp } from '@/data/app-context';
 import { SOURCE_NAMES } from '@/data/sources/types';
+import { useTopSong } from '@/hooks/use-top-song';
 import { COLORS } from '@/theme';
 
-type Tab = 'info' | 'lugar' | 'chat';
+// El chat de cada concierto no va aquí: solo se abre desde la pestaña Meeet in
+type Tab = 'info' | 'lugar';
 const TABS: { key: Tab; label: string }[] = [
   { key: 'info', label: 'Información' },
   { key: 'lugar', label: 'Lugar' },
-  { key: 'chat', label: 'Chat' },
 ];
 
 export default function ConcertDetail() {
   const insets = useSafeAreaInsets();
-  const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: Tab }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { concerts, plans, isGoing, toggleGoing, goingCount } = useApp();
-  const [tab, setTab] = useState<Tab>(
-    TABS.some((t) => t.key === initialTab) ? (initialTab as Tab) : 'info'
-  );
+  const [tab, setTab] = useState<Tab>('info');
 
   // Los conciertos ya pasados no vienen en la API: solo están en tus planes
   const concert = concerts.find((c) => c.id === id) ?? plans.find((c) => c.id === id);
+  const topSong = useTopSong(concert?.artist ?? '');
 
   if (!concert) {
     return (
@@ -52,9 +53,6 @@ export default function ConcertDetail() {
   }
 
   const going = isGoing(concert.id);
-  // El chat es solo para quien va: sin "Voy" no hay pestaña y se vuelve a Información
-  const tabs = going ? TABS : TABS.filter((t) => t.key !== 'chat');
-  const activeTab: Tab = tabs.some((t) => t.key === tab) ? tab : 'info';
   const count = goingCount(concert);
   const hasCoords = concert.latitude != null && concert.longitude != null;
   const place = hasCoords
@@ -102,10 +100,9 @@ export default function ConcertDetail() {
         <EventImage
           concert={concert}
           going={going}
-          goingLabel="Voy a este concierto"
           holo
-          // Arriba a la izquierda está el botón de volver: la ticketera va a su lado, centrada con él
-          sourcePosition={{ top: insets.top + 14, left: 66 }}
+          // La ticketera ya sale en el botón de comprar
+          showSource={false}
         />
 
 
@@ -130,7 +127,7 @@ export default function ConcertDetail() {
               </Text>
             </Pressable>
             <Pressable style={styles.shareBtn} onPress={onShare}>
-              <Ionicons name="share-outline" size={24} color={COLORS.text} />
+              <Ionicons name="share-outline" size={21} color={COLORS.text} />
             </Pressable>
           </View>
 
@@ -151,21 +148,23 @@ export default function ConcertDetail() {
             </View>
           )}
 
+          {topSong ? <SongCard song={topSong} title="Escucha a este artista" /> : null}
+
           <View style={styles.segmented}>
-            {tabs.map((t) => (
+            {TABS.map((t) => (
               <Pressable
                 key={t.key}
-                style={[styles.segment, activeTab === t.key && styles.segmentActive]}
+                style={[styles.segment, tab === t.key && styles.segmentActive]}
                 onPress={() => setTab(t.key)}
               >
-                <Text style={[styles.segmentText, activeTab === t.key && styles.segmentTextActive]}>
+                <Text style={[styles.segmentText, tab === t.key && styles.segmentTextActive]}>
                   {t.label}
                 </Text>
               </Pressable>
             ))}
           </View>
 
-          {activeTab === 'info' && (
+          {tab === 'info' && (
             <View>
               {infoRows.map((row, i) => (
                 <View key={row.label} style={[styles.infoRow, i > 0 && styles.infoRowLine]}>
@@ -184,7 +183,7 @@ export default function ConcertDetail() {
             </View>
           )}
 
-          {activeTab === 'lugar' && (
+          {tab === 'lugar' && (
             <View>
               {hasCoords && (
                 <MapView
@@ -234,15 +233,6 @@ export default function ConcertDetail() {
             </View>
           )}
 
-          {activeTab === 'chat' && (
-            <View style={styles.chatBox}>
-              <Ionicons name="chatbubbles-outline" size={32} color={COLORS.lavender} />
-              <Text style={styles.chatTitle}>Chat del evento</Text>
-              <Text style={styles.muted}>
-                Aquí estará el chat abierto de este concierto.
-              </Text>
-            </View>
-          )}
         </View>
       </ScrollView>
 
@@ -292,13 +282,13 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 12, marginTop: 20 },
   buy: {
     flex: 1,
-    height: 54,
-    borderRadius: 27,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: COLORS.text,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buyText: { color: COLORS.white, fontSize: 17, fontWeight: '700', paddingHorizontal: 16 },
+  buyText: { color: COLORS.white, fontSize: 15, fontWeight: '700', paddingHorizontal: 16 },
   offers: { marginTop: 16, backgroundColor: COLORS.surface, borderRadius: 20, padding: 16 },
   offersTitle: {
     color: COLORS.muted,
@@ -312,9 +302,9 @@ const styles = StyleSheet.create({
   offerName: { flex: 1, color: COLORS.text, fontSize: 16, fontWeight: '600' },
   offerPrice: { color: COLORS.muted, fontSize: 15 },
   shareBtn: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -363,12 +353,4 @@ const styles = StyleSheet.create({
   mapButtonText: { color: COLORS.accent, fontSize: 14, fontWeight: '700' },
   sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700', marginTop: 28 },
   seatmap: { width: '100%', height: 280, marginTop: 12, backgroundColor: COLORS.surface, borderRadius: 16 },
-  chatBox: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    padding: 28,
-    alignItems: 'center',
-    gap: 6,
-  },
-  chatTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700', marginTop: 8 },
 });

@@ -82,7 +82,7 @@ export function GoButton({ isGoing, onPress }: Props) {
       <Animated.View style={{ transform: [{ scale }] }}>
         <Pressable onPress={handlePress} style={[styles.button, isGoing && styles.buttonActive]}>
           {isGoing && <Ionicons name="checkmark-circle" size={20} color={COLORS.accent} />}
-          <Text style={[styles.text, isGoing && styles.textActive]}>Voy</Text>
+          <Text style={[styles.text, isGoing && styles.textActive]}>Meeet In!</Text>
         </Pressable>
       </Animated.View>
     </View>
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     height: 46,
-    paddingHorizontal: 30,
+    paddingHorizontal: 22,
     borderRadius: 23,
     backgroundColor: COLORS.accent,
     shadowColor: COLORS.accent,

@@ -23,7 +23,7 @@ export function ScreenTitle({ title, subtitle }: Props) {
     <View style={[styles.container, { paddingTop: insets.top + TITLE_TOP }]}>
       <Text style={styles.title}>
         {title}
-        <Text style={{ color: COLORS.peach }}>.</Text>
+        <Text style={{ color: COLORS.accent }}>.</Text>
       </Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
@@ -33,10 +33,11 @@ export function ScreenTitle({ title, subtitle }: Props) {
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 20, paddingBottom: 20 },
   title: {
-    color: COLORS.accent,
+    // Como el logotipo: tinta de la marca y el punto en violeta
+    color: COLORS.text,
     fontSize: TITLE_SIZE,
     lineHeight: TITLE_LINE_HEIGHT,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: TITLE_SPACING,
   },
   subtitle: { color: COLORS.muted, fontSize: 15, fontWeight: '500', marginTop: 4 },

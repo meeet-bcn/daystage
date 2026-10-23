@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenTitle } from '@/components/screen-title';
@@ -13,8 +14,9 @@ export default function MeeetInScreen() {
   const insets = useSafeAreaInsets();
   const { myConcerts, unreadCount, goingCount } = useApp();
 
-  const openConcert = (id: string, tab?: 'chat') =>
-    router.push({ pathname: '/concert/[id]', params: tab ? { id, tab } : { id } });
+  const openConcert = (id: string) => router.push({ pathname: '/concert/[id]', params: { id } });
+  // El chat de cada concierto solo se abre desde aquí
+  const openChat = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
 
   return (
     <FlatList
@@ -30,7 +32,7 @@ export default function MeeetInScreen() {
           <Ionicons name="ticket-outline" size={32} color={COLORS.lavender} />
           <Text style={styles.emptyTitle}>Aún no tienes planes</Text>
           <Text style={styles.emptyText}>
-            Dale a «Voy» en un concierto y aparecerá aquí, con su chat.
+            Dale a «Meeet In!» en un concierto y aparecerá aquí, con su chat.
           </Text>
           <Pressable style={styles.emptyButton} onPress={() => router.navigate('/')}>
             <Text style={styles.emptyButtonText}>Ver conciertos</Text>
@@ -61,7 +63,7 @@ export default function MeeetInScreen() {
               style={styles.chat}
               hitSlop={8}
               accessibilityLabel={unread > 0 ? `Chat, ${unread} sin leer` : 'Chat'}
-              onPress={() => openConcert(item.id, 'chat')}
+              onPress={() => openChat(item.id)}
             >
               <Ionicons name="chatbubble-outline" size={22} color={COLORS.accent} />
               {unread > 0 && (

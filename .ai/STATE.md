@@ -3,30 +3,28 @@
 _Actualizado: 2026-10-23_
 
 ## Estado actual
-- Pestañas: Inicio · Descubrir (placeholder) · meeet in (próximos planes + badge de chat) · Perfil (estilo Instagram, datos de perfil vacíos hasta tener cuentas).
-- Inicio: buscador (artista/sala/género/telonero, sin acentos), chips de fecha, hoja `/filters`.
-- Foto de evento 16:9 común (`event-image.tsx`) en Inicio y detalle: ticketera arriba a la izquierda (nombre en texto; el logo se probó y se descartó), "Voy" abajo a la izquierda.
-- Si vas a un concierto: pie de foto con el degradado de la marca animado (`holo-frame.tsx`, 56 pt) en Inicio y detalle. El chat del detalle solo aparece si vas.
-- Detalle: info limpia de Ticketmaster (`event-info.ts`): reseña + puertas/telonero/edad.
-- Datos multi-fuente: `src/data/sources/` + `merge.ts`. Solo Ticketmaster activo.
-- Detalle › Info › "Sobre el artista": MusicBrainz (tipo, país, año de formación, géneros, enlaces). Prueba real: 21/28 artistas, 0 errores de emparejamiento.
-- Git: todo en `main` (ver `git log`). bundleIdentifier confirmado: `com.elcantantemudo.meeet`.
-- Tests: jest-expo 57 (Jest 29). 100 tests en `src/data/*.test.ts` (event-info, filters + búsqueda, merge, musicbrainz, plans, profile, text). Nota: jest-expo simula `fetch`; las pruebas contra APIs reales se hacen con Node fuera de Jest.
-- Desktop Commander registrado en Claude Code (ámbito usuario). Disponible a partir de la próxima sesión.
+- Pestañas: Inicio · Descubrir (placeholder) · Meeet in (planes + chat de cada uno) · Perfil · Buscar (botón de búsqueda del sistema, iOS 26).
+- Marca según la hoja de marca: violeta #8F78F5, lavanda #C7B8FF, melocotón #FFCFC2, tinta #2A2540. Logo "meeet." centrado, con las "eee" en salmón de claro a oscuro. Icono de app: variante Lavanda con el imagotipo.
+- Inicio: cabecera fija centrada (logo, lema, aviso beta) y chips Filtros · Calendario · Idioma. Conciertos por páginas de 20 al hacer scroll (~130 en Barcelona).
+- "Meeet In!" sustituye a "Voy" (botón e insignia con el imagotipo animado). Pie de foto con degradado si vas.
+- Calendario: intervalo de días, cabecera de cristal fija, carga más páginas al bajar y "Quitar fechas" vacía la caché.
+- Idioma: el de la gente que quieres conocer. Aún no filtra (no hay asistentes).
+- Chat: solo desde Meeet in (`/chat/[id]`), en memoria y solo local (no hay servidor).
+- Perfil: foto (también en la pestaña), nick, nombre, pronombres, bio, redes (Instagram/TikTok/X) y canción con fragmento de Apple Music.
+- Detalle: fragmento de la canción más popular del artista (iTunes), sin chat ni insignia de ticketera en la foto.
+- Tests: 117 en `src/data/*.test.ts`.
 
 ## Verificación
-- `npm run check` (tsc + expo lint + jest): OK, 100/100. `expo-doctor`: 21/21.
-- Mutation check: romper la normalización de `merge.ts` hace fallar 2 tests.
-- Build de desarrollo iOS OK en simulador (iPhone 17 Pro): Inicio y barra de 4 pestañas verificados por captura. Pantalla Perfil aún sin captura (simctl no puede tocar la pantalla).
+- `npm run check` OK (117/117). `expo-doctor` 21/21 (con Homebrew en el PATH).
+- Build de desarrollo iOS OK en simulador. Vistos por captura: Inicio, barra de pestañas, calendario.
+- Sin ver en pantalla (el simulador no se puede tocar): animación del imagotipo, chat, búsqueda, scroll del calendario, foto en la pestaña, sonido de los fragmentos.
 
 ## Pendiente
-- Planes y perfil persistidos con `expo-sqlite/kv-store` (`src/data/storage.ts`).
-- Perfil editable (nick, nombre, bio, foto). Faltan seguidores reales (cuentas y backend) y la foto en la pestaña (miniatura circular).
-- Acceso a Fever / DICE / Entradas.com / The Project (requiere acuerdos de socio) → backend propio para sus claves.
-- La clave de Ticketmaster va en el bundle (`EXPO_PUBLIC_`).
-- MusicBrainz: plan comercial de MetaBrainz antes del lanzamiento. Contacto del User-Agent ya configurado en `.env.local`.
-- Iconos/splash de MEEET provisionales. Build local: Homebrew + CocoaPods 1.17 (`/opt/homebrew/bin/pod`).
-- Dependencias posiblemente sin uso tras la limpieza: expo-web-browser, expo-symbols, expo-glass-effect, expo-device, @expo/ui, expo-system-ui (sin verificar).
+- Compilar en el iPhone (dependencias nativas nuevas: expo-audio, expo-asset, react-native-view-shot; icono y splash nuevos).
+- Decidir: violeta más oscuro para textos pequeños (contraste 3,3:1) y variante del icono de app.
+- Chat real y asistentes (backend): idioma, "X personas van" y no leídos dependen de ello.
+- Acceso a Fever / DICE / Entradas.com / The Project (acuerdos de socio) → backend propio para sus claves.
+- MusicBrainz: plan comercial de MetaBrainz antes del lanzamiento.
 
 ## Siguiente acción recomendada
-Revisar en el móvil el pie de "Voy" y la ticketera junto al botón de volver del detalle → foto circular en la pestaña Perfil.
+Probar en el iPhone lo no verificado (animación, chat, calendario, búsqueda) y ajustar.

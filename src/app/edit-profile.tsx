@@ -1,12 +1,29 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ProfileAvatar } from '@/components/profile-avatar';
+import { SongPicker } from '@/components/song-picker';
+import { SongRow } from '@/components/song-row';
 import { useApp } from '@/data/app-context';
-import { BIO_MAX, NAME_MAX, nickError, NICK_MAX, normalizeNick } from '@/data/profile';
-import { pickProfilePhoto, saveProfilePhoto } from '@/data/profile-photo';
+import {
+  BIO_MAX,
+  handleError,
+  NAME_MAX,
+  nickError,
+  NICK_MAX,
+  normalizeHandle,
+  normalizeNick,
+  PRONOUNS_MAX,
+  SOCIAL_NETWORKS,
+  SOCIAL_ORDER,
+  Socials,
+} from '@/data/profile';
+import { deleteTabIcons, pickProfilePhoto, saveProfilePhoto } from '@/data/profile-photo';
+import { ProfileSong } from '@/data/songs';
+import { useSongPreview } from '@/hooks/use-song-preview';
 import { COLORS } from '@/theme';
 
 export default function EditProfileScreen() {
@@ -16,17 +33,26 @@ export default function EditProfileScreen() {
   // Borrador: nada se aplica hasta pulsar "Guardar"
   const [nick, setNick] = useState(profile.nick);
   const [name, setName] = useState(profile.name);
+  const [pronouns, setPronouns] = useState(profile.pronouns);
   const [bio, setBio] = useState(profile.bio);
+  const [socials, setSocials] = useState<Socials>(profile.socials);
+  const [song, setSong] = useState<ProfileSong | null>(profile.song);
+  const [pickingSong, setPickingSong] = useState(false);
+  const preview = useSongPreview();
   const [photo, setPhoto] = useState(profile.photo);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const error = nickError(nick);
+  const socialErrors = SOCIAL_ORDER.map((n) => handleError(n, socials[n]));
   const changed =
     nick !== profile.nick ||
     name.trim() !== profile.name ||
+    pronouns.trim() !== profile.pronouns ||
     bio.trim() !== profile.bio ||
+    SOCIAL_ORDER.some((n) => socials[n] !== profile.socials[n]) ||
+    song?.id !== profile.song?.id ||
     photo !== profile.photo;
-  const canSave = changed && !error;
+  const canSave = changed && !error && socialErrors.every((e) => !e);
 
   const choosePhoto = async () => {
     const uri = await pickProfilePhoto();
@@ -35,11 +61,18 @@ export default function EditProfileScreen() {
 
   const save = () => {
     try {
+      const saved = saveProfilePhoto(photo, profile.photo);
+      // Sin foto, fuera sus miniaturas; con una nueva, tab-avatar genera las suyas
+      if (!saved) deleteTabIcons(profile.tabIcons);
       updateProfile({
         nick,
         name: name.trim(),
+        pronouns: pronouns.trim(),
         bio: bio.trim(),
-        photo: saveProfilePhoto(photo, profile.photo),
+        socials,
+        song,
+        photo: saved,
+        ...(!saved && { tabIcons: null }),
       });
       router.back();
     } catch {
@@ -112,6 +145,17 @@ export default function EditProfileScreen() {
           maxLength={NAME_MAX}
         />
 
+        <Text style={styles.label}>Pronombres</Text>
+        <TextInput
+          value={pronouns}
+          onChangeText={setPronouns}
+          placeholder="ella, él, elle…"
+          placeholderTextColor={COLORS.muted}
+          style={styles.field}
+          autoCapitalize="none"
+          maxLength={PRONOUNS_MAX}
+        />
+
         <View style={styles.labelRow}>
           <Text style={styles.label}>Biografía</Text>
           <Text style={styles.counter}>
@@ -128,7 +172,77 @@ export default function EditProfileScreen() {
           maxLength={BIO_MAX}
           textAlignVertical="top"
         />
+
+        <Text style={styles.label}>Canción</Text>
+        {song ? (
+          <SongRow
+            song={song}
+            playing={preview.isPlaying(song)}
+            onTogglePlay={() => preview.toggle(song)}
+            onPress={() => {
+              preview.stop();
+              setPickingSong(true);
+            }}
+            trailing={
+              <Pressable
+                onPress={() => {
+                  preview.stop();
+                  setSong(null);
+                }}
+                hitSlop={10}
+                accessibilityLabel="Quitar canción"
+              >
+                <Ionicons name="close-circle" size={22} color={COLORS.muted} />
+              </Pressable>
+            }
+          />
+        ) : (
+          <Pressable style={[styles.field, styles.addSong]} onPress={() => setPickingSong(true)}>
+            <Ionicons name="musical-notes" size={18} color={COLORS.accent} />
+            <Text style={styles.addSongText}>Añadir canción</Text>
+          </Pressable>
+        )}
+
+        <Text style={styles.label}>Redes sociales</Text>
+        <View style={styles.socials}>
+          {SOCIAL_ORDER.map((network, i) => {
+            const { label, icon } = SOCIAL_NETWORKS[network];
+            const socialError = socialErrors[i];
+            return (
+              <View key={network}>
+                <View style={[styles.field, styles.nickField, socialError && styles.fieldError]}>
+                  <Ionicons name={icon} size={18} color={COLORS.text} style={styles.socialIcon} />
+                  <Text style={styles.at}>@</Text>
+                  <TextInput
+                    value={socials[network]}
+                    // Acepta también el enlace del perfil pegado tal cual
+                    onChangeText={(text) =>
+                      setSocials((current) => ({ ...current, [network]: normalizeHandle(text) }))
+                    }
+                    placeholder={`Usuario de ${label}`}
+                    placeholderTextColor={COLORS.muted}
+                    style={styles.nickInput}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    accessibilityLabel={`Usuario de ${label}`}
+                    // Sin maxLength: cortaría un enlace pegado antes de sacar el usuario
+                  />
+                </View>
+                {socialError ? <Text style={styles.error}>{socialError}</Text> : null}
+              </View>
+            );
+          })}
+        </View>
       </ScrollView>
+
+      <SongPicker
+        visible={pickingSong}
+        onPick={(picked) => {
+          setSong(picked);
+          setPickingSong(false);
+        }}
+        onClose={() => setPickingSong(false)}
+      />
     </View>
   );
 }
@@ -180,5 +294,9 @@ const styles = StyleSheet.create({
   at: { color: COLORS.muted, fontSize: 16, marginRight: 2 },
   nickInput: { flex: 1, color: COLORS.text, fontSize: 16, paddingVertical: 12 },
   bio: { minHeight: 96 },
+  socials: { gap: 10 },
+  addSong: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  addSongText: { color: COLORS.accent, fontSize: 16, fontWeight: '700' },
+  socialIcon: { marginRight: 10 },
   error: { color: COLORS.danger, fontSize: 13, marginTop: 6 },
 });
