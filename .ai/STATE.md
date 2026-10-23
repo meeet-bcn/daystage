@@ -9,15 +9,21 @@ _Actualizado: 2026-10-23_
 - "Meeet In!" sustituye a "Voy" (botón e insignia con el imagotipo animado). Pie de foto con degradado si vas.
 - Calendario: intervalo de días, cabecera de cristal fija, carga más páginas al bajar y "Quitar fechas" vacía la caché.
 - Idioma: el de la gente que quieres conocer. Aún no filtra (no hay asistentes).
-- Chat: solo desde Meeet in (`/chat/[id]`), en memoria y solo local (no hay servidor).
+- Chat: solo desde Meeet in (`/chat/[id]`), con salas General e Idioma (tu idioma principal), en memoria y solo local (no hay servidor).
+- Ajustes (Perfil › engranaje): idioma principal, privacidad, notificaciones, vibración, sonidos, caché, borrar datos. Privacidad y notificaciones solo se guardan.
+- Tema: el acento de toda la app sale del fondo del perfil (16 fondos pastel con su acento, contraste ≥ 3:1). La marca (logo, imagotipo, icono) sigue en violeta.
+- Perfil: cabecera de cristal fija, cuadrícula en tres columnas (Meeet in · Lista de deseos · Pasados), pastillas de cristal teñidas por el fondo, pronombres a elegir.
+- Lista de deseos con corazón en Inicio y en el detalle.
+- Inicio: tirar para recargar con el imagotipo, sonido y explosión de destellos; tocar Inicio sube arriba; primera carga con el imagotipo en el centro. Brillos al darle a "Meeet In!".
+- Todas las pestañas: cabecera fija de cristal y `disableAutomaticContentInsets` (sin el margen doble de iOS).
 - Perfil: foto (también en la pestaña), nick, nombre, pronombres, bio, redes (Instagram/TikTok/X) y canción con fragmento de Apple Music.
 - Detalle: fragmento de la canción más popular del artista (iTunes), sin chat ni insignia de ticketera en la foto.
-- Tests: 117 en `src/data/*.test.ts`.
+- Tests: 142 (`src/data/*.test.ts` y `src/theme.test.ts`).
 
 ## Verificación
-- `npm run check` OK (117/117). `expo-doctor` 21/21 (con Homebrew en el PATH).
-- Build de desarrollo iOS OK en simulador. Vistos por captura: Inicio, barra de pestañas, calendario.
-- Sin ver en pantalla (el simulador no se puede tocar): animación del imagotipo, chat, búsqueda, scroll del calendario, foto en la pestaña, sonido de los fragmentos.
+- `npm run check` OK (142/142). `expo-doctor` 21/21 (con Homebrew en el PATH).
+- Build de desarrollo iOS OK en simulador. Vistos por captura: Inicio, barra de pestañas, calendario, Ajustes, brillos de "Meeet In!", Perfil con fondo y tema, cabeceras fijas en reposo.
+- Sin ver en pantalla (el simulador no se puede tocar ni arrastrar): tirar para recargar y su sonido, tocar Inicio para subir, cabeceras al hacer scroll, chat y sus salas, chips de pronombres, aro de la foto en la pestaña, sonido de los fragmentos.
 
 ## Pendiente
 - Compilar en el iPhone (dependencias nativas nuevas: expo-audio, expo-asset, react-native-view-shot; icono y splash nuevos).
