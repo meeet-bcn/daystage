@@ -1,29 +1,45 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
+import { HoloFrame } from '@/components/holo-frame';
 import { SourceBadge } from '@/components/source-badge';
 import type { Concert } from '@/data/concerts';
 import { COLORS } from '@/theme';
+
+const SOURCE_POSITION = { top: 14, left: 20 };
 
 type Props = {
   concert: Concert;
   going: boolean;
   /** Texto de la insignia "Voy" (más largo en el detalle). */
   goingLabel?: string;
+  /** Pie de foto con degradado si vas al concierto. */
+  holo?: boolean;
+  /** Dónde va la ticketera; por defecto, arriba a la izquierda con el margen estándar. */
+  sourcePosition?: { top: number; left: number };
 };
 
 /**
  * Foto 16:9 del concierto, la misma en Inicio y en el detalle: ticketera
- * abajo a la izquierda y "Voy" abajo a la derecha.
+ * arriba a la izquierda y "Voy" abajo a la izquierda, sobre el pie de foto.
  */
-export function EventImage({ concert, going, goingLabel = 'Voy' }: Props) {
+export function EventImage({
+  concert,
+  going,
+  goingLabel = 'Voy',
+  holo = false,
+  sourcePosition = SOURCE_POSITION,
+}: Props) {
   const uri = concert.image || concert.hero;
+
+  const image = uri ? <Image source={{ uri }} style={styles.image} /> : <View style={styles.image} />;
 
   return (
     <View>
-      {uri ? <Image source={{ uri }} style={styles.image} /> : <View style={styles.image} />}
+      {/* El marco va solo sobre la foto, por debajo de las insignias */}
+      {holo && going ? <HoloFrame>{image}</HoloFrame> : image}
 
-      <View style={styles.source}>
+      <View style={[styles.source, sourcePosition]}>
         <SourceBadge offers={concert.offers} />
       </View>
 
@@ -39,10 +55,10 @@ export function EventImage({ concert, going, goingLabel = 'Voy' }: Props) {
 
 const styles = StyleSheet.create({
   image: { width: '100%', aspectRatio: 16 / 9, backgroundColor: COLORS.surface },
-  source: { position: 'absolute', left: 20, bottom: 14 },
+  source: { position: 'absolute' },
   going: {
     position: 'absolute',
-    right: 20,
+    left: 20,
     bottom: 14,
     flexDirection: 'row',
     alignItems: 'center',

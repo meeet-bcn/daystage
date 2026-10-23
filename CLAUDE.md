@@ -34,8 +34,9 @@ src/
     go-button.tsx           # Botón "Voy": confeti y háptica. Es el componente central de la marca
     chip.tsx                # Chip en píldora (filtros, opciones)
     search-bar.tsx          # Buscador en píldora (Inicio)
-    event-image.tsx         # Foto 16:9 del concierto, igual en Inicio y en el detalle: ticketera abajo a la izquierda, "Voy" abajo a la derecha
+    event-image.tsx         # Foto 16:9 del concierto, igual en Inicio y en el detalle: ticketera arriba a la izquierda (en el detalle, junto al botón de volver), "Voy" abajo a la izquierda
     source-badge.tsx        # Insignia de la ticketera: su nombre en una pastilla blanca, con "+N" si hay más
+    holo-frame.tsx          # Pie de foto con degradado animado (56 pt, bajo la insignia "Voy") dentro de la foto; solo si vas
     profile-avatar.tsx      # Avatar circular: foto opcional con icono de reserva
     screen-title.tsx        # Título grande con el punto melocotón, para pantallas de pestaña
     app-tabs.tsx            # NativeTabs (iOS/Android): Inicio · Descubrir · Meeet in · Perfil, con el badge de no leídos
@@ -72,6 +73,8 @@ scripts/generate-brand-assets.swift   # Regenera los PNG de assets/images: `swif
 - Los no leídos (`unread` en `app-context.tsx`) siempre están vacíos porque aún no hay chat. Cuando exista, basta con alimentar ese estado y el badge de la pestaña meeet in y la burbuja de cada fila aparecerán solos.
 - El badge de una pestaña nativa se pinta solo si `NativeTabs.Trigger.Badge` está en el árbol. En iOS, `hidden` deja un "0" y un badge vacío se ve como un punto: renderízalo de forma condicional.
 - Un concierto pasa a "ya fui" cuando termina su día (`isPast`). La API solo trae conciertos futuros, así que los pasados existen únicamente como la copia guardada al decir "Voy": el detalle los busca también en `plans`.
+- El chat de un concierto (pestaña "Chat" del detalle) solo existe si vas: sin "Voy" no se muestra.
+- Marco de "Voy": pie de foto de `FOOTER_HEIGHT` pt con el degradado de la marca girando, dentro de la foto y bajo la insignia "Voy" (si cambias su posición en `event-image.tsx`, ajusta el alto). Se probaron trazos finos arriba/abajo y en los 4 lados. Sin efecto holográfico (se probó tinte, reflejo y brillo y se descartó). Respeta "Reducir movimiento". Activo en Inicio y en el detalle.
 - Datos del usuario (planes, perfil) se guardan en el móvil con `storage.ts`: se cargan de forma síncrona en el estado inicial y se guardan en un `useEffect`. Si cambias la forma de un dato guardado, sube la versión de su clave.
 - Foto de perfil: la URI del selector está en la caché y puede desaparecer. Solo se guarda en el perfil tras copiarla a `Paths.document` (`saveProfilePhoto`), con un nombre nuevo cada vez para que no se vea la foto vieja en caché. La foto anterior se borra.
 - La pestaña Perfil usa el icono del sistema, no la foto: NativeTabs no recorta en círculo. Para mostrar la foto habría que generar una miniatura PNG circular al guardar (p. ej. con `react-native-view-shot`).

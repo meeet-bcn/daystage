@@ -177,7 +177,7 @@ export default function HomeScreen() {
               style={styles.card}
               onPress={() => router.push({ pathname: '/concert/[id]', params: { id: item.id } })}
             >
-              <EventImage concert={item} going={going} />
+              <EventImage concert={item} going={going} holo />
 
               <View style={styles.cardBody}>
                 <View style={{ flex: 1 }}>

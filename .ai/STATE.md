@@ -5,7 +5,8 @@ _Actualizado: 2026-10-23_
 ## Estado actual
 - Pestañas: Inicio · Descubrir (placeholder) · meeet in (próximos planes + badge de chat) · Perfil (estilo Instagram, datos de perfil vacíos hasta tener cuentas).
 - Inicio: buscador (artista/sala/género/telonero, sin acentos), chips de fecha, hoja `/filters`.
-- Foto de evento 16:9 común (`event-image.tsx`) en Inicio y detalle, con insignia de ticketera (nombre en texto; el logo se probó y se descartó).
+- Foto de evento 16:9 común (`event-image.tsx`) en Inicio y detalle: ticketera arriba a la izquierda (nombre en texto; el logo se probó y se descartó), "Voy" abajo a la izquierda.
+- Si vas a un concierto: pie de foto con el degradado de la marca animado (`holo-frame.tsx`, 56 pt) en Inicio y detalle. El chat del detalle solo aparece si vas.
 - Detalle: info limpia de Ticketmaster (`event-info.ts`): reseña + puertas/telonero/edad.
 - Datos multi-fuente: `src/data/sources/` + `merge.ts`. Solo Ticketmaster activo.
 - Detalle › Info › "Sobre el artista": MusicBrainz (tipo, país, año de formación, géneros, enlaces). Prueba real: 21/28 artistas, 0 errores de emparejamiento.
@@ -28,4 +29,4 @@ _Actualizado: 2026-10-23_
 - Dependencias posiblemente sin uso tras la limpieza: expo-web-browser, expo-symbols, expo-glass-effect, expo-device, @expo/ui, expo-system-ui (sin verificar).
 
 ## Siguiente acción recomendada
-Probar la edición de perfil en el móvil → foto circular en la pestaña Perfil.
+Revisar en el móvil el pie de "Voy" y la ticketera junto al botón de volver del detalle → foto circular en la pestaña Perfil.

@@ -52,6 +52,9 @@ export default function ConcertDetail() {
   }
 
   const going = isGoing(concert.id);
+  // El chat es solo para quien va: sin "Voy" no hay pestaña y se vuelve a Información
+  const tabs = going ? TABS : TABS.filter((t) => t.key !== 'chat');
+  const activeTab: Tab = tabs.some((t) => t.key === tab) ? tab : 'info';
   const count = goingCount(concert);
   const hasCoords = concert.latitude != null && concert.longitude != null;
   const place = hasCoords
@@ -96,7 +99,14 @@ export default function ConcertDetail() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 56 }}
       >
-        <EventImage concert={concert} going={going} goingLabel="Voy a este concierto" />
+        <EventImage
+          concert={concert}
+          going={going}
+          goingLabel="Voy a este concierto"
+          holo
+          // Arriba a la izquierda está el botón de volver: la ticketera va a su lado, centrada con él
+          sourcePosition={{ top: insets.top + 14, left: 66 }}
+        />
 
 
         <View style={styles.body}>
@@ -142,20 +152,20 @@ export default function ConcertDetail() {
           )}
 
           <View style={styles.segmented}>
-            {TABS.map((t) => (
+            {tabs.map((t) => (
               <Pressable
                 key={t.key}
-                style={[styles.segment, tab === t.key && styles.segmentActive]}
+                style={[styles.segment, activeTab === t.key && styles.segmentActive]}
                 onPress={() => setTab(t.key)}
               >
-                <Text style={[styles.segmentText, tab === t.key && styles.segmentTextActive]}>
+                <Text style={[styles.segmentText, activeTab === t.key && styles.segmentTextActive]}>
                   {t.label}
                 </Text>
               </Pressable>
             ))}
           </View>
 
-          {tab === 'info' && (
+          {activeTab === 'info' && (
             <View>
               {infoRows.map((row, i) => (
                 <View key={row.label} style={[styles.infoRow, i > 0 && styles.infoRowLine]}>
@@ -174,7 +184,7 @@ export default function ConcertDetail() {
             </View>
           )}
 
-          {tab === 'lugar' && (
+          {activeTab === 'lugar' && (
             <View>
               {hasCoords && (
                 <MapView
@@ -224,7 +234,7 @@ export default function ConcertDetail() {
             </View>
           )}
 
-          {tab === 'chat' && (
+          {activeTab === 'chat' && (
             <View style={styles.chatBox}>
               <Ionicons name="chatbubbles-outline" size={32} color={COLORS.lavender} />
               <Text style={styles.chatTitle}>Chat del evento</Text>
