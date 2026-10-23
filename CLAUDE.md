@@ -20,15 +20,15 @@ npm test             # solo tests (jest-expo); npm run test:watch para modo watc
 ```
 src/
   app/                      # Rutas (Expo Router)
-    _layout.tsx             # Layout raíz: ThemeProvider + AppProvider + Stack (tabs, concert, filters, profile)
+    _layout.tsx             # Layout raíz: ThemeProvider + AppProvider + Stack (tabs, concert, filters)
     (tabs)/
       _layout.tsx           # Renderiza <AppTabs />
-      index.tsx             # Inicio: avatar arriba a la derecha, chips de fecha y "Filtros", lista filtrada
+      index.tsx             # Inicio: buscador, chips de fecha y "Filtros", lista filtrada
       descubrir.tsx         # Descubrir: recomendaciones según tus gustos (de momento, un placeholder)
-      meeet-in.tsx          # meeet in: conciertos a los que vas y acceso al chat, con su burbuja de no leídos
+      meeet-in.tsx          # meeet in: próximos planes y acceso al chat, con su burbuja de no leídos
+      perfil.tsx            # Perfil estilo Instagram: nick, foto, meeet in / seguidores / seguidos, bio y cuadrícula de planes (pasados al 50 %)
     concert/[id].tsx        # Detalle (fuera de las pestañas): hero, "Voy", comprar entrada, compartir, pestañas Info/Lugar/Chat. `?tab=chat` abre directamente el chat
     filters.tsx             # Hoja nativa (formSheet): ordenar, cuándo, género, precio
-    profile.tsx             # Perfil (de momento, un placeholder)
   components/
     go-button.tsx           # Botón "Voy": confeti y háptica. Es el componente central de la marca
     chip.tsx                # Chip en píldora (filtros, opciones)
@@ -53,7 +53,9 @@ src/
   hooks/use-artist-info.ts  # Carga la info de MusicBrainz para el detalle (Info › "Sobre el artista", artist-card.tsx)
     event-info.ts           # Limpia los textos de Ticketmaster: reseña (`description`, o `info` sin la logística) + puertas, telonero y edad. Descarta los eventos "Test ..."
     filters.ts              # Tipos y opciones de filtros + applyFilters() (funciones puras)
-    app-context.tsx         # AppProvider / useApp(): conciertos, "Voy", myConcerts, filtros, visibleConcerts, no leídos
+    app-context.tsx         # AppProvider / useApp(): conciertos, "Voy" (guarda copia del concierto), plans, myConcerts, profile, filtros, no leídos
+    plans.ts                # isPast / splitPlans / companionsLabel: próximos frente a ya pasados ("X personas van contigo")
+    profile.ts              # Tipo Profile (vacío hasta que haya cuentas)
   theme.ts                  # ✅ Paleta de MEEET (COLORS). Úsala siempre
   constants/theme.ts        # Medidas de layout: BottomTabInset, MaxContentWidth
 assets/images/              # Iconos y splash de MEEET (provisionales: monograma "m." y marca "meeet.")
@@ -65,6 +67,8 @@ scripts/generate-brand-assets.swift   # Regenera los PNG de assets/images: `swif
 - Variable de entorno: `EXPO_PUBLIC_TICKETMASTER_KEY` en `.env.local` (no está versionado). Al llevar el prefijo `EXPO_PUBLIC_`, la clave se incrusta en el bundle. No metas ahí secretos de verdad.
 - El estado "Voy" (`myEvents`) y los filtros viven solo en memoria y se pierden al reiniciar la app. `going` siempre llega a 0 desde la API: todavía no hay backend de asistentes.
 - Los no leídos (`unread` en `app-context.tsx`) siempre están vacíos porque aún no hay chat. Cuando exista, basta con alimentar ese estado y el badge de la pestaña meeet in y la burbuja de cada fila aparecerán solos.
+- El badge de una pestaña nativa se pinta solo si `NativeTabs.Trigger.Badge` está en el árbol. En iOS, `hidden` deja un "0" y un badge vacío se ve como un punto: renderízalo de forma condicional.
+- Un concierto pasa a "ya fui" cuando termina su día (`isPast`). La API solo trae conciertos futuros, así que los pasados existen únicamente como la copia guardada al decir "Voy": el detalle los busca también en `plans`.
 - Los nombres de pestaña se escriben en minúscula como la marca: "meeet in".
 
 ## Identidad de marca

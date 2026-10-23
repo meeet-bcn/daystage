@@ -32,12 +32,13 @@ const TABS: { key: Tab; label: string }[] = [
 export default function ConcertDetail() {
   const insets = useSafeAreaInsets();
   const { id, tab: initialTab } = useLocalSearchParams<{ id: string; tab?: Tab }>();
-  const { concerts, isGoing, toggleGoing, goingCount } = useApp();
+  const { concerts, plans, isGoing, toggleGoing, goingCount } = useApp();
   const [tab, setTab] = useState<Tab>(
     TABS.some((t) => t.key === initialTab) ? (initialTab as Tab) : 'info'
   );
 
-  const concert = concerts.find((c) => c.id === id);
+  // Los conciertos ya pasados no vienen en la API: solo están en tus planes
+  const concert = concerts.find((c) => c.id === id) ?? plans.find((c) => c.id === id);
 
   if (!concert) {
     return (
@@ -90,9 +91,8 @@ export default function ConcertDetail() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 56 }}>
-        <View style={{ paddingTop: insets.top }}>
-          <EventImage concert={concert} going={going} goingLabel="Voy a este concierto" />
-        </View>
+        <EventImage concert={concert} going={going} goingLabel="Voy a este concierto" />
+
 
         <View style={styles.body}>
           <Text style={styles.date}>{concert.date}</Text>
@@ -105,7 +105,7 @@ export default function ConcertDetail() {
                 ? 'Sé el primero en apuntarte'
                 : `${count} ${count === 1 ? 'persona va' : 'personas van'}`}
             </Text>
-            <GoButton isGoing={going} onPress={() => toggleGoing(concert.id)} />
+            <GoButton isGoing={going} onPress={() => toggleGoing(concert)} />
           </View>
 
           <View style={styles.actions}>

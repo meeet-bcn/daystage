@@ -2,16 +2,22 @@ import { createContext, ReactNode, useContext, useEffect, useMemo, useState } fr
 
 import { Concert, fetchConcerts } from '@/data/concerts';
 import { applyFilters, DEFAULT_FILTERS, Filters, genresOf } from '@/data/filters';
+import { splitPlans } from '@/data/plans';
+import { EMPTY_PROFILE, Profile } from '@/data/profile';
 
 type AppState = {
   concerts: Concert[];
   loading: boolean;
   error: string | null;
   isGoing: (id: string) => boolean;
-  toggleGoing: (id: string) => void;
+  toggleGoing: (concert: Concert) => void;
   goingCount: (concert: Concert) => number;
-  /** Conciertos a los que vas, ordenados por fecha (pestaña meeet in). */
+  /** Todos los conciertos a los que has dicho "Voy", también los ya pasados. */
+  plans: Concert[];
+  /** Planes que aún no han pasado, el más cercano primero (pestaña meeet in). */
   myConcerts: Concert[];
+
+  profile: Profile;
 
   filters: Filters;
   setFilters: (update: (current: Filters) => Filters) => void;
@@ -31,7 +37,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [concerts, setConcerts] = useState<Concert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [myEvents, setMyEvents] = useState<string[]>([]);
+  // Copia de cada concierto al decir "Voy": la API solo trae conciertos
+  // futuros, así que los ya pasados solo existen aquí
+  const [myEvents, setMyEvents] = useState<Record<string, Concert>>({});
+  const [profile] = useState<Profile>(EMPTY_PROFILE);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [unread] = useState<Record<string, number>>({});
 
@@ -43,21 +52,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AppState>(() => {
-    const goingCount = (c: Concert) => c.going + (myEvents.includes(c.id) ? 1 : 0);
+    const goingCount = (c: Concert) => c.going + (myEvents[c.id] ? 1 : 0);
     const unreadCount = (id: string) => unread[id] ?? 0;
-    const myConcerts = concerts.filter((c) => myEvents.includes(c.id));
+    // Datos frescos de la API si el concierto sigue en ella; si no, la copia
+    const plans = Object.values(myEvents).map((saved) => concerts.find((c) => c.id === saved.id) ?? saved);
+    const myConcerts = splitPlans(plans).upcoming;
 
     return {
       concerts,
       loading,
       error,
-      isGoing: (id) => myEvents.includes(id),
-      toggleGoing: (id) =>
-        setMyEvents((current) =>
-          current.includes(id) ? current.filter((e) => e !== id) : [...current, id]
+      isGoing: (id) => id in myEvents,
+      toggleGoing: (concert) =>
+        setMyEvents(({ [concert.id]: existing, ...rest }) =>
+          existing ? rest : { ...rest, [concert.id]: concert }
         ),
       goingCount,
+      plans,
       myConcerts,
+
+      profile,
 
       filters,
       setFilters,
@@ -68,7 +82,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       unreadCount,
       unreadTotal: myConcerts.reduce((sum, c) => sum + unreadCount(c.id), 0),
     };
-  }, [concerts, loading, error, myEvents, filters, unread]);
+  }, [concerts, loading, error, myEvents, profile, filters, unread]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

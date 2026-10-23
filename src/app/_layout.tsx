@@ -25,17 +25,6 @@ export default function RootLayout() {
               sheetCornerRadius: 28,
             }}
           />
-          <Stack.Screen
-            name="profile"
-            options={{
-              title: 'Perfil',
-              headerBackButtonDisplayMode: 'minimal',
-              headerStyle: { backgroundColor: COLORS.background },
-              headerTintColor: COLORS.accent,
-              headerTitleStyle: { color: COLORS.text },
-              headerShadowVisible: false,
-            }}
-          />
         </Stack>
       </AppProvider>
     </ThemeProvider>

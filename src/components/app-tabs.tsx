@@ -4,7 +4,7 @@ import { useApp } from '@/data/app-context';
 import { COLORS } from '@/theme';
 
 export default function AppTabs() {
-  const { unreadTotal } = useApp();
+  const { unreadTotal, profile } = useApp();
 
   return (
     <NativeTabs
@@ -30,9 +30,23 @@ export default function AppTabs() {
           sf={{ default: 'ticket', selected: 'ticket.fill' }}
           md="confirmation_number"
         />
-        <NativeTabs.Trigger.Badge hidden={unreadTotal === 0}>
-          {unreadTotal > 9 ? '9+' : String(unreadTotal)}
-        </NativeTabs.Trigger.Badge>
+        {/* Solo si hay algo sin leer: en iOS, `hidden` deja un "0" y un badge vacío, un punto */}
+        {unreadTotal > 0 && (
+          <NativeTabs.Trigger.Badge>{unreadTotal > 9 ? '9+' : String(unreadTotal)}</NativeTabs.Trigger.Badge>
+        )}
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="perfil">
+        <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
+        {/* La barra nativa no recorta en círculo: la foto debe guardarse ya recortada */}
+        {profile.photo ? (
+          <NativeTabs.Trigger.Icon src={{ uri: profile.photo }} renderingMode="original" />
+        ) : (
+          <NativeTabs.Trigger.Icon
+            sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }}
+            md="account_circle"
+          />
+        )}
       </NativeTabs.Trigger>
     </NativeTabs>
   );

@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chip } from '@/components/chip';
 import { EventImage } from '@/components/event-image';
 import { GoButton } from '@/components/go-button';
-import { ProfileAvatar } from '@/components/profile-avatar';
+import { TITLE_SIZE, TITLE_SPACING } from '@/components/screen-title';
 import { SearchBar } from '@/components/search-bar';
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
@@ -25,7 +25,7 @@ import { COLORS } from '@/theme';
 
 // Ajustes del banner (puedes tocar estos números)
 const LOGO_MAX = 72; // tamaño del logo arriba del todo
-const LOGO_MIN = 36; // tamaño del logo ya encogido
+const LOGO_MIN = TITLE_SIZE; // ya encogido: igual que los títulos de Descubrir, meeet in y Perfil
 const LINE_MAX = 83; // altura de la caja del logo grande
 const LINE_MIN = 42; // altura de la caja del logo encogido
 const PAD_MAX = 8; // aire inferior con el logo grande
@@ -64,7 +64,7 @@ export default function HomeScreen() {
 
   const logoSize = shrink(LOGO_MAX, LOGO_MIN);
   const logoLine = shrink(LINE_MAX, LINE_MIN);
-  const logoSpacing = shrink(-2, -1);
+  const logoSpacing = shrink(-2, TITLE_SPACING);
   const headerPadTop = shrink(insets.top + TOP_MAX, insets.top + TOP_MIN);
   const headerPadBottom = shrink(PAD_MAX, PAD_MIN);
   const sloganHeight = shrink(SLOGAN_H, 0);
@@ -189,7 +189,7 @@ export default function HomeScreen() {
                       : `${count} ${count === 1 ? 'persona va' : 'personas van'}`}
                   </Text>
                 </View>
-                <GoButton isGoing={going} onPress={() => toggleGoing(item.id)} />
+                <GoButton isGoing={going} onPress={() => toggleGoing(item)} />
               </View>
             </Pressable>
           );
@@ -211,9 +211,6 @@ export default function HomeScreen() {
           >
             meeet<Text style={{ color: COLORS.peach }}>.</Text>
           </Animated.Text>
-          <View style={styles.avatar}>
-            <ProfileAvatar onPress={() => router.push('/profile')} />
-          </View>
         </Animated.View>
 
         <Animated.Text
@@ -242,14 +239,13 @@ const styles = StyleSheet.create({
   },
   glass: { backgroundColor: 'rgba(255,255,255,0.45)' },
   logoRow: { justifyContent: 'center' },
-  avatar: { position: 'absolute', right: 0, top: 0, bottom: 0, justifyContent: 'center' },
   logo: {
-    alignSelf: 'center',
+    alignSelf: 'flex-start',
     color: COLORS.accent,
     fontWeight: '800',
   },
   slogan: {
-    alignSelf: 'center',
+    alignSelf: 'flex-start',
     color: COLORS.muted,
     fontSize: 15,
     lineHeight: 20,

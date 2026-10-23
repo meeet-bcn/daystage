@@ -29,6 +29,9 @@ export default function AppTabs() {
           <TabTrigger name="meeet-in" href="/meeet-in" asChild>
             <TabButton badge={unreadTotal > 0}>meeet in</TabButton>
           </TabTrigger>
+          <TabTrigger name="perfil" href="/perfil" asChild>
+            <TabButton>Perfil</TabButton>
+          </TabTrigger>
         </CustomTabList>
       </TabList>
     </Tabs>
