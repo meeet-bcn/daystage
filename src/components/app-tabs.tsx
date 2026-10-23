@@ -25,7 +25,7 @@ export default function AppTabs() {
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="meeet-in">
-        <NativeTabs.Trigger.Label>meeet in</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Meeet in</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf={{ default: 'ticket', selected: 'ticket.fill' }}
           md="confirmation_number"

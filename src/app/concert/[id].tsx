@@ -90,7 +90,12 @@ export default function ConcertDetail() {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 56 }}>
+      <ScrollView
+        // La foto debe llegar hasta arriba: sin esto iOS añade el margen de la zona segura
+        contentInsetAdjustmentBehavior="never"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 56 }}
+      >
         <EventImage concert={concert} going={going} goingLabel="Voy a este concierto" />
 
 

@@ -37,7 +37,7 @@ src/
     source-badge.tsx        # Insignia de la ticketera: su nombre en una pastilla blanca, con "+N" si hay más
     profile-avatar.tsx      # Avatar circular: foto opcional con icono de reserva
     screen-title.tsx        # Título grande con el punto melocotón, para pantallas de pestaña
-    app-tabs.tsx            # NativeTabs (iOS/Android): Inicio · Descubrir · meeet in, con el badge de no leídos
+    app-tabs.tsx            # NativeTabs (iOS/Android): Inicio · Descubrir · Meeet in · Perfil, con el badge de no leídos
     app-tabs.web.tsx        # Barra de pestañas para web (expo-router/ui), con un punto rojo como badge
     splash-overlay*.tsx     # Relevo del splash nativo con fundido (en web no hace nada)
   data/
@@ -71,7 +71,9 @@ scripts/generate-brand-assets.swift   # Regenera los PNG de assets/images: `swif
 - El badge de una pestaña nativa se pinta solo si `NativeTabs.Trigger.Badge` está en el árbol. En iOS, `hidden` deja un "0" y un badge vacío se ve como un punto: renderízalo de forma condicional.
 - Un concierto pasa a "ya fui" cuando termina su día (`isPast`). La API solo trae conciertos futuros, así que los pasados existen únicamente como la copia guardada al decir "Voy": el detalle los busca también en `plans`.
 - Datos del usuario (planes, perfil) se guardan en el móvil con `storage.ts`: se cargan de forma síncrona en el estado inicial y se guardan en un `useEffect`. Si cambias la forma de un dato guardado, sube la versión de su clave.
-- Los nombres de pestaña se escriben en minúscula como la marca: "meeet in".
+- Los nombres de pestaña y los títulos de pantalla van con mayúscula inicial, también "Meeet in" (Inicio · Descubrir · Meeet in · Perfil). El logo, en cambio, siempre en minúscula: `meeet.`.
+- Los títulos de pestaña (`ScreenTitle`) ocupan la misma caja que el logo de Inicio encogido (`TITLE_SIZE`, `TITLE_LINE_HEIGHT`, `TITLE_TOP`), así que quedan a la misma altura. Inicio importa esas constantes: cámbialas solo ahí.
+- En pantallas cuyo margen superior pones tú (`ScreenTitle`, fotos a sangre), añade `contentInsetAdjustmentBehavior="never"` al ScrollView/FlatList: si no, iOS suma otra vez la zona segura (~59 pt) y el contenido baja.
 
 ## Identidad de marca
 

@@ -18,11 +18,13 @@ export default function MeeetInScreen() {
 
   return (
     <FlatList
+      // El margen superior lo pone ScreenTitle; sin esto iOS lo suma otra vez
+      contentInsetAdjustmentBehavior="never"
       style={styles.container}
       data={myConcerts}
       keyExtractor={(item: Concert) => item.id}
       contentContainerStyle={{ paddingBottom: insets.bottom + BottomTabInset + 32 }}
-      ListHeaderComponent={<ScreenTitle title="meeet in" subtitle="Tus planes y sus chats" />}
+      ListHeaderComponent={<ScreenTitle title="Meeet in" subtitle="Tus planes y sus chats" />}
       ListEmptyComponent={
         <View style={styles.empty}>
           <Ionicons name="ticket-outline" size={32} color={COLORS.lavender} />

@@ -23,13 +23,15 @@ export default function ProfileScreen() {
   const tileWidth = (width - GAP * (COLUMNS - 1)) / COLUMNS;
 
   const stats = [
-    { label: 'meeet in', value: plans.length },
+    { label: 'Meeet in', value: plans.length },
     { label: 'Seguidores', value: profile.followers },
     { label: 'Seguidos', value: profile.following },
   ];
 
   return (
     <FlatList
+      // El margen superior lo pone ScreenTitle; sin esto iOS lo suma otra vez
+      contentInsetAdjustmentBehavior="never"
       style={styles.container}
       data={tiles}
       keyExtractor={(item: Concert) => item.id}

@@ -15,7 +15,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chip } from '@/components/chip';
 import { EventImage } from '@/components/event-image';
 import { GoButton } from '@/components/go-button';
-import { TITLE_SIZE, TITLE_SPACING } from '@/components/screen-title';
+import {
+  TITLE_LINE_HEIGHT,
+  TITLE_SIZE,
+  TITLE_SPACING,
+  TITLE_TOP,
+} from '@/components/screen-title';
 import { SearchBar } from '@/components/search-bar';
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
@@ -27,11 +32,11 @@ import { COLORS } from '@/theme';
 const LOGO_MAX = 72; // tamaño del logo arriba del todo
 const LOGO_MIN = TITLE_SIZE; // ya encogido: igual que los títulos de Descubrir, meeet in y Perfil
 const LINE_MAX = 83; // altura de la caja del logo grande
-const LINE_MIN = 42; // altura de la caja del logo encogido
+const LINE_MIN = TITLE_LINE_HEIGHT; // caja del logo encogido = la de los títulos de pestaña
 const PAD_MAX = 8; // aire inferior con el logo grande
 const PAD_MIN = 20; // aire inferior con el logo encogido
 const TOP_MAX = 50; // aire superior con el logo grande
-const TOP_MIN = 0; // aire superior con el logo encogido
+const TOP_MIN = TITLE_TOP; // aire superior con el logo encogido (= títulos de pestaña)
 const SLOGAN_H = 22; // altura del lema
 const SCROLL_RANGE = 80; // cuánto scroll dura la animación
 

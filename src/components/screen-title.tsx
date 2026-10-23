@@ -7,6 +7,12 @@ import { COLORS } from '@/theme';
 export const TITLE_SIZE = 34;
 export const TITLE_SPACING = -0.8;
 
+// El título ocupa exactamente la misma caja que el logo de Inicio ya encogido
+// (mismo tamaño, altura de línea y distancia a la zona segura), así que quedan a
+// la misma altura. Inicio importa estas constantes para su estado encogido.
+export const TITLE_LINE_HEIGHT = 42;
+export const TITLE_TOP = 0;
+
 type Props = { title: string; subtitle?: string };
 
 /** Título grande para las pantallas de pestaña sin cabecera nativa. */
@@ -14,7 +20,7 @@ export function ScreenTitle({ title, subtitle }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + TITLE_TOP }]}>
       <Text style={styles.title}>
         {title}
         <Text style={{ color: COLORS.peach }}>.</Text>
@@ -29,6 +35,7 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.accent,
     fontSize: TITLE_SIZE,
+    lineHeight: TITLE_LINE_HEIGHT,
     fontWeight: '800',
     letterSpacing: TITLE_SPACING,
   },

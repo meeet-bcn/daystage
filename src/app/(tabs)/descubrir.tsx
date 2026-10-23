@@ -12,6 +12,8 @@ export default function DiscoverScreen() {
 
   return (
     <ScrollView
+      // El margen superior lo pone ScreenTitle; sin esto iOS lo suma otra vez
+      contentInsetAdjustmentBehavior="never"
       style={styles.container}
       contentContainerStyle={{ paddingBottom: insets.bottom + BottomTabInset + 32 }}
     >
