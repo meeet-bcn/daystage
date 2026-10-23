@@ -36,8 +36,7 @@ src/
     screen-title.tsx        # Título grande con el punto melocotón, para pantallas de pestaña
     app-tabs.tsx            # NativeTabs (iOS/Android): Inicio · Descubrir · meeet in, con el badge de no leídos
     app-tabs.web.tsx        # Barra de pestañas para web (expo-router/ui), con un punto rojo como badge
-    animated-icon*.tsx      # Overlay del splash (aún con la marca de Expo)
-    themed-*.tsx, hint-row.tsx, web-badge.tsx, external-link.tsx, ui/collapsible.tsx   # Restos de la plantilla, ya no los usa nadie
+    splash-overlay*.tsx     # Relevo del splash nativo con fundido (en web no hace nada)
   data/
     concerts.ts             # Tipos `Concert` / `TicketOffer` + fetchConcerts(): consulta todas las fuentes en paralelo (si falla una, sigue con las demás) y las fusiona
     sources/                # Una ticketera por archivo (`EventProvider`)
@@ -50,9 +49,9 @@ src/
     filters.ts              # Tipos y opciones de filtros + applyFilters() (funciones puras)
     app-context.tsx         # AppProvider / useApp(): conciertos, "Voy", myConcerts, filtros, visibleConcerts, no leídos
   theme.ts                  # ✅ Paleta de MEEET (COLORS). Úsala siempre
-  constants/theme.ts        # Tema de la plantilla. Para colores no lo uses; solo BottomTabInset / MaxContentWidth
-  hooks/                    # use-theme / use-color-scheme (de la plantilla)
-assets/images/              # Iconos y splash (todavía los de Expo)
+  constants/theme.ts        # Medidas de layout: BottomTabInset, MaxContentWidth
+assets/images/              # Iconos y splash de MEEET (provisionales: monograma "m." y marca "meeet.")
+scripts/generate-brand-assets.swift   # Regenera los PNG de assets/images: `swift scripts/generate-brand-assets.swift`
 ```
 
 - Alias de importación: `@/*` → `src/*` y `@/assets/*` → `assets/*`.
@@ -128,6 +127,6 @@ No escribas colores hex en las pantallas. Si necesitas uno nuevo, añádelo a `C
 
 ## Deuda conocida
 
-- `themed-*`, `hint-row`, `web-badge`, `external-link`, `ui/collapsible`, `hooks/use-theme` y `hooks/use-color-scheme*`, igual que `assets/images/tabIcons/`, `tutorial-web.png` y `react-logo*`, ya no los usa nadie. Se pueden borrar.
-- El splash (`#208AEF` y el logo de Expo), los iconos de la app y el fondo del icono adaptativo de Android siguen siendo los de Expo. Habría que cambiarlos por la marca MEEET.
+- Los iconos y el splash son tipográficos y provisionales. Cuando haya un logo diseñado, sustituye los PNG respetando tamaños y proporciones: `splash-icon.png` debe ser 3:1, porque `splash-overlay.tsx` lo pinta con `aspectRatio: 3`.
+- Los cambios de icono o splash solo se ven en un build nuevo (`npx expo run:ios|android` o EAS). Expo Go no los muestra.
 - `README.md` es el de la plantilla.
