@@ -1,0 +1,329 @@
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { router } from 'expo-router';
+import {
+  ActivityIndicator,
+  Animated,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useAnimatedValue,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Chip } from '@/components/chip';
+import { GoButton } from '@/components/go-button';
+import { ProfileAvatar } from '@/components/profile-avatar';
+import { BottomTabInset } from '@/constants/theme';
+import { useApp } from '@/data/app-context';
+import { Concert } from '@/data/concerts';
+import { activeFilterCount, SORT_OPTIONS, WHEN_OPTIONS } from '@/data/filters';
+import { COLORS } from '@/theme';
+
+// Ajustes del banner (puedes tocar estos números)
+const LOGO_MAX = 72; // tamaño del logo arriba del todo
+const LOGO_MIN = 36; // tamaño del logo ya encogido
+const LINE_MAX = 83; // altura de la caja del logo grande
+const LINE_MIN = 42; // altura de la caja del logo encogido
+const PAD_MAX = 8; // aire inferior con el logo grande
+const PAD_MIN = 20; // aire inferior con el logo encogido
+const TOP_MAX = 50; // aire superior con el logo grande
+const TOP_MIN = 0; // aire superior con el logo encogido
+const SLOGAN_H = 22; // altura del lema
+const SCROLL_RANGE = 80; // cuánto scroll dura la animación
+
+export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
+  const {
+    concerts,
+    visibleConcerts,
+    loading,
+    error,
+    isGoing,
+    toggleGoing,
+    goingCount,
+    filters,
+    setFilters,
+    resetFilters,
+  } = useApp();
+  const scrollY = useAnimatedValue(0);
+  const filterCount = activeFilterCount(filters);
+  const sortLabel = SORT_OPTIONS.find((o) => o.key === filters.sort)?.label.toLowerCase();
+  const isFiltered = filterCount > 0 || filters.when !== 'all';
+
+  const shrink = (from: number, to: number) =>
+    scrollY.interpolate({
+      inputRange: [0, SCROLL_RANGE],
+      outputRange: [from, to],
+      extrapolate: 'clamp',
+    });
+
+  const logoSize = shrink(LOGO_MAX, LOGO_MIN);
+  const logoLine = shrink(LINE_MAX, LINE_MIN);
+  const logoSpacing = shrink(-2, -1);
+  const headerPadTop = shrink(insets.top + TOP_MAX, insets.top + TOP_MIN);
+  const headerPadBottom = shrink(PAD_MAX, PAD_MIN);
+  const sloganHeight = shrink(SLOGAN_H, 0);
+  const sloganOpacity = scrollY.interpolate({
+    inputRange: [0, SCROLL_RANGE * 0.5],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const lineOpacity = scrollY.interpolate({
+    inputRange: [SCROLL_RANGE - 20, SCROLL_RANGE],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <View style={styles.container}>
+      <Animated.FlatList
+        data={visibleConcerts}
+        keyExtractor={(item: Concert) => item.id}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false,
+        })}
+        contentContainerStyle={{
+          paddingTop: insets.top + TOP_MAX + LINE_MAX + PAD_MAX + 4 + SLOGAN_H,
+          paddingBottom: insets.bottom + BottomTabInset + 32,
+        }}
+        ListHeaderComponent={
+          <View style={styles.listHeader}>
+            <View style={styles.notice}>
+              <View style={styles.betaTag}>
+                <Text style={styles.betaTagText}>BETA</Text>
+              </View>
+              <Text style={styles.noticeText}>Solo disponible en Barcelona</Text>
+            </View>
+
+            {concerts.length > 0 && (
+              <>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.toolbar}
+                >
+                  <Chip
+                    icon="options-outline"
+                    label={filterCount > 0 ? `Filtros · ${filterCount}` : 'Filtros'}
+                    active={filterCount > 0}
+                    onPress={() => router.push('/filters')}
+                  />
+                  {WHEN_OPTIONS.filter((o) => o.key !== 'all').map((o) => (
+                    <Chip
+                      key={o.key}
+                      label={o.label}
+                      active={filters.when === o.key}
+                      onPress={() =>
+                        setFilters((f) => ({ ...f, when: f.when === o.key ? 'all' : o.key }))
+                      }
+                    />
+                  ))}
+                </ScrollView>
+                <Text style={styles.results}>
+                  {visibleConcerts.length}{' '}
+                  {visibleConcerts.length === 1 ? 'concierto' : 'conciertos'} · por {sortLabel}
+                </Text>
+              </>
+            )}
+
+            {loading && <ActivityIndicator color={COLORS.accent} style={{ marginTop: 32 }} />}
+            {error && (
+              <Text style={styles.message}>No se han podido cargar los conciertos: {error}</Text>
+            )}
+            {!loading && !error && concerts.length === 0 && (
+              <Text style={styles.message}>No hay conciertos disponibles ahora mismo.</Text>
+            )}
+            {concerts.length > 0 && visibleConcerts.length === 0 && isFiltered && (
+              <View style={styles.emptyFiltered}>
+                <Text style={styles.message}>Ningún concierto coincide con tus filtros.</Text>
+                <Pressable onPress={resetFilters} hitSlop={8}>
+                  <Text style={styles.link}>Quitar filtros</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        }
+        renderItem={({ item }: { item: Concert }) => {
+          const going = isGoing(item.id);
+          const count = goingCount(item);
+          return (
+            <Pressable
+              style={styles.card}
+              onPress={() => router.push({ pathname: '/concert/[id]', params: { id: item.id } })}
+            >
+              <View>
+                {item.image ? (
+                  <Image source={{ uri: item.image }} style={styles.image} />
+                ) : (
+                  <View style={styles.image} />
+                )}
+                {going && (
+                  <View style={styles.badge}>
+                    <Ionicons name="checkmark-circle" size={16} color={COLORS.accent} />
+                    <Text style={styles.badgeText}>Voy</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.cardBody}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.date}>{item.date}</Text>
+                  <Text style={styles.artist} numberOfLines={2}>
+                    {item.artist}
+                  </Text>
+                  <Text style={styles.venue} numberOfLines={1}>
+                    {item.venue}
+                  </Text>
+                  <Text style={styles.going}>
+                    {count === 0
+                      ? 'Sé el primero en apuntarte'
+                      : `${count} ${count === 1 ? 'persona va' : 'personas van'}`}
+                  </Text>
+                </View>
+                <GoButton isGoing={going} onPress={() => toggleGoing(item.id)} />
+              </View>
+            </Pressable>
+          );
+        }}
+      />
+
+      <Animated.View
+        style={[styles.header, { paddingTop: headerPadTop, paddingBottom: headerPadBottom }]}
+      >
+        <BlurView intensity={70} tint="light" style={StyleSheet.absoluteFill} />
+        <View style={[StyleSheet.absoluteFill, styles.glass]} />
+
+        <Animated.View style={[styles.logoRow, { height: logoLine }]}>
+          <Animated.Text
+            style={[
+              styles.logo,
+              { fontSize: logoSize, lineHeight: logoLine, letterSpacing: logoSpacing },
+            ]}
+          >
+            meeet<Text style={{ color: COLORS.peach }}>.</Text>
+          </Animated.Text>
+          <View style={styles.avatar}>
+            <ProfileAvatar onPress={() => router.push('/profile')} />
+          </View>
+        </Animated.View>
+
+        <Animated.Text
+          numberOfLines={1}
+          style={[styles.slogan, { height: sloganHeight, opacity: sloganOpacity }]}
+        >
+          Every event. Everyone.
+        </Animated.Text>
+
+        <Animated.View style={[styles.line, { opacity: lineOpacity }]} />
+      </Animated.View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingHorizontal: 20,
+    overflow: 'hidden',
+  },
+  glass: { backgroundColor: 'rgba(255,255,255,0.45)' },
+  logoRow: { justifyContent: 'center' },
+  avatar: { position: 'absolute', right: 0, top: 0, bottom: 0, justifyContent: 'center' },
+  logo: {
+    alignSelf: 'center',
+    color: COLORS.accent,
+    fontWeight: '800',
+  },
+  slogan: {
+    alignSelf: 'center',
+    color: COLORS.muted,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+    marginTop: -6,
+    overflow: 'hidden',
+  },
+  line: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: COLORS.line,
+  },
+  listHeader: { marginBottom: 20 },
+  notice: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.surface,
+    paddingVertical: 8,
+    paddingLeft: 8,
+    paddingRight: 14,
+    borderRadius: 20,
+  },
+  betaTag: {
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  betaTagText: { color: COLORS.white, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 },
+  noticeText: { color: COLORS.muted, fontSize: 13, fontWeight: '500' },
+  toolbar: { gap: 8, paddingHorizontal: 20, marginTop: 20 },
+  results: { color: COLORS.muted, fontSize: 13, paddingHorizontal: 20, marginTop: 12 },
+  message: { color: COLORS.muted, fontSize: 15, marginTop: 24, paddingHorizontal: 20 },
+  emptyFiltered: { gap: 12 },
+  link: { color: COLORS.accent, fontSize: 15, fontWeight: '700', paddingHorizontal: 20 },
+  card: { marginBottom: 32 },
+  image: { width: '100%', aspectRatio: 16 / 9, backgroundColor: COLORS.surface },
+  badge: {
+    position: 'absolute',
+    left: 20,
+    bottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  badgeText: { color: COLORS.accent, fontSize: 14, fontWeight: '800' },
+  cardBody: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    gap: 12,
+  },
+  date: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  artist: {
+    color: COLORS.text,
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+    marginTop: 4,
+  },
+  venue: { color: COLORS.muted, fontSize: 15, marginTop: 2 },
+  going: { color: COLORS.muted, fontSize: 13, marginTop: 10 },
+});
