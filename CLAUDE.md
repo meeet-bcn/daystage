@@ -56,6 +56,7 @@ src/
     app-context.tsx         # AppProvider / useApp(): conciertos, "Voy" (guarda copia del concierto), plans, myConcerts, profile, filtros, no leídos
     plans.ts                # isPast / splitPlans / companionsLabel: próximos frente a ya pasados ("X personas van contigo")
     profile.ts              # Tipo Profile (vacío hasta que haya cuentas)
+    storage.ts              # Persistencia local (expo-sqlite/kv-store): planes y perfil, claves versionadas (`meeet.plans.v1`…)
   theme.ts                  # ✅ Paleta de MEEET (COLORS). Úsala siempre
   constants/theme.ts        # Medidas de layout: BottomTabInset, MaxContentWidth
 assets/images/              # Iconos y splash de MEEET (provisionales: monograma "m." y marca "meeet.")
@@ -69,6 +70,7 @@ scripts/generate-brand-assets.swift   # Regenera los PNG de assets/images: `swif
 - Los no leídos (`unread` en `app-context.tsx`) siempre están vacíos porque aún no hay chat. Cuando exista, basta con alimentar ese estado y el badge de la pestaña meeet in y la burbuja de cada fila aparecerán solos.
 - El badge de una pestaña nativa se pinta solo si `NativeTabs.Trigger.Badge` está en el árbol. En iOS, `hidden` deja un "0" y un badge vacío se ve como un punto: renderízalo de forma condicional.
 - Un concierto pasa a "ya fui" cuando termina su día (`isPast`). La API solo trae conciertos futuros, así que los pasados existen únicamente como la copia guardada al decir "Voy": el detalle los busca también en `plans`.
+- Datos del usuario (planes, perfil) se guardan en el móvil con `storage.ts`: se cargan de forma síncrona en el estado inicial y se guardan en un `useEffect`. Si cambias la forma de un dato guardado, sube la versión de su clave.
 - Los nombres de pestaña se escriben en minúscula como la marca: "meeet in".
 
 ## Identidad de marca

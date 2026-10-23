@@ -4,6 +4,7 @@ import { Concert, fetchConcerts } from '@/data/concerts';
 import { applyFilters, DEFAULT_FILTERS, Filters, genresOf } from '@/data/filters';
 import { splitPlans } from '@/data/plans';
 import { EMPTY_PROFILE, Profile } from '@/data/profile';
+import { loadJSON, saveJSON, STORAGE_KEYS } from '@/data/storage';
 
 type AppState = {
   concerts: Concert[];
@@ -38,9 +39,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Copia de cada concierto al decir "Voy": la API solo trae conciertos
-  // futuros, así que los ya pasados solo existen aquí
-  const [myEvents, setMyEvents] = useState<Record<string, Concert>>({});
-  const [profile] = useState<Profile>(EMPTY_PROFILE);
+  // futuros, así que los ya pasados solo existen aquí (y en el móvil)
+  const [myEvents, setMyEvents] = useState<Record<string, Concert>>(() =>
+    loadJSON(STORAGE_KEYS.plans, {})
+  );
+  const [profile] = useState<Profile>(() => ({
+    ...EMPTY_PROFILE,
+    ...loadJSON(STORAGE_KEYS.profile, {}),
+  }));
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [unread] = useState<Record<string, number>>({});
 
@@ -50,6 +56,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => saveJSON(STORAGE_KEYS.plans, myEvents), [myEvents]);
+  useEffect(() => saveJSON(STORAGE_KEYS.profile, profile), [profile]);
 
   const value = useMemo<AppState>(() => {
     const goingCount = (c: Concert) => c.going + (myEvents[c.id] ? 1 : 0);

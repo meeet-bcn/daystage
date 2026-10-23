@@ -19,7 +19,7 @@ _Actualizado: 2026-10-23_
 - Build de desarrollo iOS OK en simulador (iPhone 17 Pro): Inicio y barra de 4 pestañas verificados por captura. Pantalla Perfil aún sin captura (simctl no puede tocar la pantalla).
 
 ## Pendiente
-- Los "Voy" y el perfil viven en memoria: se pierden al cerrar la app. Para que el perfil muestre de verdad los conciertos pasados hace falta persistencia (p. ej. `expo-sqlite/kv-store`, requiere un build nuevo).
+- Planes y perfil persistidos con `expo-sqlite/kv-store` (`src/data/storage.ts`).
 - Perfil sin edición (nick, nombre, bio, foto) ni seguidores reales: necesita cuentas y backend.
 - Acceso a Fever / DICE / Entradas.com / The Project (requiere acuerdos de socio) → backend propio para sus claves.
 - La clave de Ticketmaster va en el bundle (`EXPO_PUBLIC_`).
@@ -28,4 +28,4 @@ _Actualizado: 2026-10-23_
 - Dependencias posiblemente sin uso tras la limpieza: expo-web-browser, expo-symbols, expo-glass-effect, expo-device, @expo/ui, expo-system-ui (sin verificar).
 
 ## Siguiente acción recomendada
-Persistir los planes y el perfil (hoy se pierden al cerrar la app) → edición de perfil y foto.
+Pantalla de editar perfil (nick, nombre, bio, foto recortada en círculo).
