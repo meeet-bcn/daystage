@@ -15,6 +15,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ contentStyle: { backgroundColor: COLORS.background } }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="concert/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="edit-profile" options={{ headerShown: false, presentation: 'modal' }} />
           <Stack.Screen
             name="filters"
             options={{

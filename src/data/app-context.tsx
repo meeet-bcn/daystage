@@ -19,6 +19,7 @@ type AppState = {
   myConcerts: Concert[];
 
   profile: Profile;
+  updateProfile: (changes: Partial<Profile>) => void;
 
   filters: Filters;
   setFilters: (update: (current: Filters) => Filters) => void;
@@ -43,7 +44,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [myEvents, setMyEvents] = useState<Record<string, Concert>>(() =>
     loadJSON(STORAGE_KEYS.plans, {})
   );
-  const [profile] = useState<Profile>(() => ({
+  const [profile, setProfile] = useState<Profile>(() => ({
     ...EMPTY_PROFILE,
     ...loadJSON(STORAGE_KEYS.profile, {}),
   }));
@@ -81,6 +82,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       myConcerts,
 
       profile,
+      updateProfile: (changes) => setProfile((current) => ({ ...current, ...changes })),
 
       filters,
       setFilters,

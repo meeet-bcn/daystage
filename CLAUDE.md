@@ -29,6 +29,7 @@ src/
       perfil.tsx            # Perfil estilo Instagram: nick, foto, meeet in / seguidores / seguidos, bio y cuadrícula de planes (pasados al 50 %)
     concert/[id].tsx        # Detalle (fuera de las pestañas): hero, "Voy", comprar entrada, compartir, pestañas Info/Lugar/Chat. `?tab=chat` abre directamente el chat
     filters.tsx             # Hoja nativa (formSheet): ordenar, cuándo, género, precio
+    edit-profile.tsx        # Modal de editar perfil: foto, nick (@, reglas tipo Instagram), nombre y bio; solo se aplica al pulsar "Guardar"
   components/
     go-button.tsx           # Botón "Voy": confeti y háptica. Es el componente central de la marca
     chip.tsx                # Chip en píldora (filtros, opciones)
@@ -55,7 +56,8 @@ src/
     filters.ts              # Tipos y opciones de filtros + applyFilters() (funciones puras)
     app-context.tsx         # AppProvider / useApp(): conciertos, "Voy" (guarda copia del concierto), plans, myConcerts, profile, filtros, no leídos
     plans.ts                # isPast / splitPlans / companionsLabel: próximos frente a ya pasados ("X personas van contigo")
-    profile.ts              # Tipo Profile (vacío hasta que haya cuentas)
+    profile.ts              # Tipo Profile, límites y reglas del nick (normalizeNick, nickError)
+    profile-photo.ts        # Elegir foto (expo-image-picker, recorte cuadrado) y guardarla en documentos (expo-file-system)
     storage.ts              # Persistencia local (expo-sqlite/kv-store): planes y perfil, claves versionadas (`meeet.plans.v1`…)
   theme.ts                  # ✅ Paleta de MEEET (COLORS). Úsala siempre
   constants/theme.ts        # Medidas de layout: BottomTabInset, MaxContentWidth
@@ -71,6 +73,8 @@ scripts/generate-brand-assets.swift   # Regenera los PNG de assets/images: `swif
 - El badge de una pestaña nativa se pinta solo si `NativeTabs.Trigger.Badge` está en el árbol. En iOS, `hidden` deja un "0" y un badge vacío se ve como un punto: renderízalo de forma condicional.
 - Un concierto pasa a "ya fui" cuando termina su día (`isPast`). La API solo trae conciertos futuros, así que los pasados existen únicamente como la copia guardada al decir "Voy": el detalle los busca también en `plans`.
 - Datos del usuario (planes, perfil) se guardan en el móvil con `storage.ts`: se cargan de forma síncrona en el estado inicial y se guardan en un `useEffect`. Si cambias la forma de un dato guardado, sube la versión de su clave.
+- Foto de perfil: la URI del selector está en la caché y puede desaparecer. Solo se guarda en el perfil tras copiarla a `Paths.document` (`saveProfilePhoto`), con un nombre nuevo cada vez para que no se vea la foto vieja en caché. La foto anterior se borra.
+- La pestaña Perfil usa el icono del sistema, no la foto: NativeTabs no recorta en círculo. Para mostrar la foto habría que generar una miniatura PNG circular al guardar (p. ej. con `react-native-view-shot`).
 - Los nombres de pestaña y los títulos de pantalla van con mayúscula inicial, también "Meeet in" (Inicio · Descubrir · Meeet in · Perfil). El logo, en cambio, siempre en minúscula: `meeet.`.
 - Los títulos de pestaña (`ScreenTitle`) ocupan la misma caja que el logo de Inicio encogido (`TITLE_SIZE`, `TITLE_LINE_HEIGHT`, `TITLE_TOP`), así que quedan a la misma altura. Inicio importa esas constantes: cámbialas solo ahí.
 - En pantallas cuyo margen superior pones tú (`ScreenTitle`, fotos a sangre), añade `contentInsetAdjustmentBehavior="never"` al ScrollView/FlatList: si no, iOS suma otra vez la zona segura (~59 pt) y el contenido baja.
@@ -148,4 +152,6 @@ No escribas colores hex en las pantallas. Si necesitas uno nuevo, añádelo a `C
 - La insignia de la ticketera muestra su **nombre en texto**, no su logo. Se probó con el logo oficial de Ticketmaster y se descartó porque no funcionaba bien en la foto (2026-10-23).
 - Los iconos y el splash son tipográficos y provisionales. Cuando haya un logo diseñado, sustituye los PNG respetando tamaños y proporciones: `splash-icon.png` debe ser 3:1, porque `splash-overlay.tsx` lo pinta con `aspectRatio: 3`.
 - Los cambios de icono o splash solo se ven en un build nuevo (`npx expo run:ios|android` o EAS). Expo Go no los muestra.
+- Si cambias plugins o permisos en `app.json` y ya existe `ios/`, `expo run:ios` **no** los aplica: regenera antes con `npx expo prebuild --platform ios --clean` (la carpeta `ios/` está en .gitignore).
+- Build local de iOS: `PATH="/opt/homebrew/bin:$PATH" npx expo run:ios` (CocoaPods de Homebrew).
 - `README.md` es el de la plantilla.

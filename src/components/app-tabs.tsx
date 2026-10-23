@@ -4,7 +4,7 @@ import { useApp } from '@/data/app-context';
 import { COLORS } from '@/theme';
 
 export default function AppTabs() {
-  const { unreadTotal, profile } = useApp();
+  const { unreadTotal } = useApp();
 
   return (
     <NativeTabs
@@ -38,15 +38,11 @@ export default function AppTabs() {
 
       <NativeTabs.Trigger name="perfil">
         <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
-        {/* La barra nativa no recorta en círculo: la foto debe guardarse ya recortada */}
-        {profile.photo ? (
-          <NativeTabs.Trigger.Icon src={{ uri: profile.photo }} renderingMode="original" />
-        ) : (
-          <NativeTabs.Trigger.Icon
-            sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }}
-            md="account_circle"
-          />
-        )}
+        {/* Aún sin la foto: la barra nativa no recorta en círculo (ver CLAUDE.md) */}
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }}
+          md="account_circle"
+        />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

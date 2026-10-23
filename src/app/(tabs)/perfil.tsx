@@ -46,7 +46,11 @@ export default function ProfileScreen() {
 
           <View style={styles.header}>
             <View style={styles.summary}>
-              <ProfileAvatar size={86} uri={profile.photo || undefined} />
+              <ProfileAvatar
+                size={86}
+                uri={profile.photo || undefined}
+                onPress={() => router.push('/edit-profile')}
+              />
               <View style={styles.stats}>
                 {stats.map((s) => (
                   <View key={s.label} style={styles.stat}>
@@ -61,6 +65,10 @@ export default function ProfileScreen() {
             <Text style={[styles.bio, !profile.bio && styles.muted]}>
               {profile.bio || 'Aún no has escrito tu biografía.'}
             </Text>
+
+            <Pressable style={styles.editButton} onPress={() => router.push('/edit-profile')}>
+              <Text style={styles.editText}>Editar perfil</Text>
+            </Pressable>
           </View>
         </View>
       }
@@ -106,6 +114,15 @@ const styles = StyleSheet.create({
   name: { color: COLORS.text, fontSize: 15, fontWeight: '700', marginTop: 14 },
   bio: { color: COLORS.text, fontSize: 15, lineHeight: 21, marginTop: 6 },
   muted: { color: COLORS.muted },
+  editButton: {
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  editText: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
   empty: {
     color: COLORS.muted,
     fontSize: 15,

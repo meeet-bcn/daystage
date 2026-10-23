@@ -10,17 +10,17 @@ _Actualizado: 2026-10-23_
 - Datos multi-fuente: `src/data/sources/` + `merge.ts`. Solo Ticketmaster activo.
 - Detalle › Info › "Sobre el artista": MusicBrainz (tipo, país, año de formación, géneros, enlaces). Prueba real: 21/28 artistas, 0 errores de emparejamiento.
 - Git: todo en `main` (ver `git log`). bundleIdentifier confirmado: `com.elcantantemudo.meeet`.
-- Tests: jest-expo 57 (Jest 29). 87 tests en `src/data/*.test.ts` (event-info, filters + búsqueda, merge, musicbrainz, plans, text). Nota: jest-expo simula `fetch`; las pruebas contra APIs reales se hacen con Node fuera de Jest.
+- Tests: jest-expo 57 (Jest 29). 100 tests en `src/data/*.test.ts` (event-info, filters + búsqueda, merge, musicbrainz, plans, profile, text). Nota: jest-expo simula `fetch`; las pruebas contra APIs reales se hacen con Node fuera de Jest.
 - Desktop Commander registrado en Claude Code (ámbito usuario). Disponible a partir de la próxima sesión.
 
 ## Verificación
-- `npm run check` (tsc + expo lint + jest): OK, 87/87. `expo-doctor`: 21/21.
+- `npm run check` (tsc + expo lint + jest): OK, 100/100. `expo-doctor`: 21/21.
 - Mutation check: romper la normalización de `merge.ts` hace fallar 2 tests.
 - Build de desarrollo iOS OK en simulador (iPhone 17 Pro): Inicio y barra de 4 pestañas verificados por captura. Pantalla Perfil aún sin captura (simctl no puede tocar la pantalla).
 
 ## Pendiente
 - Planes y perfil persistidos con `expo-sqlite/kv-store` (`src/data/storage.ts`).
-- Perfil sin edición (nick, nombre, bio, foto) ni seguidores reales: necesita cuentas y backend.
+- Perfil editable (nick, nombre, bio, foto). Faltan seguidores reales (cuentas y backend) y la foto en la pestaña (miniatura circular).
 - Acceso a Fever / DICE / Entradas.com / The Project (requiere acuerdos de socio) → backend propio para sus claves.
 - La clave de Ticketmaster va en el bundle (`EXPO_PUBLIC_`).
 - MusicBrainz: plan comercial de MetaBrainz antes del lanzamiento. Contacto del User-Agent ya configurado en `.env.local`.
@@ -28,4 +28,4 @@ _Actualizado: 2026-10-23_
 - Dependencias posiblemente sin uso tras la limpieza: expo-web-browser, expo-symbols, expo-glass-effect, expo-device, @expo/ui, expo-system-ui (sin verificar).
 
 ## Siguiente acción recomendada
-Pantalla de editar perfil (nick, nombre, bio, foto recortada en círculo).
+Probar la edición de perfil en el móvil → foto circular en la pestaña Perfil.
