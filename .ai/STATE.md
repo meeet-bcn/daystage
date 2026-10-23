@@ -7,19 +7,20 @@ _Actualizado: 2026-10-23_
 - Inicio: avatar de perfil (placeholder `/profile`), chips de fecha, hoja `/filters` (orden, cuándo, género, precio).
 - Detalle: info limpia de Ticketmaster (`event-info.ts`): reseña + puertas/telonero/edad.
 - Datos multi-fuente: `src/data/sources/` + `merge.ts`. Solo Ticketmaster activo.
+- Git: repo local en `main`, commit inicial `a8a1e92`. Tests y scripts nuevos aún sin commit.
+- Tests: jest-expo 57 (Jest 29). 31 tests en `src/data/*.test.ts` (event-info, filters, merge).
+- Desktop Commander registrado en Claude Code (ámbito usuario). Disponible a partir de la próxima sesión.
 
 ## Verificación
-- `npx tsc --noEmit`: OK · `npx expo lint`: 0 problemas.
-- Parser de info y fusión probados contra 30 eventos reales + duplicados simulados (scripts fuera del repo, en el scratchpad de la sesión: no persisten).
+- `npm run check` (tsc + expo lint + jest): OK, 31/31.
+- Mutation check: romper la normalización de `merge.ts` hace fallar 2 tests.
 - No probado en simulador/dispositivo.
 
 ## Pendiente
 - Acceso a Fever / DICE / Entradas.com / The Project (requiere acuerdos de socio) → backend propio para sus claves.
 - La clave de Ticketmaster va en el bundle (`EXPO_PUBLIC_`).
 - Splash, iconos y README siguen siendo los de la plantilla de Expo.
-- Archivos de plantilla sin uso (ver CLAUDE.md › Deuda conocida).
-- Sin git: el shim de git de macOS está bloqueado por la licencia de Xcode.
-- Sin framework de tests.
+- Archivos de plantilla sin uso (ver CLAUDE.md › Deuda conocida). Ahora que hay git, se pueden borrar de forma segura.
 
 ## Siguiente acción recomendada
-Aceptar la licencia de Xcode → `git init` + primer commit → añadir tests (jest-expo) para `event-info`, `filters` y `merge`.
+Commit de los tests → borrar los restos de la plantilla → splash/iconos de MEEET.

@@ -6,6 +6,15 @@ App móvil (Expo SDK 57, React Native 0.86, React 19, TypeScript estricto) para 
 
 Gestor de paquetes: **npm** (`package-lock.json`). Instala dependencias con `npx expo install`, nunca con `npm install <pkg>`.
 
+```bash
+npm run check        # typecheck + lint + tests: pásalo antes de dar algo por terminado
+npm test             # solo tests (jest-expo); npm run test:watch para modo watch
+```
+
+- Tests: `*.test.ts` junto al módulo que prueban. Los datos de prueba van en `src/data/__fixtures__/` (`makeConcert`, `fromSource`). La lógica de `src/data/` debe tener tests; las pantallas, de momento, no.
+- Importa `describe`/`it`/`expect`/`jest` desde `@jest/globals`. Con TypeScript 6, los tipos globales de `@types/jest` no se cargan solos.
+- El estado de trabajo vive en `.ai/STATE.md`. Este archivo es solo para reglas permanentes.
+
 ## Estructura
 
 ```
@@ -115,11 +124,10 @@ No escribas colores hex en las pantallas. Si necesitas uno nuevo, añádelo a `C
 - Usa `useSafeAreaInsets()` para los márgenes superiores en las pantallas con cabecera propia (`headerShown: false`). En las pantallas que están dentro de `(tabs)`, suma `BottomTabInset` al margen inferior para que la barra de pestañas no tape el contenido.
 - Animaciones: el código de MEEET usa la API `Animated` de React Native. Crea los valores con `useAnimatedValue(0)` y nunca con `useRef(new Animated.Value(0)).current`: el React Compiler y la regla `react-hooks/refs` lo prohíben. Para animaciones nuevas y complejas, prefiere `react-native-reanimated`, que ya está instalado.
 - `react-native-maps` requiere un development build: no funciona en Expo Go.
-- Antes de dar algo por terminado: `npx expo lint` y `npx tsc --noEmit`.
+- Antes de dar algo por terminado: `npm run check`.
 
 ## Deuda conocida
 
 - `themed-*`, `hint-row`, `web-badge`, `external-link`, `ui/collapsible`, `hooks/use-theme` y `hooks/use-color-scheme*`, igual que `assets/images/tabIcons/`, `tutorial-web.png` y `react-logo*`, ya no los usa nadie. Se pueden borrar.
 - El splash (`#208AEF` y el logo de Expo), los iconos de la app y el fondo del icono adaptativo de Android siguen siendo los de Expo. Habría que cambiarlos por la marca MEEET.
 - `README.md` es el de la plantilla.
-- El proyecto no es un repositorio git.
