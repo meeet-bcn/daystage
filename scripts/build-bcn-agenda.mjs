@@ -17,14 +17,29 @@ const SOURCE =
 const OUTPUT = process.argv[2] ?? 'feed/bcn-concerts.json';
 // Por debajo de esto, algo ha ido mal en el origen: mejor no publicar
 const MIN_CONCERTS = 50;
+// Open Data BCN rechaza (403) peticiones sin identificar desde algunos
+// servidores: nos identificamos y reintentamos con espera
+const HEADERS = {
+  'User-Agent': 'meeet/1.0 (+https://github.com/meeet-bcn/meeet)',
+  Accept: 'application/json',
+};
+const ATTEMPTS = 3;
 
 // "Hoy" en Barcelona, no en el reloj del servidor
 const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
 
+async function download() {
+  for (let attempt = 1; ; attempt++) {
+    const response = await fetch(SOURCE, { headers: HEADERS });
+    if (response.ok) return response.json();
+    if (attempt === ATTEMPTS) throw new Error(`Open Data BCN respondió ${response.status}`);
+    console.log(`Open Data BCN respondió ${response.status}; reintento ${attempt + 1}/${ATTEMPTS}…`);
+    await new Promise((resolve) => setTimeout(resolve, attempt * 15000));
+  }
+}
+
 console.log('Descargando la agenda cultural de Barcelona…');
-const response = await fetch(SOURCE);
-if (!response.ok) throw new Error(`Open Data BCN respondió ${response.status}`);
-const events = await response.json();
+const events = await download();
 
 const feed = buildFeed(events, today, new Date().toISOString());
 if (feed.concerts.length < MIN_CONCERTS) {
