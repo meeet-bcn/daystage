@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import type { TicketOffer } from '@/data/concerts';
-import { buyOffer, otherTicketOffers, sortedOffers } from '@/data/offers';
+import { buyOffer, sortedOffers } from '@/data/offers';
 
 const tm: TicketOffer = { source: 'ticketmaster', url: 'https://tm', price: '30 €', priceMin: 30 };
 const bcn: TicketOffer = { source: 'bcn', url: 'https://sala', price: '25 €', priceMin: 25 };
@@ -19,13 +19,6 @@ describe('buyOffer', () => {
   it('solo la agenda: su enlace; sin enlace, el siguiente que lo tenga', () => {
     expect(buyOffer([bcn])).toBe(bcn);
     expect(buyOffer([{ ...tm, url: '' }, bcn])).toBe(bcn);
-  });
-});
-
-describe('otherTicketOffers', () => {
-  it('nunca la agenda ni el enlace principal', () => {
-    expect(otherTicketOffers([bcn, tm])).toEqual([]);
-    expect(otherTicketOffers([bcn, fever, tm])).toEqual([fever]);
   });
 });
 

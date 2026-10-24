@@ -22,9 +22,3 @@ export function buyOffer(offers: TicketOffer[]): TicketOffer {
   const sorted = sortedOffers(offers);
   return sorted.find((o) => o.url) ?? sorted[0];
 }
-
-/** Otras ticketeras que también lo venden (sin la agenda, que no vende). */
-export function otherTicketOffers(offers: TicketOffer[]) {
-  const main = buyOffer(offers);
-  return sortedOffers(offers).filter((o) => o !== main && o.source !== 'bcn' && o.url);
-}

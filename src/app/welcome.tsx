@@ -75,7 +75,7 @@ export default function WelcomeScreen() {
       text: 'Di a qué conciertos vas y descubre quién más va. Comparte fotos, el setlist o lo que quieras del concierto.',
       art: featured ? (
         <View style={styles.eventCard}>
-          <EventImage concert={featured} going holo showSource={false} />
+          <EventImage concert={featured} going holo />
           <View style={styles.eventBody}>
             <Text style={styles.eventDate}>{featured.date}</Text>
             <Text style={styles.eventArtist} numberOfLines={1}>

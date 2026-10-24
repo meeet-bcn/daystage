@@ -22,14 +22,12 @@ import { MediaViewer } from '@/components/media-viewer';
 import { SongCard } from '@/components/song-card';
 import { WishButton } from '@/components/wish-button';
 import { useApp } from '@/data/app-context';
-import { buyOffer, otherTicketOffers } from '@/data/offers';
-import { SOURCE_NAMES } from '@/data/sources/types';
+import { buyOffer } from '@/data/offers';
 import { useArtistArtwork } from '@/hooks/use-artist-artwork';
 import { useTopSong } from '@/hooks/use-top-song';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
 
-// El chat de cada concierto no va aquí: solo se abre desde la pestaña Meeet in
 type Tab = 'info' | 'lugar';
 const TABS: { key: Tab; label: string }[] = [
   { key: 'info', label: 'Información' },
@@ -76,17 +74,12 @@ export default function ConcertDetail() {
     ? `https://www.google.com/maps/dir/?api=1&destination=${place}`
     : `https://www.google.com/maps/search/?api=1&query=${place}`;
 
-  // Un solo enlace de compra: Ticketmaster si está; la agenda BCN, solo si no hay otro
+  // Un solo enlace de compra (Ticketmaster si está) y sin decir de qué fuente
+  // viene: al usuario no le hace falta saberlo
   const mainOffer = buyOffer(concert.offers);
-  const otherOffers = otherTicketOffers(concert.offers);
-  // La agenda del Ayuntamiento no vende: enlaza a la web del concierto (o no trae)
-  const fromAgenda = concert.offers.some((o) => o.source === 'bcn');
-  const buyLabel =
-    mainOffer.source === 'bcn'
-      ? concert.priceMin === 0
-        ? 'Entrada libre · Más información'
-        : 'Entradas en la web oficial'
-      : `Comprar en ${SOURCE_NAMES[mainOffer.source]}`;
+  const free = concert.priceMin === 0;
+  const buyLabel = free ? 'Entrada gratuita' : 'Comprar entradas';
+  const openChat = () => router.push({ pathname: '/chat/[id]', params: { id: concert.id } });
 
   const onShare = async () => {
     const text = going
@@ -121,8 +114,6 @@ export default function ConcertDetail() {
           concert={concert}
           going={going}
           holo
-          // La ticketera ya sale en el botón de comprar
-          showSource={false}
           // Tocar la foto la abre en grande (si hay foto: la del concierto o la del artista)
           onPressImage={photoUri ? () => setViewing(true) : undefined}
         />
@@ -147,6 +138,11 @@ export default function ConcertDetail() {
           <View style={styles.actions}>
             {mainOffer.url ? (
               <Pressable style={styles.buy} onPress={() => Linking.openURL(mainOffer.url)}>
+                <Ionicons
+                  name={free ? 'ticket-outline' : 'cart-outline'}
+                  size={18}
+                  color={COLORS.white}
+                />
                 <Text style={styles.buyText} numberOfLines={1}>
                   {buyLabel}
                 </Text>
@@ -154,7 +150,7 @@ export default function ConcertDetail() {
             ) : (
               <View style={[styles.buy, styles.buyNone]}>
                 <Text style={styles.buyNoneText} numberOfLines={1}>
-                  {concert.priceMin === 0 ? 'Entrada libre' : 'Entradas en la sala'}
+                  {free ? 'Entrada gratuita' : 'Entradas en la sala'}
                 </Text>
               </View>
             )}
@@ -163,21 +159,17 @@ export default function ConcertDetail() {
             </Pressable>
           </View>
 
-          {otherOffers.length > 0 && (
-            <View style={styles.offers}>
-              <Text style={styles.offersTitle}>También a la venta en</Text>
-              {otherOffers.map((offer) => (
-                <Pressable
-                  key={offer.source}
-                  style={styles.offerRow}
-                  onPress={() => Linking.openURL(offer.url)}
-                >
-                  <Text style={styles.offerName}>{SOURCE_NAMES[offer.source]}</Text>
-                  {offer.price ? <Text style={styles.offerPrice}>{offer.price}</Text> : null}
-                  <Ionicons name="open-outline" size={18} color={theme.accent} />
-                </Pressable>
-              ))}
-            </View>
+          {/* Si vas, la sala del concierto está a un toque */}
+          {going && (
+            <Pressable
+              style={styles.chatBtn}
+              onPress={openChat}
+              accessibilityRole="button"
+              accessibilityLabel="Ir a la sala de chat"
+            >
+              <Ionicons name="chatbubbles-outline" size={19} color={theme.accent} />
+              <Text style={styles.chatBtnText}>Ir a la sala de chat</Text>
+            </Pressable>
           )}
 
           {topSong ? <SongCard song={topSong} title="Escucha a este artista" /> : null}
@@ -204,19 +196,9 @@ export default function ConcertDetail() {
                   <Text style={styles.infoValue}>{row.value}</Text>
                 </View>
               ))}
-              {concert.info ? (
-                <Text style={styles.paragraph}>{concert.info}</Text>
-              ) : (
-                <Text style={styles.paragraph}>
-                  {fromAgenda ? 'La agenda' : 'Ticketmaster'} no da más detalles de este concierto.
-                </Text>
-              )}
-              {/* La licencia (CC BY 4.0) pide citar la fuente */}
-              {fromAgenda && (
-                <Text style={styles.credit}>
-                  Fuente: Agenda Cultural del Ajuntament de Barcelona (Open Data BCN)
-                </Text>
-              )}
+              <Text style={styles.paragraph}>
+                {concert.info || 'No hay más detalles de este concierto.'}
+              </Text>
               <ArtistCard eventName={concert.artist} genre={concert.genre} />
             </View>
           )}
@@ -326,6 +308,8 @@ const makeStyles = (theme: Theme) =>
     actions: { flexDirection: 'row', gap: 12, marginTop: 20 },
     buy: {
       flex: 1,
+      flexDirection: 'row',
+      gap: 8,
       height: 46,
       borderRadius: 23,
       backgroundColor: COLORS.text,
@@ -334,20 +318,18 @@ const makeStyles = (theme: Theme) =>
     },
     buyNone: { backgroundColor: COLORS.surface },
     buyNoneText: { color: COLORS.text, fontSize: 15, fontWeight: '700', paddingHorizontal: 16 },
-    credit: { color: COLORS.muted, fontSize: 12, marginTop: 12 },
-    buyText: { color: COLORS.white, fontSize: 15, fontWeight: '700', paddingHorizontal: 16 },
-    offers: { marginTop: 16, backgroundColor: COLORS.surface, borderRadius: 20, padding: 16 },
-    offersTitle: {
-      color: COLORS.muted,
-      fontSize: 12,
-      fontWeight: '700',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-      marginBottom: 4,
+    buyText: { color: COLORS.white, fontSize: 15, fontWeight: '700' },
+    chatBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      height: 46,
+      borderRadius: 23,
+      marginTop: 12,
+      backgroundColor: theme.accentSoft,
     },
-    offerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-    offerName: { flex: 1, color: COLORS.text, fontSize: 16, fontWeight: '600' },
-    offerPrice: { color: COLORS.muted, fontSize: 15 },
+    chatBtnText: { color: theme.accent, fontSize: 15, fontWeight: '700' },
     shareBtn: {
       width: 46,
       height: 46,

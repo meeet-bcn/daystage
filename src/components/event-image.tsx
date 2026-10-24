@@ -13,7 +13,6 @@ import { HoloFrame } from '@/components/holo-frame';
 import { ImagotipoAnimado } from '@/components/imagotipo';
 import { MeeetInBurst } from '@/components/meeet-in-burst';
 import { ConcertImage } from '@/components/concert-image';
-import { SourceBadge } from '@/components/source-badge';
 import { useApp } from '@/data/app-context';
 import type { Concert } from '@/data/concerts';
 import { useThemedStyles } from '@/hooks/use-theme';
@@ -24,21 +23,19 @@ type Props = {
   going: boolean;
   /** Pie de foto con degradado si vas al concierto. */
   holo?: boolean;
-  /** Insignia de la ticketera arriba a la izquierda (en el detalle no: ya está en "Comprar"). */
-  showSource?: boolean;
   /** Tocar la foto (en el detalle: verla en grande). */
   onPressImage?: () => void;
 };
 
 /**
- * Foto 16:9 del concierto, la misma en Inicio y en el detalle: ticketera
- * arriba a la izquierda (solo en Inicio) y "Meeet In!" abajo a la izquierda, sobre el pie de foto.
+ * Foto 16:9 del concierto, la misma en Inicio y en el detalle, con "Meeet In!"
+ * abajo a la izquierda, sobre el pie de foto. Sin la fuente: no hace falta saber
+ * de dónde viene el concierto.
  */
 export function EventImage({
   concert,
   going,
   holo = false,
-  showSource = true,
   onPressImage,
 }: Props) {
   const styles = useThemedStyles(makeStyles);
@@ -63,12 +60,6 @@ export function EventImage({
     <View>
       {/* El marco va solo sobre la foto, por debajo de las insignias */}
       {holo && going ? <HoloFrame>{image}</HoloFrame> : image}
-
-      {showSource && (
-        <View style={styles.source}>
-          <SourceBadge offers={concert.offers} />
-        </View>
-      )}
 
       {going && (
         <Animated.View
@@ -114,7 +105,6 @@ function Shine() {
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     image: { width: '100%', aspectRatio: 16 / 9, backgroundColor: COLORS.surface },
-    source: { position: 'absolute', top: 14, left: 20 },
     going: {
       position: 'absolute',
       left: 20,
