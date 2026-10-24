@@ -8,16 +8,6 @@ export type TicketSource =
   | 'entradas'
   | 'theproject';
 
-/** Nombre visible de cada ticketera ("Comprar en ..."). */
-export const SOURCE_NAMES: Record<TicketSource, string> = {
-  ticketmaster: 'Ticketmaster',
-  bcn: 'Agenda BCN',
-  fever: 'Fever',
-  dice: 'DICE',
-  entradas: 'Entradas.com',
-  theproject: 'The Project',
-};
-
 /** Qué página pedir (desde 0) y, si se busca, el texto de la búsqueda. */
 export type EventQuery = { page: number; keyword?: string };
 

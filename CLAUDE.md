@@ -69,9 +69,9 @@ src/
     concerts.ts             # Tipos `Concert` / `TicketOffer` + fetchConcerts({ page, keyword }): una página de todas las fuentes en paralelo (si falla una, sigue con las demás). La fusión se hace en app-context con todas las páginas juntas
     sources/                # Una ticketera por archivo (`EventProvider`)
       index.ts              # PROVIDERS: fuentes activas en orden de prioridad + cómo añadir una nueva
-      types.ts              # TicketSource, SOURCE_NAMES, EventProvider
+      types.ts              # TicketSource, EventProvider (la interfaz no muestra el nombre de las fuentes)
       ticketmaster.ts       # Discovery API → Concert
-      bcn.ts                # Agenda BCN: lee el archivo diario de GitHub Pages (o el del Mac con EXPO_PUBLIC_BCN_AGENDA_URL=local)
+      bcn.ts                # Agenda BCN: lee el archivo diario de GitHub Pages (o el del Mac con EXPO_PUBLIC_BCN_AGENDA_URL=local); guarda el último para cuando no hay red (`meeet.bcn-feed.v1`) y quita los días ya pasados (`upcomingConcerts`)
     bcn-agenda.ts           # Agenda Cultural de Barcelona → conciertos (filtro, hora y precio del horario, nombres). Lo usan la app y el script
     merge.ts                # Deduplica entre fuentes (mismo día + sala + artista) y junta las ofertas
     format.ts               # formatDate / toTimestamp / formatPriceRange, comunes a todas las fuentes
@@ -85,10 +85,10 @@ src/
   hooks/use-concert-search.ts # Búsqueda: al momento en lo cargado y, tras 350 ms, en las ticketeras (`keyword`)
     event-info.ts           # Limpia los textos de Ticketmaster: reseña (`description`, o `info` sin la logística) + puertas, telonero y edad. Descarta los eventos "Test ..."
     filters.ts              # Tipos y opciones de filtros + applyFilters() (funciones puras)
-    app-context.tsx         # AppProvider / useApp(): conciertos, "Voy" (guarda copia del concierto), plans, myConcerts, profile, filtros, no leídos
+    app-context.tsx         # AppProvider / useApp() (lo pesado —filtrar, gustos, planes— va en `useMemo` aparte, por sus datos): conciertos, "Voy" (guarda copia del concierto), plans, myConcerts, profile, filtros, no leídos
     plans.ts                # isPast / splitPlans / companionsLabel: próximos frente a ya pasados ("X personas van contigo")
     taste.ts                # Gustos: catálogo de 36 artistas, estilos (tasteGenre), pesos (tasteWeights) y orden de las cartas (buildDeck)
-    chat.ts                 # Salas: ChatMessage (texto o foto), separadores por día, enlaces compartidos, "N miembros"
+    chat.ts                 # Salas: ChatMessage (texto, foto o vídeo), chatKey, separadores por día, "N miembros"
     setlists.ts             # Setlists anteriores del artista (setlist.fm; clave EXPO_PUBLIC_SETLISTFM_KEY)
     settings.ts             # Ajustes (tipo, valores por defecto, withDefaults)
     profile.ts              # Tipo Profile, límites y reglas del nick (normalizeNick, nickError)
@@ -108,8 +108,8 @@ scripts/generate-tab-icons.swift      # Iconos propios de la barra (casa sin pue
 - Alias de importación: `@/*` → `src/*` y `@/assets/*` → `assets/*`.
 - `typedRoutes` y `reactCompiler` están activados en `app.json`. Navega con rutas tipadas: `router.push({ pathname: '/concert/[id]', params: { id } })`.
 - Variable de entorno: `EXPO_PUBLIC_TICKETMASTER_KEY` en `.env.local` (no está versionado). Al llevar el prefijo `EXPO_PUBLIC_`, la clave se incrusta en el bundle. No metas ahí secretos de verdad.
-- El estado "Voy" (`myEvents`) y los filtros viven solo en memoria y se pierden al reiniciar la app. `going` siempre llega a 0 desde la API: todavía no hay backend de asistentes.
-- Los no leídos (`unread` en `app-context.tsx`) siempre están vacíos porque aún no hay chat. Cuando exista, basta con alimentar ese estado y el badge de la pestaña meeet in y la burbuja de cada fila aparecerán solos.
+- Los filtros y los mensajes del chat viven solo en memoria y se pierden al reiniciar la app; los planes (`myEvents`), deseos, perfil y ajustes se guardan en el móvil. `going` siempre llega a 0 desde la API: todavía no hay backend de asistentes.
+- Los no leídos (`unread` en `app-context.tsx`) siempre están vacíos porque el chat aún no tiene servidor (solo ves tus mensajes). Cuando exista, basta con alimentar ese estado y el badge de la pestaña meeet in y la burbuja de cada fila aparecerán solos.
 - El badge de una pestaña nativa se pinta solo si `NativeTabs.Trigger.Badge` está en el árbol. En iOS, `hidden` deja un "0" y un badge vacío se ve como un punto: renderízalo de forma condicional.
 - Un concierto pasa a "ya fui" cuando termina su día (`isPast`). La API solo trae conciertos futuros, así que los pasados existen únicamente como la copia guardada al decir "Voy": el detalle los busca también en `plans`.
 - Atajos de fecha en Inicio (`QUICK_DATES`, `quickRange`): Hoy, Mañana y Próxima semana (de lunes a domingo de la semana que viene) ponen `Filters.dates`; Calendario se marca cuando hay fechas que no son un atajo. El calendario es para turistas: vienen unos días y quieren conocer gente. `Filters.dates` es un intervalo de días incluidos (`DateRange`, medianoches locales); al quitarlas se descartan las páginas cargadas para el calendario (se queda la primera) y la caché de fotos en memoria.

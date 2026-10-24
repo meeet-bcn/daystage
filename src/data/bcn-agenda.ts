@@ -196,6 +196,20 @@ export function toBcnConcert(event: BcnRawEvent): BcnConcert | null {
   };
 }
 
+/** Día local en el formato de la agenda (YYYY-MM-DD). */
+export function localDay(now = new Date()) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
+ * Los que aún no han pasado (desde `today`, YYYY-MM-DD). El archivo se filtra al
+ * generarlo cada mañana, pero si un día no se publica traería los de ayer.
+ */
+export function upcomingConcerts(concerts: BcnConcert[], today: string) {
+  return concerts.filter((c) => c.date >= today);
+}
+
 /**
  * Conciertos de un solo día desde `today` (YYYY-MM-DD), por fecha. Los ciclos y
  * festivales de varios días se dejan fuera: no tienen una fecha a la que ir.

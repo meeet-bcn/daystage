@@ -7,14 +7,17 @@
 // mañana a la rama gh-pages, servida por GitHub Pages (FEED_URL). Para probar cambios en la conversión sin
 // publicarlos: EXPO_PUBLIC_BCN_AGENDA_URL=local en .env.local y
 // `npm run feed:build && npm run feed:serve` (el Mac lo sirve en el puerto 8099).
-// Si el archivo no llega, la fuente falla sola y la app sigue con Ticketmaster.
+// Cada archivo descargado se guarda en el móvil: sin red, se usa el último (sin
+// los conciertos que ya han pasado). Si no hay ninguno, la fuente falla sola y la
+// app sigue con Ticketmaster.
 
 import { NativeModules } from 'react-native';
 
-import type { BcnConcert, BcnFeed } from '@/data/bcn-agenda';
+import { BcnConcert, BcnFeed, localDay, upcomingConcerts } from '@/data/bcn-agenda';
 import type { Concert } from '@/data/concerts';
 import { formatDate, formatPriceRange, toTimestamp } from '@/data/format';
 import type { EventPage, EventProvider, EventQuery } from '@/data/sources/types';
+import { loadJSON, saveText, STORAGE_KEYS } from '@/data/storage';
 import { foldText } from '@/data/text';
 
 const FEED_URL = 'https://meeet-bcn.github.io/meeet/bcn-concerts.json';
@@ -39,11 +42,24 @@ async function loadFeed(): Promise<Concert[]> {
   if (cache && Date.now() - cache.at < REFRESH_MS) return cache.concerts;
   const url = feedUrl();
   if (!url) return [];
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Agenda BCN respondió ${response.status}`);
-  const feed: BcnFeed = await response.json();
-  const concerts = feed.concerts.map(toConcert);
-  cache = { at: Date.now(), concerts };
+  let feed: BcnFeed;
+  let fresh = true;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Agenda BCN respondió ${response.status}`);
+    const text = await response.text();
+    feed = JSON.parse(text);
+    saveText(STORAGE_KEYS.bcnFeed, text);
+  } catch (e) {
+    // Sin red (o sin archivo nuevo): el último que se guardó
+    const saved = loadJSON<Partial<BcnFeed>>(STORAGE_KEYS.bcnFeed, {});
+    if (!saved.concerts?.length) throw e;
+    feed = saved as BcnFeed;
+    fresh = false;
+  }
+  const concerts = upcomingConcerts(feed.concerts, localDay()).map(toConcert);
+  // El guardado no se queda en memoria: la próxima vez se vuelve a probar la red
+  if (fresh) cache = { at: Date.now(), concerts };
   return concerts;
 }
 

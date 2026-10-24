@@ -2,6 +2,8 @@ import { describe, expect, it } from '@jest/globals';
 
 import * as raw from '@/data/__fixtures__/bcn-agenda';
 import {
+  localDay,
+  upcomingConcerts,
   BCN_ATTRIBUTION,
   buildFeed,
   cleanConcertName,
@@ -128,5 +130,23 @@ describe('buildFeed', () => {
   it('deja fuera los que ya han pasado', () => {
     const feed = buildFeed(all, '2026-11-06', '2026-11-06T06:00:00Z');
     expect(feed.concerts.map((c) => c.artist)).toEqual(['The Middle Way']);
+  });
+});
+
+describe('upcomingConcerts', () => {
+  it('quita los de días que ya han pasado (archivo de otro día)', () => {
+    const base = toBcnConcert(raw.loveless)!;
+    const concerts = [
+      { ...base, id: 'ayer', date: '2026-10-23' },
+      { ...base, id: 'hoy', date: '2026-10-24' },
+      { ...base, id: 'manana', date: '2026-10-25' },
+    ];
+    expect(upcomingConcerts(concerts, '2026-10-24').map((c) => c.id)).toEqual(['hoy', 'manana']);
+  });
+});
+
+describe('localDay', () => {
+  it('YYYY-MM-DD en hora local', () => {
+    expect(localDay(new Date(2026, 0, 5, 23, 59))).toBe('2026-01-05');
   });
 });

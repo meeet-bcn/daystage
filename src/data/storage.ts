@@ -1,5 +1,6 @@
 // Persistencia local (expo-sqlite/kv-store). Solo datos del usuario en este
-// móvil: planes, lista de deseos, perfil y ajustes. Los conciertos se vuelven a pedir a la API.
+// móvil: planes, lista de deseos, perfil y ajustes. Los conciertos se vuelven a
+// pedir siempre; de la agenda BCN se guarda el último archivo, para cuando no hay red.
 
 import Storage from 'expo-sqlite/kv-store';
 
@@ -12,6 +13,7 @@ export const STORAGE_KEYS = {
   onboarding: 'meeet.onboarding.v1',
   discover: 'meeet.discover.v1',
   artwork: 'meeet.artwork.v1',
+  bcnFeed: 'meeet.bcn-feed.v1',
 } as const;
 
 /** Lectura síncrona, para el estado inicial. Ante datos ausentes o corruptos, `fallback`. */
@@ -24,6 +26,13 @@ export function loadJSON<T extends object>(key: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+/** Guarda texto tal cual (p. ej. un JSON ya descargado, sin volver a serializarlo). */
+export function saveText(key: string, text: string) {
+  Storage.setItem(key, text).catch((e) => {
+    console.warn(`[storage] No se pudo guardar ${key}:`, e);
+  });
 }
 
 /** Escritura en segundo plano; si falla, la app sigue funcionando en memoria. */

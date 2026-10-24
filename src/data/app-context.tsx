@@ -243,6 +243,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const concerts = useMemo(() => mergeConcerts(raw), [raw]);
 
+  // Cálculos sobre todos los conciertos, aparte del resto del estado: así un
+  // mensaje, una carta o una celebración no vuelven a filtrar ~1.000 conciertos
+  const byId = useMemo(() => new Map(concerts.map((c) => [c.id, c])), [concerts]);
+  const genres = useMemo(() => genresOf(concerts), [concerts]);
+  // Datos frescos de la API si el concierto sigue en ella; si no, la copia
+  const plans = useMemo(
+    () => Object.values(myEvents).map((saved) => byId.get(saved.id) ?? saved),
+    [myEvents, byId]
+  );
+  const wishlist = useMemo(
+    () =>
+      Object.values(wishes)
+        .map((saved) => byId.get(saved.id) ?? saved)
+        .sort((a, b) => (a.startsAt ?? Infinity) - (b.startsAt ?? Infinity)),
+    [wishes, byId]
+  );
+  const weights = useMemo(
+    () =>
+      tasteWeights({ picks: profile.tasteArtists, plans, wishlist, swipes: discover.swipes }),
+    [profile.tasteArtists, plans, wishlist, discover.swipes]
+  );
+  const visibleConcerts = useMemo(
+    () =>
+      applyFilters(
+        // Solo hasta donde está todo cargado: así la lista crece por el final, sin saltos
+        loadedUntil == null
+          ? concerts
+          : concerts.filter((c) => c.startsAt != null && c.startsAt <= loadedUntil),
+        filters,
+        (c) => c.going + (myEvents[c.id] ? 1 : 0)
+      ),
+    [concerts, loadedUntil, filters, myEvents]
+  );
+
   useEffect(() => saveJSON(STORAGE_KEYS.plans, myEvents), [myEvents]);
   useEffect(() => saveJSON(STORAGE_KEYS.wishlist, wishes), [wishes]);
   useEffect(() => saveJSON(STORAGE_KEYS.profile, profile), [profile]);
@@ -253,19 +287,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppState>(() => {
     const goingCount = (c: Concert) => c.going + (myEvents[c.id] ? 1 : 0);
     const unreadCount = (id: string) => unread[id] ?? 0;
-    // Datos frescos de la API si el concierto sigue en ella; si no, la copia
-    const fresh = (saved: Concert) => concerts.find((c) => c.id === saved.id) ?? saved;
-    const plans = Object.values(myEvents).map(fresh);
-    const wishlist = Object.values(wishes)
-      .map(fresh)
-      .sort((a, b) => (a.startsAt ?? Infinity) - (b.startsAt ?? Infinity));
     const myConcerts = splitPlans(plans).upcoming;
-    const weights = tasteWeights({
-      picks: profile.tasteArtists,
-      plans,
-      wishlist,
-      swipes: discover.swipes,
-    });
 
     return {
       concerts,
@@ -333,15 +355,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       filters,
       setFilters,
       resetFilters: () => setFilters(DEFAULT_FILTERS),
-      // Solo hasta donde está todo cargado: así la lista crece por el final, sin saltos
-      visibleConcerts: applyFilters(
-        loadedUntil == null
-          ? concerts
-          : concerts.filter((c) => c.startsAt != null && c.startsAt <= loadedUntil),
-        filters,
-        goingCount
-      ),
-      genres: genresOf(concerts),
+      visibleConcerts,
+      genres,
 
       messagesFor: (room) => messages[room] ?? [],
       sendMessage: (room, text) => {
@@ -375,6 +390,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     refreshConcerts,
     myEvents,
     wishes,
+    plans,
+    wishlist,
+    weights,
+    visibleConcerts,
+    genres,
     profile,
     settings,
     welcomeSeen,
