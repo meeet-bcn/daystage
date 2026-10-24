@@ -10,16 +10,17 @@ import {
   useState,
 } from 'react';
 
+import type { ChatMessage } from '@/data/chat';
 import { Concert, fetchConcerts } from '@/data/concerts';
 import { applyFilters, DEFAULT_FILTERS, Filters, genresOf } from '@/data/filters';
 import { mergeConcerts } from '@/data/merge';
 import { splitPlans } from '@/data/plans';
 import { EMPTY_PROFILE, loadProfile, Profile } from '@/data/profile';
 import { DEFAULT_SETTINGS, Settings, withDefaults } from '@/data/settings';
+import { Swipe, tasteWeights, topTastes } from '@/data/taste';
 import { loadJSON, saveJSON, STORAGE_KEYS } from '@/data/storage';
 
-/** Mensaje del chat de un concierto. */
-export type ChatMessage = { id: string; text: string; sentAt: number };
+export type { ChatMessage };
 
 type AppState = {
   /** Conciertos cargados hasta ahora (se piden por páginas, por fecha). */
@@ -75,6 +76,16 @@ type AppState = {
   /** Ajustes › Borrar mis datos: planes, perfil, ajustes y chats de este móvil (y vuelve la bienvenida). */
   clearUserData: () => void;
 
+  /** Descubrir: cartas deslizadas (derecha = te gusta) y si ya viste cómo funcionan. */
+  swipes: Record<string, Swipe>;
+  swipe: (concert: Concert, liked: boolean) => void;
+  deckIntroSeen: boolean;
+  finishDeckIntro: () => void;
+  /** Peso de cada estilo según tus artistas, planes, deseos y cartas (se recalcula siempre). */
+  tasteWeights: Record<string, number>;
+  /** Tus estilos favoritos ahora mismo: los de Descubrir si los hay, si no los que elegiste. */
+  myTastes: string[];
+
   /** Ya has pasado por las diapositivas de bienvenida (creando el perfil o no). */
   welcomeSeen: boolean;
   finishWelcome: () => void;
@@ -90,9 +101,13 @@ type AppState = {
    * Chat de cada concierto (se abre desde Meeet in). Aún no hay servidor: los
    * mensajes son solo los tuyos y viven en memoria hasta cerrar la app.
    */
-  /** Mensajes de una sala de chat (`chatRoomKey`: general o de un idioma). */
+  /** Mensajes de una sala de chat (`chatKey`: una por concierto). */
   messagesFor: (room: string) => ChatMessage[];
   sendMessage: (room: string, text: string) => void;
+  /** Foto o vídeo de la galería. */
+  sendMedia: (room: string, media: { photo?: string; video?: string }) => void;
+  /** Todo lo enviado en las salas de un concierto (general y de idiomas), por fecha. */
+  messagesOfConcert: (concertId: string) => ChatMessage[];
 
   /** Mensajes de chat sin leer por concierto. Aún no hay chat real: siempre vacío. */
   unreadCount: (id: string) => number;
@@ -136,6 +151,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(() =>
     withDefaults(loadJSON(STORAGE_KEYS.settings, {}))
   );
+  const [discover, setDiscover] = useState<{
+    swipes: Record<string, Swipe>;
+    deckIntroSeen: boolean;
+  }>(() => ({ swipes: {}, deckIntroSeen: false, ...loadJSON(STORAGE_KEYS.discover, {}) }));
   const [celebration, setCelebration] = useState<{ id: string; at: number } | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [unread] = useState<Record<string, number>>({});
@@ -229,6 +248,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveJSON(STORAGE_KEYS.profile, profile), [profile]);
   useEffect(() => saveJSON(STORAGE_KEYS.settings, settings), [settings]);
   useEffect(() => saveJSON(STORAGE_KEYS.onboarding, { welcomeSeen }), [welcomeSeen]);
+  useEffect(() => saveJSON(STORAGE_KEYS.discover, discover), [discover]);
 
   const value = useMemo<AppState>(() => {
     const goingCount = (c: Concert) => c.going + (myEvents[c.id] ? 1 : 0);
@@ -240,6 +260,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .map(fresh)
       .sort((a, b) => (a.startsAt ?? Infinity) - (b.startsAt ?? Infinity));
     const myConcerts = splitPlans(plans).upcoming;
+    const weights = tasteWeights({
+      picks: profile.tasteArtists,
+      plans,
+      wishlist,
+      swipes: discover.swipes,
+    });
 
     return {
       concerts,
@@ -287,10 +313,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setMessages({});
         setFilters(DEFAULT_FILTERS);
         setWelcomeSeen(false);
+        setDiscover({ swipes: {}, deckIntroSeen: false });
       },
 
       welcomeSeen,
       finishWelcome: () => setWelcomeSeen(true),
+
+      swipes: discover.swipes,
+      swipe: (concert, liked) =>
+        setDiscover((d) => ({
+          ...d,
+          swipes: { ...d.swipes, [concert.id]: { liked, genre: concert.genre } },
+        })),
+      deckIntroSeen: discover.deckIntroSeen,
+      finishDeckIntro: () => setDiscover((d) => ({ ...d, deckIntroSeen: true })),
+      tasteWeights: weights,
+      myTastes: profile.tasteArtists.length > 0 ? topTastes(weights) : profile.tastes,
 
       filters,
       setFilters,
@@ -310,6 +348,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const message = { id: `${Date.now()}`, text, sentAt: Date.now() };
         setMessages((current) => ({ ...current, [room]: [...(current[room] ?? []), message] }));
       },
+      sendMedia: (room, media) => {
+        const message = { id: `${Date.now()}`, text: '', ...media, sentAt: Date.now() };
+        setMessages((current) => ({ ...current, [room]: [...(current[room] ?? []), message] }));
+      },
+      messagesOfConcert: (concertId) =>
+        Object.entries(messages)
+          .filter(([room]) => room.startsWith(`${concertId}:`))
+          .flatMap(([, list]) => list)
+          .sort((a, b) => a.sentAt - b.sentAt),
 
       unreadCount,
       unreadTotal: myConcerts.reduce((sum, c) => sum + unreadCount(c.id), 0),
@@ -331,6 +378,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     profile,
     settings,
     welcomeSeen,
+    discover,
     celebration,
     filters,
     unread,

@@ -14,9 +14,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ConcertImage } from '@/components/concert-image';
 import { CreateProfileCard } from '@/components/create-profile-card';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { SongCard } from '@/components/song-card';
+import { ProfileBackdrop } from '@/components/profile-backdrop';
 import { ScreenHeader } from '@/components/screen-header';
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
@@ -24,7 +26,7 @@ import { Concert } from '@/data/concerts';
 import { companionsLabel, isPast, splitPlans } from '@/data/plans';
 import { SOCIAL_NETWORKS, SOCIAL_ORDER } from '@/data/profile';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
-import { COLORS, PROFILE_BACKGROUNDS, profileGradient, Theme } from '@/theme';
+import { COLORS, PROFILE_BACKGROUNDS, Theme } from '@/theme';
 
 const COLUMNS = 3;
 const GAP = 2;
@@ -76,7 +78,7 @@ export default function ProfileScreen() {
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { profile, plans, wishlist, goingCount } = useApp();
+  const { profile, plans, wishlist, goingCount, myTastes } = useApp();
   const [gridTab, setGridTab] = useState<GridTab>('plans');
   const scrollY = useAnimatedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -120,20 +122,18 @@ export default function ProfileScreen() {
         ListHeaderComponent={
           !profile.created ? (
             <View style={{ paddingTop: headerHeight }}>
-              <CreateProfileCard />
+              <CreateProfileCard intro="Tu perfil es cómo te ve la gente que va a tus conciertos: tu foto, tu nick, tus gustos y los conciertos a los que vas. Crea el tuyo para empezar." />
             </View>
           ) : (
             <View>
               {/* El fondo elegido en Editar perfil, el mismo que ven los demás */}
               <View
-                style={[
-                  // Empieza bajo la cabecera de cristal, que deja ver el degradado a través
-                  { paddingTop: headerHeight },
-                  profile.background !== 'none' && {
-                    experimental_backgroundImage: profileGradient(profile.background),
-                  },
-                ]}
+                // Empieza bajo la cabecera de cristal, que deja ver el degradado a través
+                style={{ paddingTop: headerHeight }}
               >
+                {profile.background !== 'none' && (
+                  <ProfileBackdrop background={profile.background} />
+                )}
                 {/* Al tirar hacia abajo asoma lo de encima: se rellena con el color de arriba */}
                 {profile.background !== 'none' && (
                   <View
@@ -175,6 +175,16 @@ export default function ProfileScreen() {
                   <Text style={[styles.bio, !profile.bio && styles.muted]}>
                     {profile.bio || 'Aún no has escrito tu biografía.'}
                   </Text>
+
+                  {/* Tus gustos: salen de tus artistas y mejoran con lo que haces en la app */}
+                  {myTastes.length > 0 && (
+                    <View style={styles.tastes}>
+                      <Ionicons name="musical-notes" size={14} style={styles.tastesIcon} />
+                      <Text style={styles.tastesText} numberOfLines={1}>
+                        {myTastes.join(' · ')}
+                      </Text>
+                    </View>
+                  )}
 
                   {profile.song ? <SongCard song={profile.song} style={pill} /> : null}
 
@@ -243,7 +253,6 @@ export default function ProfileScreen() {
         }
         renderItem={({ item }: { item: Concert }) => {
           const gone = isPast(item);
-          const uri = item.hero || item.image;
           // En la lista de deseos aún no vas: la fecha. En tus planes, con quién vas (te incluye a ti)
           const label =
             gridTab === 'wishlist' ? item.date : companionsLabel(goingCount(item) - 1, gone);
@@ -255,7 +264,7 @@ export default function ProfileScreen() {
               onPress={() => router.push({ pathname: '/concert/[id]', params: { id: item.id } })}
               accessibilityLabel={`${item.artist}, ${item.date}. ${label}`}
             >
-              {uri ? <Image source={{ uri }} style={styles.tile} /> : <View style={styles.tile} />}
+              <ConcertImage concert={item} prefer="hero" style={styles.tile} iconSize={30} />
               <View style={styles.caption}>
                 <Text style={styles.captionText} numberOfLines={2}>
                   {label}
@@ -291,6 +300,9 @@ const makeStyles = (theme: Theme) =>
     container: { flex: 1, backgroundColor: COLORS.background },
     // Aire entre la cabecera fija y la foto, para que respire
     header: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
+    tastes: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+    tastesIcon: { color: theme.accent },
+    tastesText: { flex: 1, color: theme.accent, fontSize: 14, fontWeight: '700' },
     overscroll: { position: 'absolute', left: 0, right: 0, top: -1000, height: 1000 },
     gridTabs: {
       flexDirection: 'row',

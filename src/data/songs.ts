@@ -106,3 +106,18 @@ export async function fetchTopSong(eventName: string): Promise<ProfileSong | nul
   const tracks = await searchTracks(artist, { attribute: 'artistTerm' });
   return pickTopSong(tracks, artist);
 }
+
+/** La misma carátula de Apple Music a otro tamaño (la URL lleva el tamaño dentro). */
+export function artworkAt(url: string, px: number) {
+  return url.replace(/\/\d+x\d+bb\./, `/${px}x${px}bb.`);
+}
+
+/**
+ * Imagen del artista para un concierto sin foto: la carátula de su canción más
+ * popular en Apple Music (no da fotos de artista), en grande. '' si no hay o si
+ * no está claro quién es (homónimos: pickTopSong prefiere no elegir).
+ */
+export async function fetchArtistArtwork(eventName: string): Promise<string> {
+  const song = await fetchTopSong(eventName);
+  return song?.artwork ? artworkAt(song.artwork, 1000) : '';
+}

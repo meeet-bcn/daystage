@@ -15,7 +15,8 @@ export default function RootLayout() {
         <Stack screenOptions={{ contentStyle: { backgroundColor: COLORS.background } }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="concert/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="chat/[id]/index" options={{ headerShown: false }} />
+          <Stack.Screen name="chat/[id]/info" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
           {/* Bienvenida y creación de perfil: a pantalla completa, sin volver con el gesto */}
           <Stack.Screen
@@ -36,16 +37,6 @@ export default function RootLayout() {
               headerShown: false,
               presentation: 'formSheet',
               sheetAllowedDetents: [1],
-              sheetGrabberVisible: true,
-              sheetCornerRadius: 28,
-            }}
-          />
-          <Stack.Screen
-            name="language"
-            options={{
-              headerShown: false,
-              presentation: 'formSheet',
-              sheetAllowedDetents: [0.6, 1],
               sheetGrabberVisible: true,
               sheetCornerRadius: 28,
             }}

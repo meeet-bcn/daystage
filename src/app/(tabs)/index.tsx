@@ -30,12 +30,13 @@ import { TITLE_LINE_HEIGHT, TITLE_SIZE, TITLE_SPACING, TITLE_TOP } from '@/compo
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
 import { Concert } from '@/data/concerts';
-import { bcnEnabled } from '@/data/sources/bcn';
 import {
   activeFilterCount,
   dateRangeLabel,
   dayStart,
-  LANGUAGES,
+  isQuickRange,
+  QUICK_DATES,
+  quickRange,
   SORT_OPTIONS,
 } from '@/data/filters';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
@@ -52,7 +53,6 @@ const TOP_MAX = 50; // aire superior con el logo grande
 const TOP_MIN = TITLE_TOP; // aire superior con el logo encogido (= títulos de pestaña)
 const SLOGAN_H = 22; // altura del lema
 const TOOLS_GAP = 14; // aire entre el logo (o el aviso) y los chips, también con el logo encogido
-const NOTICE_H = 40; // aviso de la beta (pastilla de 32 + aire); se esconde al hacer scroll
 const SCROLL_RANGE = 80; // cuánto scroll dura la animación
 // Tirar hacia abajo para recargar
 const PULL_TRIGGER = 80; // pt que hay que tirar para que, al soltar, recargue
@@ -127,13 +127,13 @@ export default function HomeScreen() {
   const [toolsHeight, setToolsHeight] = useState(0);
   // Hoy (medianoche), fijado al montar: leer la hora en cada render no es puro
   const [today] = useState(() => dayStart(Date.now()));
-  const onlyToday = filters.dates?.from === today && filters.dates?.to === today;
+  // ¿Las fechas son un atajo (Hoy, Mañana, Próxima semana)? Si no, son del calendario
+  const quick = QUICK_DATES.find((q) => isQuickRange(filters.dates, q.key, today))?.key;
   const filterCount = activeFilterCount(filters);
   const sortLabel = SORT_OPTIONS.find((o) => o.key === filters.sort)?.label.toLowerCase();
   // Donde empieza la lista: bajo la cabecera fija ya desplegada
-  const listTop = insets.top + TOP_MAX + LINE_MAX + SLOGAN_H + NOTICE_H + toolsHeight + PAD_MAX;
+  const listTop = insets.top + TOP_MAX + LINE_MAX + SLOGAN_H + toolsHeight + PAD_MAX;
   const isFiltered = filterCount > 0 || filters.dates != null;
-  const languages = LANGUAGES.filter((l) => filters.languages.includes(l.code));
 
   const shrink = (from: number, to: number) =>
     scrollY.interpolate({
@@ -148,7 +148,6 @@ export default function HomeScreen() {
   const headerPadTop = shrink(insets.top + TOP_MAX, insets.top + TOP_MIN);
   const headerPadBottom = shrink(PAD_MAX, PAD_MIN);
   const sloganHeight = shrink(SLOGAN_H, 0);
-  const noticeHeight = shrink(NOTICE_H, 0);
   const sloganOpacity = scrollY.interpolate({
     inputRange: [0, SCROLL_RANGE * 0.5],
     outputRange: [1, 0],
@@ -330,20 +329,6 @@ export default function HomeScreen() {
           Every event. Everyone.
         </Animated.Text>
 
-        {/* El aviso se esconde con el lema; los chips quedan siempre a mano */}
-        <Animated.View style={[styles.noticeBox, { height: noticeHeight, opacity: sloganOpacity }]}>
-          <View style={styles.notice}>
-            <View style={styles.betaTag}>
-              <Text style={styles.betaTagText}>BETA</Text>
-            </View>
-            <Text style={styles.noticeText} numberOfLines={1}>
-              {bcnEnabled()
-                ? 'Solo Barcelona · Ticketmaster y agenda BCN'
-                : 'Solo Barcelona · Ticketmaster'}
-            </Text>
-          </View>
-        </Animated.View>
-
         <View style={styles.tools} onLayout={(e) => setToolsHeight(e.nativeEvent.layout.height)}>
           {concerts.length > 0 && (
             <ScrollView
@@ -359,36 +344,26 @@ export default function HomeScreen() {
                 active={filterCount > 0}
                 onPress={() => router.push('/filters')}
               />
-              {/* Atajo: solo hoy (otra vez, se quita) */}
-              <Chip
-                label="Hoy"
-                active={onlyToday}
-                onPress={() =>
-                  setFilters((f) => ({
-                    ...f,
-                    dates: onlyToday ? null : { from: today, to: today },
-                  }))
-                }
-              />
+              {/* Atajos de fechas (otra vez, se quitan); para otros días, el calendario */}
+              {QUICK_DATES.map((q) => (
+                <Chip
+                  key={q.key}
+                  label={q.label}
+                  active={quick === q.key}
+                  onPress={() =>
+                    setFilters((f) => ({
+                      ...f,
+                      dates: quick === q.key ? null : quickRange(q.key, today),
+                    }))
+                  }
+                />
+              ))}
               {/* Muchos son turistas: buscan sus días en Barcelona */}
               <Chip
                 icon="calendar-outline"
-                label={filters.dates && !onlyToday ? dateRangeLabel(filters.dates) : 'Calendario'}
-                active={filters.dates != null && !onlyToday}
+                label={filters.dates && !quick ? dateRangeLabel(filters.dates) : 'Calendario'}
+                active={filters.dates != null && !quick}
                 onPress={() => router.push('/calendar')}
-              />
-              {/* El idioma de la gente que quieres conocer */}
-              <Chip
-                icon="chatbubbles-outline"
-                label={
-                  languages.length === 0
-                    ? 'Idioma'
-                    : languages.length === 1
-                      ? languages[0].label
-                      : `Idioma · ${languages.length}`
-                }
-                active={languages.length > 0}
-                onPress={() => router.push('/language')}
               />
             </ScrollView>
           )}
@@ -414,7 +389,7 @@ const makeStyles = (theme: Theme) =>
     },
     glass: { backgroundColor: 'rgba(255,255,255,0.45)' },
     logoRow: { justifyContent: 'center' },
-    // Logo, lema y aviso beta, centrados
+    // Logo y lema, centrados
     logo: {
       alignSelf: 'center',
       color: COLORS.text,
@@ -448,26 +423,6 @@ const makeStyles = (theme: Theme) =>
       gap: 14,
     },
     firstLoadText: { color: COLORS.muted, fontSize: 15, fontWeight: '500' },
-    noticeBox: { overflow: 'hidden', justifyContent: 'center' },
-    notice: {
-      alignSelf: 'center',
-      height: 32,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      backgroundColor: COLORS.surface,
-      paddingLeft: 8,
-      paddingRight: 14,
-      borderRadius: 20,
-    },
-    betaTag: {
-      backgroundColor: theme.accent,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 10,
-    },
-    betaTagText: { color: COLORS.white, fontSize: 11, fontWeight: '800', letterSpacing: 0.6 },
-    noticeText: { color: COLORS.muted, fontSize: 13, fontWeight: '500', flexShrink: 1 },
     // Los chips llegan hasta el borde de la pantalla al deslizarlos
     // El lema sube 6 pt sobre el logo (marginTop: -6): aquí se compensa para
     // que, ya encogido, los chips no pisen el logo

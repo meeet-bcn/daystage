@@ -7,7 +7,7 @@ import { LANGUAGES } from '@/data/filters';
 export type MessagesFrom = 'everyone' | 'going';
 
 export type Settings = {
-  /** Tu idioma principal (código de LANGUAGES): da nombre a la sala "Idioma" de cada chat. */
+  /** Tu idioma principal (código de LANGUAGES), para conocer a gente que lo habla. */
   mainLanguage: string;
   notifications: {
     /** Mensajes nuevos en los chats de tus conciertos. */
@@ -57,12 +57,4 @@ export function withDefaults(saved: Partial<Settings>): Settings {
 
 export function languageLabel(code: string) {
   return LANGUAGES.find((l) => l.code === code)?.label ?? code;
-}
-
-/** Salas del chat de cada concierto: la general y la de tu idioma principal. */
-export type ChatRoom = 'general' | 'language';
-
-/** Clave de los mensajes de una sala: la de idioma depende del idioma elegido. */
-export function chatRoomKey(concertId: string, room: ChatRoom, language: string) {
-  return room === 'general' ? `${concertId}:general` : `${concertId}:lang:${language}`;
 }

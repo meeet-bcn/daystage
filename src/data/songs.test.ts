@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { pickTopSong, toSong } from '@/data/songs';
+import { artworkAt, pickTopSong, toSong } from '@/data/songs';
 
 const track = {
   trackId: 1809774259,
@@ -68,5 +68,13 @@ describe('pickTopSong', () => {
   it('sin coincidencias, null', () => {
     expect(pickTopSong([song(1, 'Otro Grupo')], 'Rosalía')).toBeNull();
     expect(pickTopSong([], 'Rosalía')).toBeNull();
+  });
+});
+
+describe('artworkAt', () => {
+  it('cambia el tamaño que va dentro de la URL de Apple Music', () => {
+    expect(artworkAt('https://is1.mzstatic.com/image/thumb/a/b.jpg/300x300bb.jpg', 1000)).toBe(
+      'https://is1.mzstatic.com/image/thumb/a/b.jpg/1000x1000bb.jpg'
+    );
   });
 });

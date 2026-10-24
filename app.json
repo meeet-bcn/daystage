@@ -34,20 +34,32 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "meeet usa tus fotos para que elijas tu foto de perfil.",
-          "cameraPermission": false,
-          "microphonePermission": false
+          "photosPermission": "meeet usa tus fotos para que elijas tu foto de perfil y compartas fotos en las salas.",
+          "cameraPermission": "meeet usa la cámara para que hagas fotos y vídeos y los compartas en las salas de los conciertos.",
+          "microphonePermission": "meeet usa el micrófono para grabar el sonido de los vídeos que compartes en las salas."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": false,
+          "microphonePermission": "meeet usa el micrófono para grabar el sonido de los vídeos que compartes en las salas.",
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": false
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-video",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "meeet usa tus fotos para que elijas tu foto de perfil y compartas fotos en las salas.",
+          "savePhotosPermission": "meeet guarda en tu galería las fotos y vídeos de las salas que quieras conservar.",
+          "granularPermissions": [
+            "photo",
+            "video"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

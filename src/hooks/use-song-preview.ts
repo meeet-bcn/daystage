@@ -9,7 +9,7 @@ import type { ProfileSong } from '@/data/songs';
 // En iOS, hasta que se fija el modo de audio la sesión es "ambiente": el
 // interruptor de silencio la deja muda. Se fija una vez, al primer play.
 let audioMode: Promise<void> | null = null;
-const ensureAudioMode = () =>
+export const ensureAudioMode = () =>
   (audioMode ??= setAudioModeAsync({
     playsInSilentMode: true,
     // Como en Instagram: el fragmento pausa la música que tuvieras puesta

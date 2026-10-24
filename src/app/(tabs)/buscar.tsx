@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ConcertImage } from '@/components/concert-image';
 import { ScreenHeader } from '@/components/screen-header';
 import { SearchBar } from '@/components/search-bar';
 import { BottomTabInset } from '@/constants/theme';
@@ -72,7 +72,7 @@ export default function SearchScreen() {
             style={({ pressed }) => [styles.row, pressed && styles.pressed]}
             onPress={() => router.push({ pathname: '/concert/[id]', params: { id: item.id } })}
           >
-            <Image source={item.image || undefined} style={styles.thumb} transition={150} />
+            <ConcertImage concert={item} style={styles.thumb} iconSize={24} />
             <View style={styles.text}>
               <Text style={styles.date}>{item.date}</Text>
               <Text style={styles.artist} numberOfLines={1}>

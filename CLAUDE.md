@@ -23,24 +23,31 @@ src/
     _layout.tsx             # Layout raíz: ThemeProvider + AppProvider + Stack (tabs, concert, filters)
     (tabs)/
       _layout.tsx           # Renderiza <AppTabs />
-      index.tsx             # Inicio: cabecera fija (logo y lema que se encogen, aviso beta, chips Filtros · Calendario · Idioma siempre visibles) y lista filtrada que carga más al bajar
-      descubrir.tsx         # Descubrir: recomendaciones según tus gustos (de momento, un placeholder)
+      index.tsx             # Inicio: cabecera fija (logo y lema que se encogen, chips Filtros · Hoy · Mañana · Próxima semana · Calendario siempre visibles) y lista filtrada que carga más al bajar
+      descubrir.tsx         # Descubrir: "Tinder" de conciertos. Pide perfil; la primera vez explica, eliges 5 artistas (TastePicker) y explica las cartas
       buscar.tsx            # Buscar (botón de búsqueda del sistema en la barra): conciertos cargados + búsqueda en las ticketeras
-      meeet-in.tsx          # meeet in: próximos planes y acceso al chat, con su burbuja de no leídos
+      meeet-in.tsx          # Meeet in: próximos planes arriba y "Conciertos pasados" plegables abajo, cada uno con su chat y su burbuja de no leídos
       perfil.tsx            # Perfil estilo Instagram: nick, foto, meeet in / seguidores / seguidos, bio, fondo y cuadrícula en tres columnas: Meeet in (próximos), Lista de deseos y Pasados
     concert/[id].tsx        # Detalle (fuera de las pestañas): hero, "Meeet In!", comprar entrada, compartir, fragmento de la canción más popular del artista, pestañas Información/Lugar (sin chat)
-    chat/[id].tsx           # Chat de un concierto, solo desde Meeet in: el evento y su fecha arriba (sin foto ni comprar), salas General e Idioma (tu idioma principal)
-    welcome.tsx             # Bienvenida: diapositivas con fotos de conciertos y piezas de la app; al final, crear perfil o "Ahora no"
+    chat/[id]/index.tsx     # Sala de chat de un concierto, estilo Telegram/WhatsApp (solo desde Meeet in): una sola sala; cabecera con la foto del evento y miembros, mensajes por día, fotos y vídeos (clip = galería, cámara), hora y doble check
+    chat/[id]/info.tsx      # Información de la sala: Gente · Fotos · Vídeos · Setlist (setlist.fm)
+    welcome.tsx             # Bienvenida: imagotipo animado y logo; diapositivas (conciertos, Meeet In!, chat, Descubrir, perfil); al final, crear perfil o "Ahora no"
     onboarding.tsx          # Creación de perfil paso a paso: nick → nombre → foto → gustos → idioma → ¡Listo!
     settings.tsx            # Ajustes (Perfil › engranaje): idioma principal, privacidad, notificaciones, vibración, caché, borrar datos, información
     filters.tsx             # Hoja nativa (formSheet): ordenar, género, precio
     calendar.tsx            # Hoja del calendario: intervalo de días, con punto en los días con conciertos; al bajar por los meses pide más páginas y "Quitar fechas" vacía la caché (`trimConcerts`)
-    language.tsx            # Hoja del idioma de la gente que quieres conocer (aún no filtra: no hay asistentes)
     edit-profile.tsx        # Modal de editar perfil: foto, nick (@, reglas tipo Instagram), nombre, pronombres, bio, canción y redes (Instagram, TikTok, X); solo se aplica al pulsar "Guardar"
   components/
     go-button.tsx           # Botón "Meeet In!" (antes "Voy"): confeti y háptica. Es el componente central de la marca
+    profile-backdrop.tsx    # Fondo de Perfil: el degradado elegido y dos manchas de sus colores que derivan despacio (quieto con "Reducir movimiento")
     organic-backdrop.tsx    # Fondo de bienvenida y creación de perfil: imagotipo gigante que se mueve muy despacio
     create-profile-card.tsx # Tarjeta "Crea tu perfil" con sus ventajas (Perfil sin crear) y PROFILE_BENEFITS
+    taste-picker.tsx        # Carruseles de artistas en círculo (Internacional, España, Catalunya); se eligen 5
+    concert-deck.tsx        # Cartas deslizables (gesture-handler + Reanimated) hasta abajo: derecha = te gusta, izquierda = no; tocar abre la ficha; ✕ · Meeet In! · ♥ flotan sobre la foto, encima del texto (INFO_H)
+    media-viewer.tsx        # Foto o vídeo a pantalla completa (ficha y chat): zoom, deslizar a un lado o abajo para cerrar, ✕ y guardar en Fotos
+    video-thumb.tsx         # Primer fotograma de un vídeo con el botón de play (chat e información de la sala)
+    concert-image.tsx       # Imagen de un concierto: su foto → la del artista (Apple Music) → la genérica de música. Úsala en vez de <Image> para conciertos
+    music-placeholder.tsx   # Imagen genérica de música (degradado + notas) para conciertos sin foto
     wish-button.tsx         # Corazón de la lista de deseos (junto a "Meeet In!" en Inicio y en el detalle)
     meeet-in-burst.tsx      # Destellos al darle a "Meeet In!" (salen de la insignia de la foto)
     imagotipo.tsx           # Imagotipo de la marca (dos círculos), con Views. `ImagotipoAnimado`: los círculos se juntan en uno y se separan, en bucle (insignia "Meeet In!")
@@ -74,13 +81,19 @@ src/
     musicbrainz.ts          # Info de artistas (tipo, país, géneros, enlaces). pickArtist solo acepta coincidencias seguras
   hooks/use-artist-info.ts  # Carga la info de MusicBrainz para el detalle (Info › "Sobre el artista", artist-card.tsx)
   hooks/use-song-preview.ts # Reproductor de fragmentos (expo-audio): play/pausa y parar
+  hooks/use-artist-artwork.ts # Imagen del artista para conciertos sin foto: en cola (una cada 3 s, Apple limita ~20/min) y guardada en el móvil (`meeet.artwork.v1`)
+  hooks/use-faded-preview.ts  # Fragmento de la carta de Descubrir con fundido de entrada (1,2 s)
   hooks/use-concert-search.ts # Búsqueda: al momento en lo cargado y, tras 350 ms, en las ticketeras (`keyword`)
     event-info.ts           # Limpia los textos de Ticketmaster: reseña (`description`, o `info` sin la logística) + puertas, telonero y edad. Descarta los eventos "Test ..."
     filters.ts              # Tipos y opciones de filtros + applyFilters() (funciones puras)
     app-context.tsx         # AppProvider / useApp(): conciertos, "Voy" (guarda copia del concierto), plans, myConcerts, profile, filtros, no leídos
     plans.ts                # isPast / splitPlans / companionsLabel: próximos frente a ya pasados ("X personas van contigo")
-    settings.ts             # Ajustes (tipo, valores por defecto, withDefaults) y salas de chat (chatRoomKey)
+    taste.ts                # Gustos: catálogo de 36 artistas, estilos (tasteGenre), pesos (tasteWeights) y orden de las cartas (buildDeck)
+    chat.ts                 # Salas: ChatMessage (texto o foto), separadores por día, enlaces compartidos, "N miembros"
+    setlists.ts             # Setlists anteriores del artista (setlist.fm; clave EXPO_PUBLIC_SETLISTFM_KEY)
+    settings.ts             # Ajustes (tipo, valores por defecto, withDefaults)
     profile.ts              # Tipo Profile, límites y reglas del nick (normalizeNick, nickError)
+    save-media.ts           # Guarda una foto o vídeo en la galería (expo-media-library); las remotas se bajan antes
     profile-photo.ts        # Elegir foto (expo-image-picker, recorte cuadrado) y guardarla en documentos (expo-file-system)
     storage.ts              # Persistencia local (expo-sqlite/kv-store): planes y perfil, claves versionadas (`meeet.plans.v1`…)
   theme.ts                  # ✅ Paleta de MEEET (COLORS). Úsala siempre
@@ -100,13 +113,13 @@ scripts/generate-tab-icons.swift      # Iconos propios de la barra (casa sin pue
 - Los no leídos (`unread` en `app-context.tsx`) siempre están vacíos porque aún no hay chat. Cuando exista, basta con alimentar ese estado y el badge de la pestaña meeet in y la burbuja de cada fila aparecerán solos.
 - El badge de una pestaña nativa se pinta solo si `NativeTabs.Trigger.Badge` está en el árbol. En iOS, `hidden` deja un "0" y un badge vacío se ve como un punto: renderízalo de forma condicional.
 - Un concierto pasa a "ya fui" cuando termina su día (`isPast`). La API solo trae conciertos futuros, así que los pasados existen únicamente como la copia guardada al decir "Voy": el detalle los busca también en `plans`.
-- Calendario e idioma son para turistas: vienen unos días y quieren conocer gente. `Filters.dates` es un intervalo de días incluidos (`DateRange`, medianoches locales); al quitarlas se descartan las páginas cargadas para el calendario (se queda la primera) y la caché de fotos en memoria. `Filters.languages` es el idioma de la gente que quieres conocer, no el del concierto, y aún no filtra nada.
+- Atajos de fecha en Inicio (`QUICK_DATES`, `quickRange`): Hoy, Mañana y Próxima semana (de lunes a domingo de la semana que viene) ponen `Filters.dates`; Calendario se marca cuando hay fechas que no son un atajo. El calendario es para turistas: vienen unos días y quieren conocer gente. `Filters.dates` es un intervalo de días incluidos (`DateRange`, medianoches locales); al quitarlas se descartan las páginas cargadas para el calendario (se queda la primera) y la caché de fotos en memoria.
 - **Agenda BCN** (fuente `bcn`): ~830 conciertos de un día, desde el Palau de la Música hasta centros cívicos, muchos gratis. El original (~170 MB, toda la agenda cultural) no se baja en el móvil: `scripts/build-bcn-agenda.mjs` lo filtra (~650 KB) y `publish-bcn-agenda.sh` lo sube cada mañana a la rama `gh-pages`, que sirve GitHub Pages. Se publica desde el Mac (launchd) y no desde GitHub Actions porque Open Data BCN responde 403 a los servidores de GitHub (probado con User-Agent propio y reintentos). Licencia CC BY 4.0: hay que citar «Ajuntament de Barcelona» (está en el detalle y en Ajustes). Es concierto si tiene la tipología "Concerts" y ninguna de fiesta, feria o taller (`NOT_A_CONCERT`). La hora no viene en la fecha (trae 03:00 o 12:00 de relleno): sale del horario HTML (`parseTimetable`). No vende: el botón lleva a la web de entradas de la sala, o dice "Entrada libre".
 - Fuentes que llegan enteras (bcn) y por páginas (Ticketmaster) a la vez: `fetchConcerts` devuelve `until`, la fecha hasta la que está todo cargado, y la lista de Inicio (`visibleConcerts`) solo muestra hasta ahí. Así crece por el final al bajar y no aparecen conciertos más arriba de lo ya visto. `concerts` lo tiene todo (para abrir y buscar).
 - Conciertos por páginas de 20 (`PAGE_SIZE` en `ticketmaster.ts`), por fecha: Inicio pide la siguiente con `loadMore` al acercarse al final (`onEndReached`). Los filtros se aplican sobre lo cargado; si dejan la lista corta, FlatList sigue pidiendo páginas solo. Barcelona tiene ~130 conciertos de música en Ticketmaster (con el área metropolitana solo salen 3 más).
 - Buscar no se queda en lo cargado: también pregunta a las ticketeras (`keyword`) y suma lo que encuentra al estado (`addConcerts`) para que el detalle pueda abrirlo.
 - Fotos con `expo-image` (caché en memoria y disco), salvo en `tab-avatar.tsx`, que necesita la `Image` de React Native para capturarla.
-- El chat de un concierto solo se abre desde la pestaña Meeet in (`/chat/[id]`), nunca desde el detalle. Solo lleva el evento y su fecha. Tiene dos salas: "General" y la de tu idioma principal (`settings.mainLanguage`); cada idioma es una sala distinta (`chatRoomKey`). Aún no hay servidor: los mensajes (`messagesFor`/`sendMessage`) viven en memoria y solo los ve quien los escribe; la pantalla lo avisa.
+- El chat de un concierto solo se abre desde la pestaña Meeet in (`/chat/[id]`), nunca desde el detalle. Solo lleva el evento y su fecha (el avatar es la foto del evento, sin compra). Tocar la cabecera abre `/chat/[id]/info`. Los miembros reales llegarán con las cuentas: hoy solo estás tú y el número de quien va. Setlists de setlist.fm (gratis para uso no comercial, con clave en `.env.local`; sin ella, la pestaña lo explica). Una sola sala por concierto (`chatKey`, que reutiliza la clave de la antigua "General"). Fotos y vídeos se abren con `MediaViewer` y se guardan en Fotos con `saveToGallery` (`save-media.ts`, expo-media-library; baja antes las remotas). En Meeet in, los chats de conciertos pasados nunca se borran: van abajo, en "Conciertos pasados", plegables con una flecha; los próximos siempre arriba. Aún no hay servidor: los mensajes (`messagesFor`/`sendMessage`) viven en memoria y solo los ve quien los escribe; la pantalla lo avisa.
 - El botón y la insignia de "vas a un concierto" dicen "Meeet In!" (internamente sigue siendo `isGoing`/`toggleGoing`). En frases normales ("¡Voy a …! ¿Te vienes?") se puede seguir usando "voy".
 - Marco de "Voy": pie de foto de `FOOTER_HEIGHT` pt con el degradado de la marca girando, dentro de la foto y bajo la insignia "Voy" (si cambias su posición en `event-image.tsx`, ajusta el alto). Se probaron trazos finos arriba/abajo y en los 4 lados. Sin efecto holográfico (se probó tinte, reflejo y brillo y se descartó). Respeta "Reducir movimiento". Activo en Inicio y en el detalle.
 - Datos del usuario (planes, perfil) se guardan en el móvil con `storage.ts`: se cargan de forma síncrona en el estado inicial y se guardan en un `useEffect`. Si cambias la forma de un dato guardado, sube la versión de su clave.
@@ -117,15 +130,18 @@ scripts/generate-tab-icons.swift      # Iconos propios de la barra (casa sin pue
 - Iconos de la barra en iOS: todos como imagen (PNG de `assets/images/tabs`), nunca SF Symbols mezclados: el símbolo coloca su etiqueta más baja que las imágenes. Inicio = casa sin puerta, Descubrir = las `sparkles` de Ionicons (las de "Recomendaciones para ti"), Meeet in = imagotipo de dos círculos, Perfil = tu foto o `person-circle`.
 - Canción del artista en el detalle: `fetchTopSong` coge el primer resultado de iTunes del artista principal (iTunes ordena por relevancia, no da la popularidad). Si hay homónimos (varios `artistId` con ese nombre), `pickTopSong` devuelve null.
 - Los nombres de pestaña y los títulos de pantalla van con mayúscula inicial, también "Meeet in" (Inicio · Descubrir · Meeet in · Perfil). El logo, en cambio, siempre en minúscula: `meeet.`.
-- En Inicio, el logo, el lema y el aviso beta van centrados (también el logo encogido).
+- En Inicio, el logo y el lema van centrados (también el logo encogido). Ya no hay aviso de beta: no lo vuelvas a poner.
 - Las demás pestañas (Descubrir, Meeet in, Perfil, Buscar) llevan `ScreenHeader`: cabecera fija de cristal (blur + blanco al 45 %, como Inicio), puesta después de la lista, que recibe su alto como `paddingTop`. En Perfil ese margen va dentro del bloque del degradado, para que el fondo se vea a través del cristal. El subtítulo (`ScreenSubtitle`) va en la lista y se desplaza.
 - Recargar Inicio: suena `assets/sounds/refresh.wav` (generado con `scripts/generate-sounds.py`; ajuste "Sonidos") y vibra; al terminar, el imagotipo crece y se desvanece mientras estallan los destellos (`SparkleBurst`), y el hueco se cierra con `LayoutAnimation`.
 - Inicio y el imagotipo animado (`ImagotipoAnimado`): sale en la primera carga (en el centro) y al tirar hacia abajo para recargar. El "tirar para recargar" es propio (`onScrollEndDrag` + `refreshConcerts`), porque el RefreshControl de iOS solo admite su ruedecita: el imagotipo va detrás de la lista y asoma en el hueco. Tocar Inicio estando en Inicio sube arriba (`tabPress`).
 - Al darle a "Meeet In!" (`toggleGoing`), `celebration` guarda ese concierto: su foto hace entrar la insignia con rebote, un reflejo y destellos (`MeeetInBurst`), y al acabar se limpia (`endCelebration`). Con "Reducir movimiento", sin destellos.
 - Ajustes en `storage.ts` (`meeet.settings.v1`), cargados con `withDefaults` para que los campos nuevos tomen su valor inicial. Privacidad y notificaciones aún solo se guardan (no hay cuentas ni notificaciones): la pantalla lo dice. La vibración sí se aplica (`GoButton`).
 - Bienvenida y perfil: `(tabs)/_layout.tsx` redirige a `/welcome` mientras `welcomeSeen` sea false (se guarda en `meeet.onboarding.v1`). Sin perfil (`profile.created`, que se pone al terminar `/onboarding`), Perfil muestra `CreateProfileCard`, y el chat y el corazón llevan a crearlo: son las ventajas que se prometen, así que deben cumplirse. Los perfiles de antes de `created` cuentan como creados si tenían nick, nombre o foto (`loadProfile`). Ajustes › "Borrar perfil y empezar de nuevo" lo borra todo y vuelve a la bienvenida.
+- Descubrir y tus gustos: eliges 5 artistas de `TASTE_ARTISTS` (`profile.tasteArtists`). Las fotos son portadas de discos de Apple Music (no da fotos de artistas), guardadas fijas en el catálogo para no pedir 36 portadas cada vez. `tasteWeights` pondera estilos: artistas ×2, "Meeet In!" ×1, deseos ×0,5, cartas a la derecha +0,5 y a la izquierda −0,4 (sin bajar de 0), así que la app mejora sola. Las cartas (`buildDeck`) son conciertos futuros sin deslizar ni marcados, de más a menos afines. Derecha = a la lista de deseos; "Meeet In!" = vas; un toque abre la ficha (y se vuelve a la misma carta). Arriba a la izquierda, la canción que suena o "Sin música disponible". Cada carta es la misma pieza de detrás a delante (misma `key`): al avanzar crece con una animación, sin volver a montarse; si se monta de nuevo, se ve un salto. Descubrir solo reserva la zona segura abajo: la pantalla ya acaba sobre la barra de pestañas (con `BottomTabInset` quedaba un hueco blanco). Deslizadas en `meeet.discover.v1`. Los géneros de Ticketmaster y de la agenda se traducen a MUSIC_TASTES con `tasteGenre`. Los conciertos no traen idioma: el idioma de tus artistas se muestra, pero aún no ordena las cartas.
+- Fotos de artistas de la bienvenida (`assets/images/welcome`): de Wikimedia Commons, CC BY-SA, recortadas. La licencia obliga a citar a sus autores: el crédito está en la diapositiva 1 (`PHOTO_CREDITS`). Si cambias una foto, cambia también el crédito. No uses fotos sin licencia libre (por eso no está Alcalá Norte: en Commons solo hay su logo).
+- "Meeet In!" y el corazón son para quien tiene perfil: sin él, llevan a `/onboarding`.
 - Lista de deseos (`wishlist`, `toggleWish`): conciertos que te interesan aunque no vayas. Como los planes, guarda una copia del concierto (`meeet.wishlist.v1`) para que no desaparezca al pasar.
-- Fondo del perfil (`profile.background`, `PROFILE_BACKGROUNDS` en `theme.ts`): pasteles en degradado suave, armónicos o complementarios. Se pinta detrás de la cabecera de Perfil (con un relleno del color de arriba para cuando tiras hacia abajo) y es público: lo verá quien entre en tu perfil cuando haya perfiles de otros.
+- Fondo del perfil (`profile.background`, `PROFILE_BACKGROUNDS` en `theme.ts`): pasteles en degradado suave, armónicos o complementarios. Se pinta detrás de la cabecera de Perfil con `ProfileBackdrop`, ligeramente animado (con un relleno del color de arriba para cuando tiras hacia abajo) y es público: lo verá quien entre en tu perfil cuando haya perfiles de otros.
 - Todas las pestañas llevan `disableAutomaticContentInsets`: cada pantalla pone su margen superior, y si no, NativeTabs suma otra vez la zona segura (en Perfil se veía una franja blanca sobre el fondo). Si añades una pestaña, pónselo también.
 - Iconos de la barra: siempre PNG de `generate-tab-icons.swift` (los de Ionicons se dibujan desde su fuente). `NativeTabs.Trigger.VectorIcon` se carga de forma asíncrona y, si el icono seleccionado llega antes que el normal, react-native-screens da un error de render.
 - Los títulos de pestaña (`ScreenTitle`) ocupan la misma caja que el logo de Inicio encogido (`TITLE_SIZE`, `TITLE_LINE_HEIGHT`, `TITLE_TOP`), así que quedan a la misma altura. Inicio importa esas constantes: cámbialas solo ahí.
@@ -206,7 +222,7 @@ No escribas colores hex en las pantallas. Si necesitas uno nuevo, añádelo a `C
 - Los campos `info` y `pleaseNote` de Ticketmaster vienen en texto plano (es/en/ca) con la letra pequeña mezclada. Si aparece un nuevo tipo de aviso, añade su encabezado a `LOGISTICS_MARKERS` en `event-info.ts`. No muestres nunca el texto crudo.
 - Usa `useSafeAreaInsets()` para los márgenes superiores en las pantallas con cabecera propia (`headerShown: false`). En las pantallas que están dentro de `(tabs)`, suma `BottomTabInset` al margen inferior para que la barra de pestañas no tape el contenido.
 - Animaciones: el código de MEEET usa la API `Animated` de React Native. Crea los valores con `useAnimatedValue(0)` y nunca con `useRef(new Animated.Value(0)).current`: el React Compiler y la regla `react-hooks/refs` lo prohíben. Para animaciones nuevas y complejas, prefiere `react-native-reanimated`, que ya está instalado.
-- `react-native-maps` requiere un development build: no funciona en Expo Go.
+- `react-native-maps`, `expo-video` y `expo-media-library` requieren un development build: no funcionan en Expo Go. Permisos (en `app.json`): fotos, guardar en Fotos, cámara y micrófono (vídeos del chat); el texto del micrófono va igual en `expo-image-picker` y `expo-audio`, porque este último lo sobrescribe.
 - Antes de dar algo por terminado: `npm run check`.
 
 ## Deuda conocida

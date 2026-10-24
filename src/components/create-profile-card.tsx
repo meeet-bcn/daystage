@@ -8,10 +8,16 @@ import { COLORS, Theme } from '@/theme';
 
 /** Lo que ganas creándote el perfil (bienvenida y Perfil). */
 export const PROFILE_BENEFITS: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [
-  { icon: 'chatbubbles-outline', text: 'Chatea con la gente que va a tus conciertos' },
-  { icon: 'language-outline', text: 'Conoce a gente que habla tu idioma' },
-  { icon: 'heart-outline', text: 'Guarda conciertos en tu lista de deseos' },
-  { icon: 'color-palette-outline', text: 'Tu perfil con foto, fondo, canción y redes' },
+  { icon: 'people-outline', text: 'Conoce gente que también va a los conciertos' },
+  {
+    icon: 'heart-outline',
+    text: 'Guarda en tu lista de deseos los conciertos a los que te gustaría ir',
+  },
+  { icon: 'sparkles-outline', text: 'Descubre conciertos según tus gustos' },
+  {
+    icon: 'images-outline',
+    text: 'Comparte fotos, vídeos, el setlist o lo que quieras del concierto en su sala de chat',
+  },
 ];
 
 /** Una ventaja, con su icono en el acento del tema. */
@@ -27,28 +33,41 @@ export function BenefitRow({ icon, text }: (typeof PROFILE_BENEFITS)[number]) {
   );
 }
 
-/** Perfil sin crear (se omitió en la bienvenida): qué ganas y el botón para crearlo. */
-export function CreateProfileCard() {
+/**
+ * Perfil sin crear (se omitió en la bienvenida): qué ganas y el botón para
+ * crearlo. `intro`: qué es la pantalla en la que estás (Descubrir, Meeet in…).
+ */
+export function CreateProfileCard({ intro }: { intro?: string }) {
   const styles = useThemedStyles(makeStyles);
   return (
-    <View style={styles.card}>
-      <ImagotipoAnimado height={64} />
-      <Text style={styles.title}>Crea tu perfil</Text>
-      <Text style={styles.text}>Es un momento y te abre lo mejor de meeet:</Text>
-      <View style={styles.benefits}>
-        {PROFILE_BENEFITS.map((b) => (
-          <BenefitRow key={b.text} {...b} />
-        ))}
+    <View>
+      {intro ? <Text style={styles.intro}>{intro}</Text> : null}
+      <View style={styles.card}>
+        <ImagotipoAnimado height={64} />
+        <Text style={styles.title}>Crea tu perfil</Text>
+        <Text style={styles.text}>Es un momento y te abre lo mejor de meeet:</Text>
+        <View style={styles.benefits}>
+          {PROFILE_BENEFITS.map((b) => (
+            <BenefitRow key={b.text} {...b} />
+          ))}
+        </View>
+        <Pressable style={styles.button} onPress={() => router.push('/onboarding')}>
+          <Text style={styles.buttonText}>Crear mi perfil</Text>
+        </Pressable>
       </View>
-      <Pressable style={styles.button} onPress={() => router.push('/onboarding')}>
-        <Text style={styles.buttonText}>Crear mi perfil</Text>
-      </Pressable>
     </View>
   );
 }
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    intro: {
+      color: COLORS.muted,
+      fontSize: 15,
+      lineHeight: 22,
+      paddingHorizontal: 20,
+      marginTop: 4,
+    },
     card: {
       marginHorizontal: 20,
       marginTop: 12,

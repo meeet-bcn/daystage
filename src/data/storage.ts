@@ -10,6 +10,8 @@ export const STORAGE_KEYS = {
   profile: 'meeet.profile.v1',
   settings: 'meeet.settings.v1',
   onboarding: 'meeet.onboarding.v1',
+  discover: 'meeet.discover.v1',
+  artwork: 'meeet.artwork.v1',
 } as const;
 
 /** Lectura síncrona, para el estado inicial. Ante datos ausentes o corruptos, `fallback`. */

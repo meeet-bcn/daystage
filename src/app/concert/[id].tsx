@@ -18,11 +18,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArtistCard } from '@/components/artist-card';
 import { EventImage } from '@/components/event-image';
 import { GoButton } from '@/components/go-button';
+import { MediaViewer } from '@/components/media-viewer';
 import { SongCard } from '@/components/song-card';
 import { WishButton } from '@/components/wish-button';
 import { useApp } from '@/data/app-context';
 import { buyOffer, otherTicketOffers } from '@/data/offers';
 import { SOURCE_NAMES } from '@/data/sources/types';
+import { useArtistArtwork } from '@/hooks/use-artist-artwork';
 import { useTopSong } from '@/hooks/use-top-song';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
@@ -44,7 +46,11 @@ export default function ConcertDetail() {
 
   // Los conciertos ya pasados no vienen en la API: solo están en tus planes
   const concert = concerts.find((c) => c.id === id) ?? plans.find((c) => c.id === id);
-  const topSong = useTopSong(concert?.artist ?? '');
+  const { song: topSong } = useTopSong(concert?.artist ?? '');
+  const [viewing, setViewing] = useState(false);
+  const ownPhoto = concert ? concert.hero || concert.image : '';
+  const artistPhoto = useArtistArtwork(concert?.artist ?? '', !ownPhoto);
+  const photoUri = ownPhoto || artistPhoto;
 
   if (!concert) {
     return (
@@ -117,6 +123,8 @@ export default function ConcertDetail() {
           holo
           // La ticketera ya sale en el botón de comprar
           showSource={false}
+          // Tocar la foto la abre en grande (si hay foto: la del concierto o la del artista)
+          onPressImage={photoUri ? () => setViewing(true) : undefined}
         />
 
         <View style={styles.body}>
@@ -264,6 +272,11 @@ export default function ConcertDetail() {
           )}
         </View>
       </ScrollView>
+
+      <MediaViewer
+        media={viewing && photoUri ? { uri: photoUri, kind: 'photo' } : null}
+        onClose={() => setViewing(false)}
+      />
 
       <Pressable style={[styles.back, { top: insets.top + 8 }]} onPress={() => router.back()}>
         <Ionicons name="chevron-back" size={24} color={COLORS.text} />

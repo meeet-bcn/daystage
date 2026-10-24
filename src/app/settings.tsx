@@ -149,7 +149,7 @@ export default function SettingsScreen() {
 
         <Section
           title="Idioma principal"
-          footer="El que más hablas. Da nombre a la segunda sala del chat de cada concierto, para conocer a gente que también lo habla."
+          footer="El que más hablas, para conocer a gente que también lo habla en los conciertos."
         >
           <View style={styles.chips}>
             {LANGUAGES.map((l) => (
@@ -265,7 +265,7 @@ export default function SettingsScreen() {
               <Toggle value={settings.sounds} onChange={(sounds) => updateSettings({ sounds })} />
             }
           />
-          <Row icon="location-outline" label="Ciudad" detail="Barcelona (beta)" />
+          <Row icon="location-outline" label="Ciudad" detail="Barcelona" />
         </Section>
 
         <Section title="Datos y almacenamiento">
@@ -302,7 +302,7 @@ export default function SettingsScreen() {
           <Row
             icon="information-circle-outline"
             label="Versión"
-            detail={`meeet ${Constants.expoConfig?.version ?? ''} · beta`}
+            detail={`meeet ${Constants.expoConfig?.version ?? ''}`}
           />
         </Section>
 

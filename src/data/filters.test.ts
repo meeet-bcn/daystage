@@ -10,7 +10,9 @@ import {
   Filters,
   genresOf,
   matchesQuery,
+  isQuickRange,
   pickDay,
+  quickRange,
 } from '@/data/filters';
 
 // Miércoles 21 de octubre de 2026, 12:00 (hora local)
@@ -159,7 +161,6 @@ describe('activeFilterCount', () => {
       activeFilterCount({
         sort: 'price',
         dates: { from: day(21), to: day(21) },
-        languages: ['en'],
         genres: ['Rock', 'Pop'],
         maxPrice: 50,
       })
@@ -170,5 +171,29 @@ describe('activeFilterCount', () => {
 describe('genresOf', () => {
   it('lista géneros únicos, ordenados y sin vacíos', () => {
     expect(genresOf(ALL)).toEqual(['Pop', 'Rock']);
+  });
+});
+
+describe('quickRange', () => {
+  // Miércoles 21 de octubre de 2026
+  const today = day(21);
+
+  it('hoy y mañana: un solo día', () => {
+    expect(quickRange('today', today)).toEqual({ from: day(21), to: day(21) });
+    expect(quickRange('tomorrow', today)).toEqual({ from: day(22), to: day(22) });
+  });
+
+  it('próxima semana: de lunes a domingo de la que viene', () => {
+    expect(quickRange('nextWeek', today)).toEqual({ from: day(26), to: day(1, 10) });
+    // Un domingo, la próxima empieza mañana
+    expect(quickRange('nextWeek', day(25))).toEqual({ from: day(26), to: day(1, 10) });
+    // Un lunes, la próxima es la siguiente, no esta
+    expect(quickRange('nextWeek', day(26))).toEqual({ from: day(2, 10), to: day(8, 10) });
+  });
+
+  it('isQuickRange marca el chip solo si coincide exactamente', () => {
+    expect(isQuickRange({ from: day(22), to: day(22) }, 'tomorrow', today)).toBe(true);
+    expect(isQuickRange({ from: day(22), to: day(23) }, 'tomorrow', today)).toBe(false);
+    expect(isQuickRange(null, 'today', today)).toBe(false);
   });
 });

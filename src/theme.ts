@@ -18,6 +18,8 @@ export const COLORS = {
   peachDeep: '#F98B6F',
   danger: '#FF3B30',
   white: '#FFFFFF',
+  /** Solo para el visor de fotos a pantalla completa. */
+  black: '#000000',
 };
 
 /**

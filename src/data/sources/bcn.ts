@@ -33,9 +33,6 @@ function feedUrl() {
   return host ? `http://${host}:${FEED_PORT}/bcn-concerts.json` : null;
 }
 
-/** ¿Hay de dónde leer la agenda? (para el aviso de fuentes de Inicio). */
-export const bcnEnabled = () => feedUrl() !== null;
-
 let cache: { at: number; concerts: Concert[] } | null = null;
 
 async function loadFeed(): Promise<Concert[]> {

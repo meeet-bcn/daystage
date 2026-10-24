@@ -230,7 +230,7 @@ export default function OnboardingScreen() {
             <Text style={styles.kicker}>Paso 5</Text>
             <Text style={styles.title}>¿En qué idioma hablas?</Text>
             <Text style={styles.text}>
-              Cada concierto tiene una sala de chat en tu idioma, para conocer a gente que lo habla.
+              Así podrás conocer a gente que también lo habla en los conciertos.
             </Text>
             <View style={styles.chips}>
               {LANGUAGES.map((l) => (

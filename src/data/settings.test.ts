@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { chatRoomKey, DEFAULT_SETTINGS, languageLabel, withDefaults } from '@/data/settings';
+import { DEFAULT_SETTINGS, languageLabel, withDefaults } from '@/data/settings';
 
 describe('withDefaults', () => {
   it('sin nada guardado, los de por defecto', () => {
@@ -22,14 +22,6 @@ describe('withDefaults', () => {
   });
 });
 
-describe('chatRoomKey', () => {
-  it('la sala general es una por concierto; la de idioma, una por idioma', () => {
-    expect(chatRoomKey('tm-1', 'general', 'en')).toBe('tm-1:general');
-    expect(chatRoomKey('tm-1', 'general', 'fr')).toBe('tm-1:general');
-    expect(chatRoomKey('tm-1', 'language', 'en')).toBe('tm-1:lang:en');
-    expect(chatRoomKey('tm-1', 'language', 'fr')).toBe('tm-1:lang:fr');
-  });
-});
 
 describe('languageLabel', () => {
   it('cada idioma en su idioma', () => {

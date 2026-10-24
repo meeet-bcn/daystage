@@ -15,12 +15,6 @@ export type Filters = {
   dates: DateRange | null;
   genres: string[];
   maxPrice: number | null;
-  /**
-   * Idiomas de la gente que quieres conocer (códigos de LANGUAGES). Aún no
-   * filtra conciertos: no hay asistentes reales. Cuando los haya, aquí se
-   * cruzará con el idioma de cada uno.
-   */
-  languages: string[];
 };
 
 export const DEFAULT_FILTERS: Filters = {
@@ -28,7 +22,6 @@ export const DEFAULT_FILTERS: Filters = {
   dates: null,
   genres: [],
   maxPrice: null,
-  languages: [],
 };
 
 export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -38,7 +31,7 @@ export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'name', label: 'A – Z' },
 ];
 
-/** Idiomas para conocer gente, cada uno escrito en su idioma (la app la usan turistas). */
+/** Idiomas (tu idioma principal), cada uno escrito en su idioma: la app la usan turistas. */
 export const LANGUAGES: { code: string; label: string }[] = [
   { code: 'es', label: 'Español' },
   { code: 'ca', label: 'Català' },
@@ -71,7 +64,7 @@ export function matchesQuery(c: Concert, query: string) {
   return words.every((w) => haystack.includes(w) || compactHaystack.includes(compactText(w)));
 }
 
-/** Filtros activos de la hoja (las fechas y los idiomas tienen su propio chip en Inicio). */
+/** Filtros activos de la hoja (las fechas tienen sus propios chips en Inicio). */
 export function activeFilterCount(f: Filters) {
   return (f.sort !== 'date' ? 1 : 0) + f.genres.length + (f.maxPrice != null ? 1 : 0);
 }
@@ -153,4 +146,35 @@ export function applyFilters(concerts: Concert[], f: Filters, goingCount: (c: Co
         return a.artist.localeCompare(b.artist, 'es');
     }
   });
+}
+
+export type QuickDates = 'today' | 'tomorrow' | 'nextWeek';
+
+/** Atajos de fechas de Inicio. "Próxima semana": de lunes a domingo de la que viene. */
+export const QUICK_DATES: { key: QuickDates; label: string }[] = [
+  { key: 'today', label: 'Hoy' },
+  { key: 'tomorrow', label: 'Mañana' },
+  { key: 'nextWeek', label: 'Próxima semana' },
+];
+
+export function quickRange(key: QuickDates, today: number): DateRange {
+  switch (key) {
+    case 'today':
+      return { from: today, to: today };
+    case 'tomorrow': {
+      const tomorrow = addDays(today, 1);
+      return { from: tomorrow, to: tomorrow };
+    }
+    case 'nextWeek': {
+      const weekday = new Date(today).getDay(); // 0 = domingo
+      const monday = addDays(today, (8 - weekday) % 7 || 7);
+      return { from: monday, to: addDays(monday, 6) };
+    }
+  }
+}
+
+/** ¿Es el intervalo justo ese atajo? (para marcar su chip). */
+export function isQuickRange(range: DateRange | null, key: QuickDates, today: number) {
+  const quick = quickRange(key, today);
+  return range != null && range.from === quick.from && range.to === quick.to;
 }

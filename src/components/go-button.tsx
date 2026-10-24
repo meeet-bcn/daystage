@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import {
   Animated,
   Easing,
@@ -23,11 +24,16 @@ export function GoButton({ isGoing, onPress }: Props) {
   const theme = useTheme();
   // Confeti con el acento de tu tema y los tonos de la marca
   const confetti = [theme.accent, COLORS.peach, COLORS.lavender];
-  const { settings } = useApp();
+  const { settings, profile } = useApp();
   const scale = useAnimatedValue(1);
   const burst = useAnimatedValue(0);
 
   const handlePress = () => {
+    // Apuntarse es para quien tiene perfil (como la lista de deseos): sin él, a crearlo
+    if (!profile.created) {
+      router.push('/onboarding');
+      return;
+    }
     if (!isGoing) {
       if (settings.haptics) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       burst.setValue(0);

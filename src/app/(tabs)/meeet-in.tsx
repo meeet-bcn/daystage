@@ -1,15 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, useAnimatedValue, View } from 'react-native';
+import {
+  Animated,
+  LayoutAnimation,
+  Pressable,
+  StyleSheet,
+  Text,
+  useAnimatedValue,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ConcertImage } from '@/components/concert-image';
+import { CreateProfileCard } from '@/components/create-profile-card';
 import { ScreenHeader } from '@/components/screen-header';
 import { ScreenSubtitle } from '@/components/screen-title';
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
 import { Concert } from '@/data/concerts';
+import { splitPlans } from '@/data/plans';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
 
@@ -17,7 +27,10 @@ export default function MeeetInScreen() {
   const styles = useThemedStyles(makeStyles);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { myConcerts, unreadCount, goingCount, profile } = useApp();
+  const { myConcerts, plans, unreadCount, goingCount, profile } = useApp();
+  // Los chats de conciertos pasados no se borran: van abajo, plegables
+  const past = profile.created ? splitPlans(plans).past : [];
+  const [showPast, setShowPast] = useState(false);
 
   const openConcert = (id: string) => router.push({ pathname: '/concert/[id]', params: { id } });
   // El chat de cada concierto solo se abre desde aquí
@@ -26,6 +39,47 @@ export default function MeeetInScreen() {
     profile.created
       ? router.push({ pathname: '/chat/[id]', params: { id } })
       : router.push('/onboarding');
+
+  const togglePast = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowPast((v) => !v);
+  };
+
+  const renderRow = (item: Concert, isPast = false) => {
+    const unread = unreadCount(item.id);
+    const count = goingCount(item);
+    return (
+      <Pressable style={styles.row} onPress={() => openConcert(item.id)}>
+        <ConcertImage
+          concert={item}
+          style={[styles.thumb, isPast && styles.pastThumb]}
+          iconSize={26}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.date, isPast && styles.pastDate]}>{item.date}</Text>
+          <Text style={styles.artist} numberOfLines={1}>
+            {item.artist}
+          </Text>
+          <Text style={styles.venue} numberOfLines={1}>
+            {item.venue} · {count} {isPast ? (count === 1 ? 'fue' : 'fueron') : count === 1 ? 'va' : 'van'}
+          </Text>
+        </View>
+        <Pressable
+          style={styles.chat}
+          hitSlop={8}
+          accessibilityLabel={unread > 0 ? `Chat, ${unread} sin leer` : 'Chat'}
+          onPress={() => openChat(item.id)}
+        >
+          <Ionicons name="chatbubble-outline" size={22} color={theme.accent} />
+          {unread > 0 && (
+            <View style={styles.unread}>
+              <Text style={styles.unreadText}>{unread > 9 ? '9+' : unread}</Text>
+            </View>
+          )}
+        </Pressable>
+      </Pressable>
+    );
+  };
 
   const scrollY = useAnimatedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -46,11 +100,22 @@ export default function MeeetInScreen() {
           paddingTop: headerHeight,
           paddingBottom: insets.bottom + BottomTabInset + 32,
         }}
-        ListHeaderComponent={<ScreenSubtitle>Tus planes y sus chats</ScreenSubtitle>}
+        ListHeaderComponent={
+          profile.created ? (
+            <ScreenSubtitle>Tus planes y sus chats</ScreenSubtitle>
+          ) : (
+            // Sin perfil: qué es Meeet in y la invitación a crearlo (los chats lo necesitan)
+            <View style={styles.gate}>
+              <CreateProfileCard intro="Meeet in reúne los conciertos a los que vas y la sala de chat de cada uno, para conocer a la gente que también va, quedar y compartir fotos o el setlist. Para entrar en las salas, crea tu perfil." />
+            </View>
+          )
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="ticket-outline" size={32} color={COLORS.lavender} />
-            <Text style={styles.emptyTitle}>Aún no tienes planes</Text>
+            <Text style={styles.emptyTitle}>
+              {past.length > 0 ? 'No tienes planes próximos' : 'Aún no tienes planes'}
+            </Text>
             <Text style={styles.emptyText}>
               Dale a «Meeet In!» en un concierto y aparecerá aquí, con su chat.
             </Text>
@@ -60,41 +125,35 @@ export default function MeeetInScreen() {
           </View>
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
-        renderItem={({ item }: { item: Concert }) => {
-          const unread = unreadCount(item.id);
-          const count = goingCount(item);
-          return (
-            <Pressable style={styles.row} onPress={() => openConcert(item.id)}>
-              {item.image ? (
-                <Image source={{ uri: item.image }} style={styles.thumb} />
-              ) : (
-                <View style={styles.thumb} />
-              )}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.date}>{item.date}</Text>
-                <Text style={styles.artist} numberOfLines={1}>
-                  {item.artist}
-                </Text>
-                <Text style={styles.venue} numberOfLines={1}>
-                  {item.venue} · {count} {count === 1 ? 'va' : 'van'}
-                </Text>
-              </View>
+        renderItem={({ item }: { item: Concert }) => renderRow(item)}
+        ListFooterComponent={
+          past.length > 0 ? (
+            <View style={styles.past}>
               <Pressable
-                style={styles.chat}
-                hitSlop={8}
-                accessibilityLabel={unread > 0 ? `Chat, ${unread} sin leer` : 'Chat'}
-                onPress={() => openChat(item.id)}
+                style={styles.pastHeader}
+                onPress={togglePast}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showPast }}
+                accessibilityLabel={`Conciertos pasados, ${past.length}`}
               >
-                <Ionicons name="chatbubble-outline" size={22} color={theme.accent} />
-                {unread > 0 && (
-                  <View style={styles.unread}>
-                    <Text style={styles.unreadText}>{unread > 9 ? '9+' : unread}</Text>
-                  </View>
-                )}
+                <Text style={styles.pastTitle}>Conciertos pasados</Text>
+                <Text style={styles.pastCount}>{past.length}</Text>
+                <Ionicons
+                  name={showPast ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={COLORS.muted}
+                />
               </Pressable>
-            </Pressable>
-          );
-        }}
+              {showPast &&
+                past.map((c, i) => (
+                  <View key={c.id}>
+                    {i > 0 && <View style={styles.separator} />}
+                    {renderRow(c, true)}
+                  </View>
+                ))}
+            </View>
+          ) : null
+        }
       />
       {/* Fija arriba, de cristal: la lista pasa por debajo */}
       <ScreenHeader title="Meeet in" scrollY={scrollY} onHeight={setHeaderHeight} />
@@ -104,6 +163,7 @@ export default function MeeetInScreen() {
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    gate: { marginBottom: 20 },
     container: { flex: 1, backgroundColor: COLORS.background },
     row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20 },
     thumb: { width: 72, height: 72, borderRadius: 16, backgroundColor: COLORS.surface },
@@ -171,4 +231,19 @@ const makeStyles = (theme: Theme) =>
       justifyContent: 'center',
     },
     emptyButtonText: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
+    past: { marginTop: 28 },
+    pastHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginHorizontal: 20,
+      marginBottom: 14,
+      paddingTop: 16,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: COLORS.line,
+    },
+    pastTitle: { color: COLORS.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.3 },
+    pastCount: { flex: 1, color: COLORS.muted, fontSize: 15, fontWeight: '600' },
+    pastThumb: { opacity: 0.75 },
+    pastDate: { color: COLORS.muted },
   });

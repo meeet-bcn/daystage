@@ -14,6 +14,8 @@ export type Profile = {
   socials: Socials;
   /** Tus gustos musicales (MUSIC_TASTES), para recomendarte conciertos. */
   tastes: string[];
+  /** Los artistas que elegiste en Descubrir (TASTE_ARTISTS): de ahí salen tus gustos. */
+  tasteArtists: string[];
   /** Fondo de tu perfil (PROFILE_BACKGROUNDS): lo ve quien entre en él. */
   background: ProfileBackground;
   /** Canción del perfil (fragmento de Apple Music), o null. */
@@ -47,6 +49,7 @@ export const EMPTY_PROFILE: Profile = {
   bio: '',
   socials: { instagram: '', tiktok: '', x: '' },
   tastes: [],
+  tasteArtists: [],
   song: null,
   background: 'none',
   photo: '',
