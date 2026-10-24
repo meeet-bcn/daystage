@@ -1,26 +1,31 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { TicketOffer } from '@/data/concerts';
+import { sortedOffers } from '@/data/offers';
 import { SOURCE_NAMES } from '@/data/sources/types';
 import { COLORS } from '@/theme';
 
-/** Dónde se venden las entradas: la ticketera principal y cuántas más hay. */
+/** De dónde sale el concierto: una pastilla por fuente (Ticketmaster, Agenda BCN…). */
 export function SourceBadge({ offers }: { offers: TicketOffer[] }) {
-  const [main, ...others] = offers;
-  if (!main) return null;
+  const sources = sortedOffers(offers);
+  if (sources.length === 0) return null;
 
   return (
     <View
-      style={styles.badge}
-      accessibilityLabel={`A la venta en ${offers.map((o) => SOURCE_NAMES[o.source]).join(', ')}`}
+      style={styles.row}
+      accessibilityLabel={`En ${sources.map((o) => SOURCE_NAMES[o.source]).join(' y ')}`}
     >
-      <Text style={styles.name}>{SOURCE_NAMES[main.source]}</Text>
-      {others.length > 0 && <Text style={styles.more}>+{others.length}</Text>}
+      {sources.map((o) => (
+        <View key={o.source} style={styles.badge}>
+          <Text style={styles.name}>{SOURCE_NAMES[o.source]}</Text>
+        </View>
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 6 },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -31,5 +36,4 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.94)',
   },
   name: { color: COLORS.text, fontSize: 12, fontWeight: '800', letterSpacing: -0.1 },
-  more: { color: COLORS.muted, fontSize: 12, fontWeight: '700' },
 });

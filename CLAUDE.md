@@ -47,7 +47,7 @@ src/
     chip.tsx                # Chip en píldora (filtros, opciones)
     search-bar.tsx          # Buscador en píldora (Inicio)
     event-image.tsx         # Foto 16:9 del concierto, igual en Inicio y en el detalle: ticketera arriba a la izquierda (solo en Inicio: en el detalle ya está en "Comprar"), insignia "Meeet In!" con el imagotipo animado abajo a la izquierda
-    source-badge.tsx        # Insignia de la ticketera: su nombre en una pastilla blanca, con "+N" si hay más
+    source-badge.tsx        # Una pastilla blanca por fuente del concierto (Ticketmaster, Agenda BCN…), Ticketmaster delante
     holo-frame.tsx          # Pie de foto con degradado animado (56 pt, bajo la insignia "Voy") dentro de la foto; solo si vas
     profile-avatar.tsx      # Avatar circular: foto opcional con icono de reserva
     tab-avatar.tsx          # Genera la miniatura circular de tu foto para la pestaña Perfil
@@ -197,7 +197,7 @@ No escribas colores hex en las pantallas. Si necesitas uno nuevo, añádelo a `C
 - Los comentarios del código propio van en español (por ejemplo, los "Ajustes del banner" de `index.tsx`).
 - Las constantes de ajuste visual van en `UPPER_SNAKE_CASE` al principio del archivo.
 - El estado global va por `useApp()`. No añadas librerías de estado sin preguntar.
-- **Varias ticketeras:** un concierto tiene `offers` (una por fuente, la más barata primero). Nunca uses una URL de compra suelta. Los ids llevan el prefijo de la fuente (`ticketmaster-…`). Fever, DICE, Entradas.com y The Project aún no tienen acceso (no hay API pública: hace falta un acuerdo de socio). Cuando lo haya, sus claves irán en un backend propio, nunca en `EXPO_PUBLIC_*`.
+- **Varias ticketeras:** un concierto tiene `offers` (una por fuente, la más barata primero). El botón de compra es uno solo, elegido con `buyOffer` (`offers.ts`): Ticketmaster si está, otra ticketera si no, y la agenda BCN solo cuando no hay ninguna (no vende). "También a la venta en" (`otherTicketOffers`) nunca incluye la agenda. Nunca uses una URL de compra suelta. Los ids llevan el prefijo de la fuente (`ticketmaster-…`). Fever, DICE, Entradas.com y The Project aún no tienen acceso (no hay API pública: hace falta un acuerdo de socio). Cuando lo haya, sus claves irán en un backend propio, nunca en `EXPO_PUBLIC_*`.
 - **MusicBrainz:**
   - Normas: máximo 1 petición por segundo (`throttledGet` ya encola y reintenta los 503) y un User-Agent con contacto (`EXPO_PUBLIC_MUSICBRAINZ_CONTACT` en `.env.local`). Las peticiones se hacen solo al abrir el detalle de un concierto, nunca en bucle sobre la lista.
   - Licencia: gratis para uso no comercial y mientras la app no sea pública (plan "Stealth Start-Up" de MetaBrainz). **Al lanzar la app, contratar un plan comercial** (Bronze, desde 100 $/mes) o mover estas consultas a un backend con caché.

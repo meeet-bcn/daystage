@@ -31,7 +31,13 @@ import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
 import { Concert } from '@/data/concerts';
 import { bcnEnabled } from '@/data/sources/bcn';
-import { activeFilterCount, dateRangeLabel, LANGUAGES, SORT_OPTIONS } from '@/data/filters';
+import {
+  activeFilterCount,
+  dateRangeLabel,
+  dayStart,
+  LANGUAGES,
+  SORT_OPTIONS,
+} from '@/data/filters';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
 
@@ -73,6 +79,7 @@ export default function HomeScreen() {
     toggleGoing,
     goingCount,
     filters,
+    setFilters,
     resetFilters,
     loadMore,
     hasMore,
@@ -118,6 +125,9 @@ export default function HomeScreen() {
   };
   // Alto de los chips, fijos en la cabecera: la lista empieza debajo
   const [toolsHeight, setToolsHeight] = useState(0);
+  // Hoy (medianoche), fijado al montar: leer la hora en cada render no es puro
+  const [today] = useState(() => dayStart(Date.now()));
+  const onlyToday = filters.dates?.from === today && filters.dates?.to === today;
   const filterCount = activeFilterCount(filters);
   const sortLabel = SORT_OPTIONS.find((o) => o.key === filters.sort)?.label.toLowerCase();
   // Donde empieza la lista: bajo la cabecera fija ya desplegada
@@ -349,11 +359,22 @@ export default function HomeScreen() {
                 active={filterCount > 0}
                 onPress={() => router.push('/filters')}
               />
+              {/* Atajo: solo hoy (otra vez, se quita) */}
+              <Chip
+                label="Hoy"
+                active={onlyToday}
+                onPress={() =>
+                  setFilters((f) => ({
+                    ...f,
+                    dates: onlyToday ? null : { from: today, to: today },
+                  }))
+                }
+              />
               {/* Muchos son turistas: buscan sus días en Barcelona */}
               <Chip
                 icon="calendar-outline"
-                label={filters.dates ? dateRangeLabel(filters.dates) : 'Calendario'}
-                active={filters.dates != null}
+                label={filters.dates && !onlyToday ? dateRangeLabel(filters.dates) : 'Calendario'}
+                active={filters.dates != null && !onlyToday}
                 onPress={() => router.push('/calendar')}
               />
               {/* El idioma de la gente que quieres conocer */}

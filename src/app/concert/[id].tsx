@@ -21,6 +21,7 @@ import { GoButton } from '@/components/go-button';
 import { SongCard } from '@/components/song-card';
 import { WishButton } from '@/components/wish-button';
 import { useApp } from '@/data/app-context';
+import { buyOffer, otherTicketOffers } from '@/data/offers';
 import { SOURCE_NAMES } from '@/data/sources/types';
 import { useTopSong } from '@/hooks/use-top-song';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
@@ -69,8 +70,9 @@ export default function ConcertDetail() {
     ? `https://www.google.com/maps/dir/?api=1&destination=${place}`
     : `https://www.google.com/maps/search/?api=1&query=${place}`;
 
-  // Ofertas ordenadas de más barata a más cara: la primera es el botón principal
-  const [mainOffer, ...otherOffers] = concert.offers;
+  // Un solo enlace de compra: Ticketmaster si está; la agenda BCN, solo si no hay otro
+  const mainOffer = buyOffer(concert.offers);
+  const otherOffers = otherTicketOffers(concert.offers);
   // La agenda del Ayuntamiento no vende: enlaza a la web del concierto (o no trae)
   const fromAgenda = concert.offers.some((o) => o.source === 'bcn');
   const buyLabel =
