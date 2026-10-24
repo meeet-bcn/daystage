@@ -152,7 +152,7 @@ export default function MeeetInScreen() {
                   </View>
                 ))}
             </View>
-          ) : null
+          ) : undefined
         }
       />
       {/* Fija arriba, de cristal: la lista pasa por debajo */}

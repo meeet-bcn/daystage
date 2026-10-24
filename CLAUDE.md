@@ -2,7 +2,7 @@
 
 # MEEET
 
-App móvil (Expo SDK 57, React Native 0.86, React 19, TypeScript estricto) para descubrir conciertos y decir **"Voy"**. Beta, solo Barcelona. Los conciertos vienen de la Ticketmaster Discovery API y de la Agenda Cultural del Ajuntament de Barcelona (Open Data BCN). Plataforma principal: iOS/Android. Web existe por la plantilla, pero no es prioritaria.
+App móvil (Expo SDK 58, React Native 0.88, React 19.3, TypeScript estricto) para descubrir conciertos y decir **"Voy"**. Beta, solo Barcelona. Los conciertos vienen de la Ticketmaster Discovery API y de la Agenda Cultural del Ajuntament de Barcelona (Open Data BCN). Plataforma principal: iOS/Android. Web existe por la plantilla, pero no es prioritaria.
 
 Gestor de paquetes: **npm** (`package-lock.json`). Instala dependencias con `npx expo install`, nunca con `npm install <pkg>`.
 
@@ -220,6 +220,7 @@ No escribas colores hex en las pantallas. Si necesitas uno nuevo, añádelo a `C
 - Toda la transformación de datos externos se hace en `src/data/`. Las pantallas consumen el tipo `Concert` y nunca la respuesta cruda de Ticketmaster.
 - Los campos `info` y `pleaseNote` de Ticketmaster vienen en texto plano (es/en/ca) con la letra pequeña mezclada. Si aparece un nuevo tipo de aviso, añade su encabezado a `LOGISTICS_MARKERS` en `event-info.ts`. No muestres nunca el texto crudo.
 - Usa `useSafeAreaInsets()` para los márgenes superiores en las pantallas con cabecera propia (`headerShown: false`). En las pantallas que están dentro de `(tabs)`, suma `BottomTabInset` al margen inferior para que la barra de pestañas no tape el contenido.
+- API estricta de tipos de React Native (por defecto desde SDK 58): las refs se tipan con la instancia, no con el componente (`useRef<ScrollViewInstance>(null)`, `useRef<HostInstance>(null)` para un View); nada de `react-native/Libraries/*`; en `ListHeaderComponent`/`ListEmptyComponent`/`ListFooterComponent` usa `undefined`, no `null`. Las NativeTabs se importan de `expo-router/native-tabs` (ya estables).
 - Animaciones: el código de MEEET usa la API `Animated` de React Native. Crea los valores con `useAnimatedValue(0)` y nunca con `useRef(new Animated.Value(0)).current`: el React Compiler y la regla `react-hooks/refs` lo prohíben. Para animaciones nuevas y complejas, prefiere `react-native-reanimated`, que ya está instalado.
 - `react-native-maps`, `expo-video` y `expo-media-library` requieren un development build: no funcionan en Expo Go. Permisos (en `app.json`): fotos, guardar en Fotos, cámara y micrófono (vídeos del chat); el texto del micrófono va igual en `expo-image-picker` y `expo-audio`, porque este último lo sobrescribe.
 - Antes de dar algo por terminado: `npm run check`.

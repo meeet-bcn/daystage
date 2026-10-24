@@ -249,7 +249,7 @@ export default function ProfileScreen() {
           )
         }
         ListEmptyComponent={
-          profile.created ? <Text style={styles.empty}>{EMPTY_TEXT[gridTab]}</Text> : null
+          profile.created ? <Text style={styles.empty}>{EMPTY_TEXT[gridTab]}</Text> : undefined
         }
         renderItem={({ item }: { item: Concert }) => {
           const gone = isPast(item);

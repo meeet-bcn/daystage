@@ -54,10 +54,10 @@ export default function SearchScreen() {
         ListHeaderComponent={
           searching && results.length === 0 ? (
             <ActivityIndicator color={theme.accent} style={styles.spinner} />
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
-          searching ? null : (
+          searching ? undefined : (
             <Text style={styles.empty}>
               {error
                 ? `No se ha podido buscar: ${error}`

@@ -1,3 +1,4 @@
+import type { Ref } from 'react';
 import {
   Tabs,
   TabList,
@@ -6,7 +7,7 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from 'expo-router/ui';
-import { Pressable, View, StyleSheet, Text } from 'react-native';
+import { HostInstance, Pressable, View, StyleSheet, Text } from 'react-native';
 
 import { MaxContentWidth } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
@@ -46,11 +47,13 @@ export function TabButton({
   children,
   isFocused,
   badge = false,
+  ref,
   ...props
 }: TabTriggerSlotProps & { badge?: boolean }) {
   const styles = useThemedStyles(makeStyles);
   return (
-    <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
+    // expo-router tipa la ref con el componente View, no con su instancia (API estricta de RN 0.88)
+    <Pressable {...props} ref={ref as unknown as Ref<HostInstance>} style={({ pressed }) => pressed && styles.pressed}>
       <View style={[styles.tabButtonView, isFocused && styles.tabButtonActive]}>
         <Text style={[styles.tabText, isFocused && styles.tabTextActive]}>{children}</Text>
         {badge && <View style={styles.badge} />}

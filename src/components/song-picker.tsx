@@ -99,9 +99,9 @@ function SongSearch({ onPick, onClose }: Omit<Props, 'visible'>) {
         keyboardDismissMode="on-drag"
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListHeaderComponent={loading ? <ActivityIndicator color={theme.accent} /> : null}
+        ListHeaderComponent={loading ? <ActivityIndicator color={theme.accent} /> : undefined}
         ListEmptyComponent={
-          loading ? null : (
+          loading ? undefined : (
             <Text style={styles.empty}>
               {error ??
                 (searchable
@@ -119,7 +119,7 @@ function SongSearch({ onPick, onClose }: Omit<Props, 'visible'>) {
           />
         )}
         ListFooterComponent={
-          songs.length > 0 ? <Text style={styles.credit}>Fragmentos de Apple Music</Text> : null
+          songs.length > 0 ? <Text style={styles.credit}>Fragmentos de Apple Music</Text> : undefined
         }
       />
     </View>

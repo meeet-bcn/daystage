@@ -1,4 +1,4 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/native-tabs';
 
 import { currentTabIcons, TabAvatarMaker, tabIconSources } from '@/components/tab-avatar';
 import { useApp } from '@/data/app-context';
@@ -92,7 +92,13 @@ export default function AppTabs() {
         </NativeTabs.Trigger>
 
         {/* Botón de búsqueda del sistema: en iOS 26 va aparte, en un círculo a la derecha */}
-        <NativeTabs.Trigger name="buscar" disableAutomaticContentInsets role="search">
+        <NativeTabs.Trigger
+          name="buscar"
+          disableAutomaticContentInsets
+          role="search"
+          // Desde iOS 26.1 la pestaña de búsqueda activa sola su campo nativo: la pantalla ya trae el suyo
+          disableAutomaticSearchActivation
+        >
           <NativeTabs.Trigger.Label>Buscar</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon md="search" />
         </NativeTabs.Trigger>

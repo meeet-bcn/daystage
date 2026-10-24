@@ -227,7 +227,7 @@ export default function HomeScreen() {
         windowSize={7}
         removeClippedSubviews
         ListFooterComponent={
-          loadingMore ? <ActivityIndicator color={theme.accent} style={styles.more} /> : null
+          loadingMore ? <ActivityIndicator color={theme.accent} style={styles.more} /> : undefined
         }
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
           useNativeDriver: false,

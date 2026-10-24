@@ -4,7 +4,14 @@
 // con el aro de "seleccionada". Se regenera solo cuando cambia la foto.
 
 import { useRef } from 'react';
-import { Image, ImageSourcePropType, PixelRatio, StyleSheet, View } from 'react-native';
+import {
+  HostInstance,
+  Image,
+  ImageSourcePropType,
+  PixelRatio,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 
 import { useApp } from '@/data/app-context';
@@ -45,8 +52,8 @@ export function tabIconSources(icons: TabIcons) {
 /** Genera las miniaturas si la foto del perfil no tiene las suyas. No se ve. */
 export function TabAvatarMaker() {
   const { profile, updateProfile } = useApp();
-  const normal = useRef<View>(null);
-  const selected = useRef<View>(null);
+  const normal = useRef<HostInstance>(null);
+  const selected = useRef<HostInstance>(null);
   const loaded = useRef(new Set<string>());
   const busy = useRef(false);
 
