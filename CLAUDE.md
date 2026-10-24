@@ -65,7 +65,7 @@ src/
       index.ts              # PROVIDERS: fuentes activas en orden de prioridad + cómo añadir una nueva
       types.ts              # TicketSource, SOURCE_NAMES, EventProvider
       ticketmaster.ts       # Discovery API → Concert
-      bcn.ts                # Agenda BCN: lee el archivo diario ya filtrado (EXPO_PUBLIC_BCN_AGENDA_URL; en desarrollo, el Mac en :8099)
+      bcn.ts                # Agenda BCN: lee el archivo diario de GitHub Pages (o el del Mac con EXPO_PUBLIC_BCN_AGENDA_URL=local)
     bcn-agenda.ts           # Agenda Cultural de Barcelona → conciertos (filtro, hora y precio del horario, nombres). Lo usan la app y el script
     merge.ts                # Deduplica entre fuentes (mismo día + sala + artista) y junta las ofertas
     format.ts               # formatDate / toTimestamp / formatPriceRange, comunes a todas las fuentes

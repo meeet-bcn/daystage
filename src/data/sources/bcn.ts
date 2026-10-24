@@ -3,10 +3,11 @@
 // con salas grandes, pequeñas, centros cívicos y conciertos gratuitos.
 //
 // La app no lee el archivo original (~170 MB): lee el que genera a diario
-// scripts/build-bcn-agenda.mjs, ya filtrado (~650 KB). Su URL va en
-// EXPO_PUBLIC_BCN_AGENDA_URL. En desarrollo, si no está, se pide al Mac que
-// sirve Metro (`npm run feed:serve`, puerto 8099). Sin URL ni Mac, la fuente
-// no devuelve nada y la app sigue solo con Ticketmaster.
+// scripts/build-bcn-agenda.mjs, ya filtrado (~650 KB), y que GitHub Actions
+// publica en GitHub Pages (FEED_URL). Para probar cambios en la conversión sin
+// publicarlos: EXPO_PUBLIC_BCN_AGENDA_URL=local en .env.local y
+// `npm run feed:build && npm run feed:serve` (el Mac lo sirve en el puerto 8099).
+// Si el archivo no llega, la fuente falla sola y la app sigue con Ticketmaster.
 
 import { NativeModules } from 'react-native';
 
@@ -16,14 +17,14 @@ import { formatDate, formatPriceRange, toTimestamp } from '@/data/format';
 import type { EventPage, EventProvider, EventQuery } from '@/data/sources/types';
 import { foldText } from '@/data/text';
 
+const FEED_URL = 'https://meeet-bcn.github.io/meeet/bcn-concerts.json';
 const FEED_PORT = 8099;
 const REFRESH_MS = 60 * 60 * 1000; // el archivo cambia una vez al día: basta con pedirlo cada hora
 
 function feedUrl() {
   const configured = process.env.EXPO_PUBLIC_BCN_AGENDA_URL;
-  if (configured) return configured;
-  if (!__DEV__) return null;
-  // En desarrollo, el Mac que sirve Metro: de donde viene el bundle
+  if (configured !== 'local') return configured || FEED_URL;
+  // "local": el Mac que sirve Metro, de donde viene el bundle
   // ("http://192.168.1.241:8081/…" en el móvil, "http://localhost:8081/…" en el
   // simulador). Constants.expoConfig.hostUri llega vacío en el build de desarrollo
   const source = NativeModules.SourceCode;
