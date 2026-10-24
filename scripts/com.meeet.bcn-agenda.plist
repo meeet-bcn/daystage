@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Tarea diaria de este Mac: publica la agenda BCN (scripts/publish-bcn-agenda.sh).
+  Se ejecuta a las 7:00; si el Mac estaba dormido, en cuanto despierte.
+  Instalar:    cp scripts/com.meeet.bcn-agenda.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.meeet.bcn-agenda.plist
+  Quitar:      launchctl unload ~/Library/LaunchAgents/com.meeet.bcn-agenda.plist && rm ~/Library/LaunchAgents/com.meeet.bcn-agenda.plist
+  Registro:    ~/Library/Logs/meeet-bcn-agenda.log
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.meeet.bcn-agenda</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/jordi/meeet/scripts/publish-bcn-agenda.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>7</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/Users/jordi/Library/Logs/meeet-bcn-agenda.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/jordi/Library/Logs/meeet-bcn-agenda.log</string>
+</dict>
+</plist>

@@ -1,6 +1,6 @@
 // Genera el archivo de conciertos de la Agenda Cultural de Barcelona que lee
-// la app (fuente "bcn"). Se ejecuta a diario en GitHub Actions
-// (.github/workflows/bcn-agenda.yml) y también a mano:
+// la app (fuente "bcn"). Lo usa scripts/publish-bcn-agenda.sh cada mañana, y
+// también se puede ejecutar a mano:
 //
 //   node scripts/build-bcn-agenda.mjs [salida]     (por defecto feed/bcn-concerts.json)
 //

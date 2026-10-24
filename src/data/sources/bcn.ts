@@ -3,8 +3,8 @@
 // con salas grandes, pequeñas, centros cívicos y conciertos gratuitos.
 //
 // La app no lee el archivo original (~170 MB): lee el que genera a diario
-// scripts/build-bcn-agenda.mjs, ya filtrado (~650 KB), y que GitHub Actions
-// publica en GitHub Pages (FEED_URL). Para probar cambios en la conversión sin
+// scripts/build-bcn-agenda.mjs, ya filtrado (~650 KB), y que un Mac sube cada
+// mañana a la rama gh-pages, servida por GitHub Pages (FEED_URL). Para probar cambios en la conversión sin
 // publicarlos: EXPO_PUBLIC_BCN_AGENDA_URL=local en .env.local y
 // `npm run feed:build && npm run feed:serve` (el Mac lo sirve en el puerto 8099).
 // Si el archivo no llega, la fuente falla sola y la app sigue con Ticketmaster.

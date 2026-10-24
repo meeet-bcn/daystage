@@ -56,7 +56,8 @@
     "typecheck": "tsc --noEmit",
     "check": "tsc --noEmit && expo lint && jest",
     "feed:build": "node --no-warnings scripts/build-bcn-agenda.mjs",
-    "feed:serve": "node scripts/serve-feed.mjs"
+    "feed:serve": "node scripts/serve-feed.mjs",
+    "feed:publish": "bash scripts/publish-bcn-agenda.sh"
   },
   "private": true,
   "jest": {
