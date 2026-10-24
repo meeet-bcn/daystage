@@ -60,7 +60,16 @@ export function Imagotipo({ height }: { height: number }) {
  * diagonal hasta quedar uno encima del otro (un solo círculo, todo cruce) y
  * se vuelven a separar, sin parar. Con "Reducir movimiento", quieto.
  */
-export function ImagotipoAnimado({ height }: { height: number }) {
+export function ImagotipoAnimado({
+  height,
+  meetMs = MEET_MS,
+  holdMs = HOLD_MS,
+}: {
+  height: number;
+  /** Lo que tardan en juntarse; más lento = más relajante (fondo de la bienvenida). */
+  meetMs?: number;
+  holdMs?: number;
+}) {
   const reduceMotion = useReducedMotion();
   const meet = useSharedValue(0); // 0 = separados, 1 = juntos
 
@@ -70,15 +79,15 @@ export function ImagotipoAnimado({ height }: { height: number }) {
     meet.set(
       withRepeat(
         withSequence(
-          withTiming(1, { duration: MEET_MS, easing }),
-          withDelay(HOLD_MS, withTiming(0, { duration: MEET_MS, easing })),
-          withDelay(HOLD_MS, withTiming(0, { duration: 0 }))
+          withTiming(1, { duration: meetMs, easing }),
+          withDelay(holdMs, withTiming(0, { duration: meetMs, easing })),
+          withDelay(holdMs, withTiming(0, { duration: 0 }))
         ),
         -1
       )
     );
     return () => cancelAnimation(meet);
-  }, [reduceMotion, meet]);
+  }, [reduceMotion, meet, meetMs, holdMs]);
 
   const r = height / (2 + OFFSET_Y);
   const dx = OFFSET_X * r;

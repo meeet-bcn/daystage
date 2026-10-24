@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Archivo de la agenda BCN generado en local (npm run feed:build); en producción lo publica GitHub Actions
+feed/

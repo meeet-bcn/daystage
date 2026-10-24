@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { Animated, Pressable, StyleSheet, useAnimatedValue } from 'react-native';
 
 import { useApp } from '@/data/app-context';
@@ -14,11 +15,13 @@ type Props = {
 
 /** Corazón de la lista de deseos: conciertos que te interesan, aunque aún no vayas. */
 export function WishButton({ concert, size = 46 }: Props) {
-  const { isWished, toggleWish, settings } = useApp();
+  const { isWished, toggleWish, settings, profile } = useApp();
   const wished = isWished(concert.id);
   const scale = useAnimatedValue(1);
 
   const onPress = () => {
+    // La lista de deseos es una de las ventajas del perfil: sin él, a crearlo
+    if (!profile.created) return router.push('/onboarding');
     if (settings.haptics) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!wished) {
       // Late un momento al añadirlo

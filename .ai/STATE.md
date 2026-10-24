@@ -11,6 +11,7 @@ _Actualizado: 2026-10-23_
 - Idioma: el de la gente que quieres conocer. Aún no filtra (no hay asistentes).
 - Chat: solo desde Meeet in (`/chat/[id]`), con salas General e Idioma (tu idioma principal), en memoria y solo local (no hay servidor).
 - Ajustes (Perfil › engranaje): idioma principal, privacidad, notificaciones, vibración, sonidos, caché, borrar datos. Privacidad y notificaciones solo se guardan.
+- Fuente nueva: Agenda Cultural del Ajuntament de Barcelona (Open Data BCN, CC BY 4.0), ~830 conciertos. Funciona en desarrollo sirviendo el archivo desde el Mac (`npm run feed:build` + `npm run feed:serve`). Falta publicarla: repositorio en GitHub + Pages + `EXPO_PUBLIC_BCN_AGENDA_URL`.
 - Tema: el acento de toda la app sale del fondo del perfil (16 fondos pastel con su acento, contraste ≥ 3:1). La marca (logo, imagotipo, icono) sigue en violeta.
 - Perfil: cabecera de cristal fija, cuadrícula en tres columnas (Meeet in · Lista de deseos · Pasados), pastillas de cristal teñidas por el fondo, pronombres a elegir.
 - Lista de deseos con corazón en Inicio y en el detalle.

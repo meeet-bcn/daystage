@@ -17,11 +17,15 @@ export default function MeeetInScreen() {
   const styles = useThemedStyles(makeStyles);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { myConcerts, unreadCount, goingCount } = useApp();
+  const { myConcerts, unreadCount, goingCount, profile } = useApp();
 
   const openConcert = (id: string) => router.push({ pathname: '/concert/[id]', params: { id } });
   // El chat de cada concierto solo se abre desde aquí
-  const openChat = (id: string) => router.push({ pathname: '/chat/[id]', params: { id } });
+  // Sin perfil, primero se crea (los chats son una de sus ventajas)
+  const openChat = (id: string) =>
+    profile.created
+      ? router.push({ pathname: '/chat/[id]', params: { id } })
+      : router.push('/onboarding');
 
   const scrollY = useAnimatedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);

@@ -3,6 +3,7 @@ import { describe, expect, it } from '@jest/globals';
 import {
   formatPronouns,
   handleError,
+  loadProfile,
   nickError,
   normalizeHandle,
   normalizeNick,
@@ -98,5 +99,18 @@ describe('pronombres', () => {
     expect(parsePronouns('ella · she/her')).toEqual(['ella', 'she/her']);
     expect(parsePronouns('')).toEqual([]);
     expect(parsePronouns('lo que escribí antes')).toEqual([]);
+  });
+});
+
+describe('loadProfile', () => {
+  it('sin nada guardado, perfil vacío y sin crear', () => {
+    expect(loadProfile({})).toMatchObject({ created: false, nick: '', tastes: [] });
+  });
+
+  it('los perfiles de antes de `created` cuentan como creados si tenían algo', () => {
+    expect(loadProfile({ nick: 'jordi' }).created).toBe(true);
+    expect(loadProfile({ photo: 'file:///foto.jpg' }).created).toBe(true);
+    expect(loadProfile({ bio: 'solo bio' }).created).toBe(false);
+    expect(loadProfile({ nick: 'jordi', created: false }).created).toBe(false);
   });
 });

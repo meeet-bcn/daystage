@@ -14,7 +14,7 @@ import { Concert, fetchConcerts } from '@/data/concerts';
 import { applyFilters, DEFAULT_FILTERS, Filters, genresOf } from '@/data/filters';
 import { mergeConcerts } from '@/data/merge';
 import { splitPlans } from '@/data/plans';
-import { EMPTY_PROFILE, Profile } from '@/data/profile';
+import { EMPTY_PROFILE, loadProfile, Profile } from '@/data/profile';
 import { DEFAULT_SETTINGS, Settings, withDefaults } from '@/data/settings';
 import { loadJSON, saveJSON, STORAGE_KEYS } from '@/data/storage';
 
@@ -31,7 +31,11 @@ type AppState = {
   loadMore: () => void;
   hasMore: boolean;
   loadingMore: boolean;
-  /** Fecha (ms) del último concierto de las páginas cargadas: hasta ahí está todo. */
+  /**
+   * Hasta qué fecha (ms) está todo cargado de todas las fuentes, o null si ya
+   * está todo. Las listas solo muestran hasta aquí (`concerts` incluye también
+   * lo de más allá, para poder abrirlo y buscarlo).
+   */
   loadedUntil: number | null;
   /** Suma conciertos de fuera de las páginas (p. ej. de una búsqueda) para poder abrirlos. */
   addConcerts: (extra: Concert[]) => void;
@@ -68,8 +72,12 @@ type AppState = {
 
   settings: Settings;
   updateSettings: (changes: Partial<Settings>) => void;
-  /** Ajustes › Borrar mis datos: planes, perfil, ajustes y chats de este móvil. */
+  /** Ajustes › Borrar mis datos: planes, perfil, ajustes y chats de este móvil (y vuelve la bienvenida). */
   clearUserData: () => void;
+
+  /** Ya has pasado por las diapositivas de bienvenida (creando el perfil o no). */
+  welcomeSeen: boolean;
+  finishWelcome: () => void;
 
   filters: Filters;
   setFilters: (update: (current: Filters) => Filters) => void;
@@ -118,10 +126,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [wishes, setWishes] = useState<Record<string, Concert>>(() =>
     loadJSON(STORAGE_KEYS.wishlist, {})
   );
-  const [profile, setProfile] = useState<Profile>(() => ({
-    ...EMPTY_PROFILE,
-    ...loadJSON(STORAGE_KEYS.profile, {}),
-  }));
+  const [profile, setProfile] = useState<Profile>(() =>
+    loadProfile(loadJSON(STORAGE_KEYS.profile, {}))
+  );
+  // La bienvenida se ve una vez; quien ya tenía perfil no la vuelve a ver
+  const [welcomeSeen, setWelcomeSeen] = useState<boolean>(
+    () => loadJSON(STORAGE_KEYS.onboarding, { welcomeSeen: profile.created }).welcomeSeen
+  );
   const [settings, setSettings] = useState<Settings>(() =>
     withDefaults(loadJSON(STORAGE_KEYS.settings, {}))
   );
@@ -138,7 +149,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchConcerts({ page })
       .then((result) => {
         if (requestedIn !== generation.current) return;
-        const until = lastDate(result.concerts);
+        const { until } = result;
         if (page === 0) {
           firstPage.current = {
             ids: new Set(result.concerts.map((c) => c.id)),
@@ -146,7 +157,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             until,
           };
         }
-        setLoadedUntil((current) => Math.max(current ?? 0, until ?? 0) || null);
+        setLoadedUntil(until);
         // Si las fechas se mueven entre páginas puede repetirse alguno
         setRaw((current) => withoutRepeats(current, result.concerts));
         setHasMore(result.hasMore);
@@ -193,7 +204,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const result = await fetchConcerts({ page: 0 });
       if (requestedIn !== generation.current) return;
-      const until = lastDate(result.concerts);
+      const { until } = result;
       firstPage.current = {
         ids: new Set(result.concerts.map((c) => c.id)),
         hasMore: result.hasMore,
@@ -217,6 +228,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveJSON(STORAGE_KEYS.wishlist, wishes), [wishes]);
   useEffect(() => saveJSON(STORAGE_KEYS.profile, profile), [profile]);
   useEffect(() => saveJSON(STORAGE_KEYS.settings, settings), [settings]);
+  useEffect(() => saveJSON(STORAGE_KEYS.onboarding, { welcomeSeen }), [welcomeSeen]);
 
   const value = useMemo<AppState>(() => {
     const goingCount = (c: Concert) => c.going + (myEvents[c.id] ? 1 : 0);
@@ -274,12 +286,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setSettings(DEFAULT_SETTINGS);
         setMessages({});
         setFilters(DEFAULT_FILTERS);
+        setWelcomeSeen(false);
       },
+
+      welcomeSeen,
+      finishWelcome: () => setWelcomeSeen(true),
 
       filters,
       setFilters,
       resetFilters: () => setFilters(DEFAULT_FILTERS),
-      visibleConcerts: applyFilters(concerts, filters, goingCount),
+      // Solo hasta donde está todo cargado: así la lista crece por el final, sin saltos
+      visibleConcerts: applyFilters(
+        loadedUntil == null
+          ? concerts
+          : concerts.filter((c) => c.startsAt != null && c.startsAt <= loadedUntil),
+        filters,
+        goingCount
+      ),
       genres: genresOf(concerts),
 
       messagesFor: (room) => messages[room] ?? [],
@@ -307,6 +330,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     wishes,
     profile,
     settings,
+    welcomeSeen,
     celebration,
     filters,
     unread,
@@ -314,12 +338,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-}
-
-/** Fecha del último concierto con fecha de la lista, o null. */
-function lastDate(concerts: Concert[]) {
-  const dates = concerts.map((c) => c.startsAt).filter((t): t is number => t != null);
-  return dates.length > 0 ? Math.max(...dates) : null;
 }
 
 /** `current` más los de `extra` que aún no estén (por id). */

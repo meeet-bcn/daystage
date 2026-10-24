@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   wishlist: 'meeet.wishlist.v1',
   profile: 'meeet.profile.v1',
   settings: 'meeet.settings.v1',
+  onboarding: 'meeet.onboarding.v1',
 } as const;
 
 /** Lectura síncrona, para el estado inicial. Ante datos ausentes o corruptos, `fallback`. */

@@ -1,0 +1,40 @@
+# Publica cada mañana los conciertos de la Agenda Cultural de Barcelona
+# (Open Data BCN, CC BY 4.0) en GitHub Pages, para que la app los lea:
+#   https://<usuario>.github.io/<repositorio>/bcn-concerts.json
+# Esa URL va en EXPO_PUBLIC_BCN_AGENDA_URL. También se puede lanzar a mano
+# desde la pestaña Actions ("Run workflow").
+
+name: Agenda BCN
+
+on:
+  schedule:
+    - cron: '0 5 * * *' # 05:00 UTC = 6-7 h en Barcelona
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: bcn-agenda
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Solo usa Node: no hace falta instalar las dependencias de la app
+      - run: node --no-warnings scripts/build-bcn-agenda.mjs public/bcn-concerts.json
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -71,6 +71,14 @@ export default function ConcertDetail() {
 
   // Ofertas ordenadas de más barata a más cara: la primera es el botón principal
   const [mainOffer, ...otherOffers] = concert.offers;
+  // La agenda del Ayuntamiento no vende: enlaza a la web del concierto (o no trae)
+  const fromAgenda = concert.offers.some((o) => o.source === 'bcn');
+  const buyLabel =
+    mainOffer.source === 'bcn'
+      ? concert.priceMin === 0
+        ? 'Entrada libre · Más información'
+        : 'Entradas en la web oficial'
+      : `Comprar en ${SOURCE_NAMES[mainOffer.source]}`;
 
   const onShare = async () => {
     const text = going
@@ -127,11 +135,19 @@ export default function ConcertDetail() {
           </View>
 
           <View style={styles.actions}>
-            <Pressable style={styles.buy} onPress={() => Linking.openURL(mainOffer.url)}>
-              <Text style={styles.buyText} numberOfLines={1}>
-                Comprar en {SOURCE_NAMES[mainOffer.source]}
-              </Text>
-            </Pressable>
+            {mainOffer.url ? (
+              <Pressable style={styles.buy} onPress={() => Linking.openURL(mainOffer.url)}>
+                <Text style={styles.buyText} numberOfLines={1}>
+                  {buyLabel}
+                </Text>
+              </Pressable>
+            ) : (
+              <View style={[styles.buy, styles.buyNone]}>
+                <Text style={styles.buyNoneText} numberOfLines={1}>
+                  {concert.priceMin === 0 ? 'Entrada libre' : 'Entradas en la sala'}
+                </Text>
+              </View>
+            )}
             <Pressable style={styles.shareBtn} onPress={onShare}>
               <Ionicons name="share-outline" size={21} color={COLORS.text} />
             </Pressable>
@@ -182,7 +198,13 @@ export default function ConcertDetail() {
                 <Text style={styles.paragraph}>{concert.info}</Text>
               ) : (
                 <Text style={styles.paragraph}>
-                  Ticketmaster no da más detalles de este concierto.
+                  {fromAgenda ? 'La agenda' : 'Ticketmaster'} no da más detalles de este concierto.
+                </Text>
+              )}
+              {/* La licencia (CC BY 4.0) pide citar la fuente */}
+              {fromAgenda && (
+                <Text style={styles.credit}>
+                  Fuente: Agenda Cultural del Ajuntament de Barcelona (Open Data BCN)
                 </Text>
               )}
               <ArtistCard eventName={concert.artist} genre={concert.genre} />
@@ -295,6 +317,9 @@ const makeStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
+    buyNone: { backgroundColor: COLORS.surface },
+    buyNoneText: { color: COLORS.text, fontSize: 15, fontWeight: '700', paddingHorizontal: 16 },
+    credit: { color: COLORS.muted, fontSize: 12, marginTop: 12 },
     buyText: { color: COLORS.white, fontSize: 15, fontWeight: '700', paddingHorizontal: 16 },
     offers: { marginTop: 16, backgroundColor: COLORS.surface, borderRadius: 20, padding: 16 },
     offersTitle: {

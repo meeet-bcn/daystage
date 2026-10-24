@@ -1,3 +1,4 @@
+import { bcn } from '@/data/sources/bcn';
 import { ticketmaster } from '@/data/sources/ticketmaster';
 import type { EventProvider } from '@/data/sources/types';
 
@@ -12,4 +13,4 @@ import type { EventProvider } from '@/data/sources/types';
  * Las claves de socio NO pueden ir en la app (EXPO_PUBLIC_ se incrusta en el
  * bundle): esas fuentes deben llamar a nuestro backend, no a la ticketera.
  */
-export const PROVIDERS: EventProvider[] = [ticketmaster];
+export const PROVIDERS: EventProvider[] = [ticketmaster, bcn];

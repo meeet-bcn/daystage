@@ -54,7 +54,9 @@
     "test": "jest",
     "test:watch": "jest --watchAll",
     "typecheck": "tsc --noEmit",
-    "check": "tsc --noEmit && expo lint && jest"
+    "check": "tsc --noEmit && expo lint && jest",
+    "feed:build": "node --no-warnings scripts/build-bcn-agenda.mjs",
+    "feed:serve": "node scripts/serve-feed.mjs"
   },
   "private": true,
   "jest": {

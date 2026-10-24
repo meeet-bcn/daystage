@@ -1,10 +1,17 @@
 import type { Concert } from '@/data/concerts';
 
-export type TicketSource = 'ticketmaster' | 'fever' | 'dice' | 'entradas' | 'theproject';
+export type TicketSource =
+  | 'ticketmaster'
+  | 'bcn' // Agenda Cultural del Ayuntamiento: no es ticketera, pero trae la web de entradas
+  | 'fever'
+  | 'dice'
+  | 'entradas'
+  | 'theproject';
 
 /** Nombre visible de cada ticketera ("Comprar en ..."). */
 export const SOURCE_NAMES: Record<TicketSource, string> = {
   ticketmaster: 'Ticketmaster',
+  bcn: 'Agenda BCN',
   fever: 'Fever',
   dice: 'DICE',
   entradas: 'Entradas.com',

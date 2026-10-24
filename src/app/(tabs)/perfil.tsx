@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CreateProfileCard } from '@/components/create-profile-card';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { SongCard } from '@/components/song-card';
 import { ScreenHeader } from '@/components/screen-header';
@@ -109,124 +110,137 @@ export default function ProfileScreen() {
         })}
         scrollEventThrottle={16}
         scrollIndicatorInsets={{ top: headerHeight }}
-        data={tiles}
+        // Sin perfil creado no hay cuadrícula: solo la tarjeta para crearlo
+        data={profile.created ? tiles : []}
         keyExtractor={(item: Concert) => item.id}
         numColumns={COLUMNS}
         columnWrapperStyle={{ gap: GAP }}
         ItemSeparatorComponent={() => <View style={{ height: GAP }} />}
         contentContainerStyle={{ paddingBottom: insets.bottom + BottomTabInset + 32 }}
         ListHeaderComponent={
-          <View>
-            {/* El fondo elegido en Editar perfil, el mismo que ven los demás */}
-            <View
-              style={[
-                // Empieza bajo la cabecera de cristal, que deja ver el degradado a través
-                { paddingTop: headerHeight },
-                profile.background !== 'none' && {
-                  experimental_backgroundImage: profileGradient(profile.background),
-                },
-              ]}
-            >
-              {/* Al tirar hacia abajo asoma lo de encima: se rellena con el color de arriba */}
-              {profile.background !== 'none' && (
-                <View
-                  style={[
-                    styles.overscroll,
-                    { backgroundColor: PROFILE_BACKGROUNDS[profile.background].from },
-                  ]}
-                />
-              )}
-              <View style={styles.header}>
-                <View style={styles.summary}>
-                  <ProfileAvatar
-                    size={86}
-                    uri={profile.photo || undefined}
-                    onPress={() => router.push('/edit-profile')}
+          !profile.created ? (
+            <View style={{ paddingTop: headerHeight }}>
+              <CreateProfileCard />
+            </View>
+          ) : (
+            <View>
+              {/* El fondo elegido en Editar perfil, el mismo que ven los demás */}
+              <View
+                style={[
+                  // Empieza bajo la cabecera de cristal, que deja ver el degradado a través
+                  { paddingTop: headerHeight },
+                  profile.background !== 'none' && {
+                    experimental_backgroundImage: profileGradient(profile.background),
+                  },
+                ]}
+              >
+                {/* Al tirar hacia abajo asoma lo de encima: se rellena con el color de arriba */}
+                {profile.background !== 'none' && (
+                  <View
+                    style={[
+                      styles.overscroll,
+                      { backgroundColor: PROFILE_BACKGROUNDS[profile.background].from },
+                    ]}
                   />
-                  <View style={styles.stats}>
-                    {stats.map((s) => (
-                      <View key={s.label} style={styles.stat}>
-                        <Text style={styles.statValue}>{s.value}</Text>
-                        <Text style={styles.statLabel}>{s.label}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-
-                {profile.name || profile.pronouns ? (
-                  <Text style={styles.name}>
-                    {profile.name}
-                    {/* Los pronombres, en gris y más pequeños, junto al nombre */}
-                    {profile.pronouns ? (
-                      <Text style={styles.pronouns}>
-                        {profile.name ? '  ' : ''}
-                        {profile.pronouns}
-                      </Text>
-                    ) : null}
-                  </Text>
-                ) : null}
-                <Text style={[styles.bio, !profile.bio && styles.muted]}>
-                  {profile.bio || 'Aún no has escrito tu biografía.'}
-                </Text>
-
-                {profile.song ? <SongCard song={profile.song} style={pill} /> : null}
-
-                {socials.length > 0 && (
-                  <View style={styles.socials}>
-                    {socials.map((network) => {
-                      const { label, icon, url } = SOCIAL_NETWORKS[network];
-                      const handle = profile.socials[network];
-                      return (
-                        <Pressable
-                          key={network}
-                          style={({ pressed }) => [styles.social, pill, pressed && styles.pressed]}
-                          // El enlace web abre la app de la red si está instalada
-                          onPress={() => Linking.openURL(url(handle))}
-                          accessibilityRole="link"
-                          accessibilityLabel={`${label}: @${handle}`}
-                        >
-                          <Ionicons name={icon} size={16} color={COLORS.text} />
-                          <Text style={styles.socialText} numberOfLines={1}>
-                            {handle}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
                 )}
+                <View style={styles.header}>
+                  <View style={styles.summary}>
+                    <ProfileAvatar
+                      size={86}
+                      uri={profile.photo || undefined}
+                      onPress={() => router.push('/edit-profile')}
+                    />
+                    <View style={styles.stats}>
+                      {stats.map((s) => (
+                        <View key={s.label} style={styles.stat}>
+                          <Text style={styles.statValue}>{s.value}</Text>
+                          <Text style={styles.statLabel}>{s.label}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
 
-                <Pressable
-                  style={[styles.editButton, pill]}
-                  onPress={() => router.push('/edit-profile')}
-                >
-                  <Text style={styles.editText}>Editar perfil</Text>
-                </Pressable>
+                  {profile.name || profile.pronouns ? (
+                    <Text style={styles.name}>
+                      {profile.name}
+                      {/* Los pronombres, en gris y más pequeños, junto al nombre */}
+                      {profile.pronouns ? (
+                        <Text style={styles.pronouns}>
+                          {profile.name ? '  ' : ''}
+                          {profile.pronouns}
+                        </Text>
+                      ) : null}
+                    </Text>
+                  ) : null}
+                  <Text style={[styles.bio, !profile.bio && styles.muted]}>
+                    {profile.bio || 'Aún no has escrito tu biografía.'}
+                  </Text>
+
+                  {profile.song ? <SongCard song={profile.song} style={pill} /> : null}
+
+                  {socials.length > 0 && (
+                    <View style={styles.socials}>
+                      {socials.map((network) => {
+                        const { label, icon, url } = SOCIAL_NETWORKS[network];
+                        const handle = profile.socials[network];
+                        return (
+                          <Pressable
+                            key={network}
+                            style={({ pressed }) => [
+                              styles.social,
+                              pill,
+                              pressed && styles.pressed,
+                            ]}
+                            // El enlace web abre la app de la red si está instalada
+                            onPress={() => Linking.openURL(url(handle))}
+                            accessibilityRole="link"
+                            accessibilityLabel={`${label}: @${handle}`}
+                          >
+                            <Ionicons name={icon} size={16} color={COLORS.text} />
+                            <Text style={styles.socialText} numberOfLines={1}>
+                              {handle}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  <Pressable
+                    style={[styles.editButton, pill]}
+                    onPress={() => router.push('/edit-profile')}
+                  >
+                    <Text style={styles.editText}>Editar perfil</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={styles.gridTabs} accessibilityRole="tablist">
+                {GRID_TABS.map((t) => {
+                  const active = gridTab === t.key;
+                  return (
+                    <Pressable
+                      key={t.key}
+                      style={[styles.gridTab, active && styles.gridTabActive]}
+                      onPress={() => setGridTab(t.key)}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={t.label}
+                    >
+                      <GridTabIcon tab={t.key} active={active} />
+                      <Text style={[styles.gridTabText, active && styles.gridTabTextActive]}>
+                        {t.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
-
-            <View style={styles.gridTabs} accessibilityRole="tablist">
-              {GRID_TABS.map((t) => {
-                const active = gridTab === t.key;
-                return (
-                  <Pressable
-                    key={t.key}
-                    style={[styles.gridTab, active && styles.gridTabActive]}
-                    onPress={() => setGridTab(t.key)}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={t.label}
-                  >
-                    <GridTabIcon tab={t.key} active={active} />
-                    <Text style={[styles.gridTabText, active && styles.gridTabTextActive]}>
-                      {t.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
+          )
         }
-        ListEmptyComponent={<Text style={styles.empty}>{EMPTY_TEXT[gridTab]}</Text>}
+        ListEmptyComponent={
+          profile.created ? <Text style={styles.empty}>{EMPTY_TEXT[gridTab]}</Text> : null
+        }
         renderItem={({ item }: { item: Concert }) => {
           const gone = isPast(item);
           const uri = item.hero || item.image;

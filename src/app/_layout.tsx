@@ -17,6 +17,15 @@ export default function RootLayout() {
           <Stack.Screen name="concert/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
+          {/* Bienvenida y creación de perfil: a pantalla completa, sin volver con el gesto */}
+          <Stack.Screen
+            name="welcome"
+            options={{ headerShown: false, gestureEnabled: false, animation: 'fade' }}
+          />
+          <Stack.Screen
+            name="onboarding"
+            options={{ headerShown: false, gestureEnabled: false, animation: 'fade' }}
+          />
           <Stack.Screen
             name="edit-profile"
             options={{ headerShown: false, presentation: 'modal' }}

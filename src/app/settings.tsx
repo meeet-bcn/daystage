@@ -96,10 +96,12 @@ export default function SettingsScreen() {
     setCacheCleared(true);
   };
 
-  const confirmClearData = () =>
+  // Borra planes, perfil (con la foto), ajustes y chats. Con la bienvenida
+  // pendiente otra vez, las pestañas redirigen a ella
+  const confirmClearData = (title: string, then: () => void) =>
     Alert.alert(
-      '¿Borrar tus datos?',
-      'Se borrarán de este móvil tus planes, tu perfil (con la foto), tus ajustes y tus chats. No se puede deshacer.',
+      title,
+      'Se borrarán de este móvil tus planes, tu perfil (con la foto), tus ajustes y tus chats, y volverás a ver la bienvenida. No se puede deshacer.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -109,7 +111,7 @@ export default function SettingsScreen() {
             saveProfilePhoto('', profile.photo); // borra la foto guardada
             deleteTabIcons(profile.tabIcons);
             clearUserData();
-            router.back();
+            then();
           },
         },
       ]
@@ -284,18 +286,36 @@ export default function SettingsScreen() {
             label="Borrar mis datos"
             detail="Planes, perfil, ajustes y chats de este móvil"
             danger
-            onPress={confirmClearData}
+            onPress={() => confirmClearData('¿Borrar tus datos?', () => router.back())}
           />
         </Section>
 
         <Section title="Información">
-          <Row first icon="musical-notes-outline" label="Conciertos" detail="Ticketmaster" />
+          <Row
+            first
+            icon="musical-notes-outline"
+            label="Conciertos"
+            detail="Ticketmaster y Agenda Cultural del Ajuntament de Barcelona (Open Data BCN, CC BY 4.0)"
+          />
           <Row icon="people-outline" label="Información de artistas" detail="MusicBrainz" />
           <Row icon="logo-apple" label="Fragmentos de canciones" detail="Apple Music" />
           <Row
             icon="information-circle-outline"
             label="Versión"
             detail={`meeet ${Constants.expoConfig?.version ?? ''} · beta`}
+          />
+        </Section>
+
+        <Section
+          title="Empezar de nuevo"
+          footer="Para volver a ver la bienvenida y crear el perfil desde cero."
+        >
+          <Row
+            first
+            icon="refresh-outline"
+            label="Borrar perfil y empezar de nuevo"
+            danger
+            onPress={() => confirmClearData('¿Empezar de nuevo?', () => router.replace('/welcome'))}
           />
         </Section>
 

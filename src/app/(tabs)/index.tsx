@@ -30,6 +30,7 @@ import { TITLE_LINE_HEIGHT, TITLE_SIZE, TITLE_SPACING, TITLE_TOP } from '@/compo
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
 import { Concert } from '@/data/concerts';
+import { bcnEnabled } from '@/data/sources/bcn';
 import { activeFilterCount, dateRangeLabel, LANGUAGES, SORT_OPTIONS } from '@/data/filters';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
@@ -326,7 +327,9 @@ export default function HomeScreen() {
               <Text style={styles.betaTagText}>BETA</Text>
             </View>
             <Text style={styles.noticeText} numberOfLines={1}>
-              Solo Barcelona · Ticketmaster
+              {bcnEnabled()
+                ? 'Solo Barcelona · Ticketmaster y agenda BCN'
+                : 'Solo Barcelona · Ticketmaster'}
             </Text>
           </View>
         </Animated.View>

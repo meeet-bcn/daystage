@@ -2,7 +2,7 @@
 
 # MEEET
 
-App móvil (Expo SDK 57, React Native 0.86, React 19, TypeScript estricto) para descubrir conciertos y decir **"Voy"**. Beta, solo Barcelona. Los datos vienen de la Ticketmaster Discovery API. Plataforma principal: iOS/Android. Web existe por la plantilla, pero no es prioritaria.
+App móvil (Expo SDK 57, React Native 0.86, React 19, TypeScript estricto) para descubrir conciertos y decir **"Voy"**. Beta, solo Barcelona. Los conciertos vienen de la Ticketmaster Discovery API y de la Agenda Cultural del Ajuntament de Barcelona (Open Data BCN). Plataforma principal: iOS/Android. Web existe por la plantilla, pero no es prioritaria.
 
 Gestor de paquetes: **npm** (`package-lock.json`). Instala dependencias con `npx expo install`, nunca con `npm install <pkg>`.
 
@@ -30,6 +30,8 @@ src/
       perfil.tsx            # Perfil estilo Instagram: nick, foto, meeet in / seguidores / seguidos, bio, fondo y cuadrícula en tres columnas: Meeet in (próximos), Lista de deseos y Pasados
     concert/[id].tsx        # Detalle (fuera de las pestañas): hero, "Meeet In!", comprar entrada, compartir, fragmento de la canción más popular del artista, pestañas Información/Lugar (sin chat)
     chat/[id].tsx           # Chat de un concierto, solo desde Meeet in: el evento y su fecha arriba (sin foto ni comprar), salas General e Idioma (tu idioma principal)
+    welcome.tsx             # Bienvenida: diapositivas con fotos de conciertos y piezas de la app; al final, crear perfil o "Ahora no"
+    onboarding.tsx          # Creación de perfil paso a paso: nick → nombre → foto → gustos → idioma → ¡Listo!
     settings.tsx            # Ajustes (Perfil › engranaje): idioma principal, privacidad, notificaciones, vibración, caché, borrar datos, información
     filters.tsx             # Hoja nativa (formSheet): ordenar, género, precio
     calendar.tsx            # Hoja del calendario: intervalo de días, con punto en los días con conciertos; al bajar por los meses pide más páginas y "Quitar fechas" vacía la caché (`trimConcerts`)
@@ -37,6 +39,8 @@ src/
     edit-profile.tsx        # Modal de editar perfil: foto, nick (@, reglas tipo Instagram), nombre, pronombres, bio, canción y redes (Instagram, TikTok, X); solo se aplica al pulsar "Guardar"
   components/
     go-button.tsx           # Botón "Meeet In!" (antes "Voy"): confeti y háptica. Es el componente central de la marca
+    organic-backdrop.tsx    # Fondo de bienvenida y creación de perfil: imagotipo gigante que se mueve muy despacio
+    create-profile-card.tsx # Tarjeta "Crea tu perfil" con sus ventajas (Perfil sin crear) y PROFILE_BENEFITS
     wish-button.tsx         # Corazón de la lista de deseos (junto a "Meeet In!" en Inicio y en el detalle)
     meeet-in-burst.tsx      # Destellos al darle a "Meeet In!" (salen de la insignia de la foto)
     imagotipo.tsx           # Imagotipo de la marca (dos círculos), con Views. `ImagotipoAnimado`: los círculos se juntan en uno y se separan, en bucle (insignia "Meeet In!")
@@ -61,6 +65,8 @@ src/
       index.ts              # PROVIDERS: fuentes activas en orden de prioridad + cómo añadir una nueva
       types.ts              # TicketSource, SOURCE_NAMES, EventProvider
       ticketmaster.ts       # Discovery API → Concert
+      bcn.ts                # Agenda BCN: lee el archivo diario ya filtrado (EXPO_PUBLIC_BCN_AGENDA_URL; en desarrollo, el Mac en :8099)
+    bcn-agenda.ts           # Agenda Cultural de Barcelona → conciertos (filtro, hora y precio del horario, nombres). Lo usan la app y el script
     merge.ts                # Deduplica entre fuentes (mismo día + sala + artista) y junta las ofertas
     format.ts               # formatDate / toTimestamp / formatPriceRange, comunes a todas las fuentes
     text.ts                 # foldText / compactText / headlinerName: comparaciones sin acentos ni signos, y artista principal de un evento
@@ -81,6 +87,8 @@ src/
   constants/theme.ts        # Medidas de layout: BottomTabInset, MaxContentWidth
 assets/images/              # Iconos y splash de MEEET (provisionales: monograma "m." y marca "meeet.")
 scripts/generate-brand-assets.swift   # Regenera los PNG de assets/images: `swift scripts/generate-brand-assets.swift`
+scripts/build-bcn-agenda.mjs          # Genera feed/bcn-concerts.json desde Open Data BCN (`npm run feed:build`; a diario en .github/workflows/bcn-agenda.yml)
+scripts/serve-feed.mjs                # Sirve ese archivo en la red local para probar en desarrollo (`npm run feed:serve`)
 scripts/generate-tab-icons.swift      # Iconos propios de la barra (casa sin puerta, imagotipo de dos círculos) en assets/images/tabs
 ```
 
@@ -92,6 +100,8 @@ scripts/generate-tab-icons.swift      # Iconos propios de la barra (casa sin pue
 - El badge de una pestaña nativa se pinta solo si `NativeTabs.Trigger.Badge` está en el árbol. En iOS, `hidden` deja un "0" y un badge vacío se ve como un punto: renderízalo de forma condicional.
 - Un concierto pasa a "ya fui" cuando termina su día (`isPast`). La API solo trae conciertos futuros, así que los pasados existen únicamente como la copia guardada al decir "Voy": el detalle los busca también en `plans`.
 - Calendario e idioma son para turistas: vienen unos días y quieren conocer gente. `Filters.dates` es un intervalo de días incluidos (`DateRange`, medianoches locales); al quitarlas se descartan las páginas cargadas para el calendario (se queda la primera) y la caché de fotos en memoria. `Filters.languages` es el idioma de la gente que quieres conocer, no el del concierto, y aún no filtra nada.
+- **Agenda BCN** (fuente `bcn`): ~830 conciertos de un día, desde el Palau de la Música hasta centros cívicos, muchos gratis. El original (~170 MB, toda la agenda cultural) no se baja en el móvil: `scripts/build-bcn-agenda.mjs` lo filtra a diario (~650 KB) y lo publica GitHub Actions en GitHub Pages. Licencia CC BY 4.0: hay que citar «Ajuntament de Barcelona» (está en el detalle y en Ajustes). Es concierto si tiene la tipología "Concerts" y ninguna de fiesta, feria o taller (`NOT_A_CONCERT`). La hora no viene en la fecha (trae 03:00 o 12:00 de relleno): sale del horario HTML (`parseTimetable`). No vende: el botón lleva a la web de entradas de la sala, o dice "Entrada libre".
+- Fuentes que llegan enteras (bcn) y por páginas (Ticketmaster) a la vez: `fetchConcerts` devuelve `until`, la fecha hasta la que está todo cargado, y la lista de Inicio (`visibleConcerts`) solo muestra hasta ahí. Así crece por el final al bajar y no aparecen conciertos más arriba de lo ya visto. `concerts` lo tiene todo (para abrir y buscar).
 - Conciertos por páginas de 20 (`PAGE_SIZE` en `ticketmaster.ts`), por fecha: Inicio pide la siguiente con `loadMore` al acercarse al final (`onEndReached`). Los filtros se aplican sobre lo cargado; si dejan la lista corta, FlatList sigue pidiendo páginas solo. Barcelona tiene ~130 conciertos de música en Ticketmaster (con el área metropolitana solo salen 3 más).
 - Buscar no se queda en lo cargado: también pregunta a las ticketeras (`keyword`) y suma lo que encuentra al estado (`addConcerts`) para que el detalle pueda abrirlo.
 - Fotos con `expo-image` (caché en memoria y disco), salvo en `tab-avatar.tsx`, que necesita la `Image` de React Native para capturarla.
@@ -112,6 +122,7 @@ scripts/generate-tab-icons.swift      # Iconos propios de la barra (casa sin pue
 - Inicio y el imagotipo animado (`ImagotipoAnimado`): sale en la primera carga (en el centro) y al tirar hacia abajo para recargar. El "tirar para recargar" es propio (`onScrollEndDrag` + `refreshConcerts`), porque el RefreshControl de iOS solo admite su ruedecita: el imagotipo va detrás de la lista y asoma en el hueco. Tocar Inicio estando en Inicio sube arriba (`tabPress`).
 - Al darle a "Meeet In!" (`toggleGoing`), `celebration` guarda ese concierto: su foto hace entrar la insignia con rebote, un reflejo y destellos (`MeeetInBurst`), y al acabar se limpia (`endCelebration`). Con "Reducir movimiento", sin destellos.
 - Ajustes en `storage.ts` (`meeet.settings.v1`), cargados con `withDefaults` para que los campos nuevos tomen su valor inicial. Privacidad y notificaciones aún solo se guardan (no hay cuentas ni notificaciones): la pantalla lo dice. La vibración sí se aplica (`GoButton`).
+- Bienvenida y perfil: `(tabs)/_layout.tsx` redirige a `/welcome` mientras `welcomeSeen` sea false (se guarda en `meeet.onboarding.v1`). Sin perfil (`profile.created`, que se pone al terminar `/onboarding`), Perfil muestra `CreateProfileCard`, y el chat y el corazón llevan a crearlo: son las ventajas que se prometen, así que deben cumplirse. Los perfiles de antes de `created` cuentan como creados si tenían nick, nombre o foto (`loadProfile`). Ajustes › "Borrar perfil y empezar de nuevo" lo borra todo y vuelve a la bienvenida.
 - Lista de deseos (`wishlist`, `toggleWish`): conciertos que te interesan aunque no vayas. Como los planes, guarda una copia del concierto (`meeet.wishlist.v1`) para que no desaparezca al pasar.
 - Fondo del perfil (`profile.background`, `PROFILE_BACKGROUNDS` en `theme.ts`): pasteles en degradado suave, armónicos o complementarios. Se pinta detrás de la cabecera de Perfil (con un relleno del color de arriba para cuando tiras hacia abajo) y es público: lo verá quien entre en tu perfil cuando haya perfiles de otros.
 - Todas las pestañas llevan `disableAutomaticContentInsets`: cada pantalla pone su margen superior, y si no, NativeTabs suma otra vez la zona segura (en Perfil se veía una franja blanca sobre el fondo). Si añades una pestaña, pónselo también.

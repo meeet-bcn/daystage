@@ -3,6 +3,8 @@ import type { ProfileBackground } from '@/theme';
 
 /** Perfil del usuario. Aún no hay cuentas ni backend: vive en el móvil y empieza vacío. */
 export type Profile = {
+  /** Ya te has creado el perfil (en la bienvenida o desde Perfil). Sin él no hay chats ni lista de deseos. */
+  created: boolean;
   nick: string;
   name: string;
   /** Pronombres elegidos de PRONOUN_OPTIONS, unidos con " · " ("ella · she/her"). En gris junto al nombre. */
@@ -10,6 +12,8 @@ export type Profile = {
   bio: string;
   /** Usuario en cada red, sin "@" ni URL. Vacío si no la tiene. */
   socials: Socials;
+  /** Tus gustos musicales (MUSIC_TASTES), para recomendarte conciertos. */
+  tastes: string[];
   /** Fondo de tu perfil (PROFILE_BACKGROUNDS): lo ve quien entre en él. */
   background: ProfileBackground;
   /** Canción del perfil (fragmento de Apple Music), o null. */
@@ -36,11 +40,13 @@ export type TabIcons = {
 };
 
 export const EMPTY_PROFILE: Profile = {
+  created: false,
   nick: '',
   name: '',
   pronouns: '',
   bio: '',
   socials: { instagram: '', tiktok: '', x: '' },
+  tastes: [],
   song: null,
   background: 'none',
   photo: '',
@@ -48,6 +54,34 @@ export const EMPTY_PROFILE: Profile = {
   followers: 0,
   following: 0,
 };
+
+/** Gustos musicales que se eligen al crear el perfil. */
+export const MUSIC_TASTES = [
+  'Indie',
+  'Pop',
+  'Rock',
+  'Electrónica',
+  'Hip hop',
+  'Jazz',
+  'Flamenco',
+  'Latino',
+  'Soul y R&B',
+  'Metal',
+  'Folk',
+  'Clásica',
+];
+
+/**
+ * Perfil guardado sobre el vacío. Los guardados antes de existir `created`
+ * cuentan como creados si ya tenían nick, nombre o foto.
+ */
+export function loadProfile(saved: Partial<Profile>): Profile {
+  return {
+    ...EMPTY_PROFILE,
+    ...saved,
+    created: saved.created ?? Boolean(saved.nick || saved.name || saved.photo),
+  };
+}
 
 export const NICK_MAX = 30;
 export const NAME_MAX = 40;
