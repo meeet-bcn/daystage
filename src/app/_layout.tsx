@@ -18,6 +18,7 @@ export default function RootLayout() {
           <Stack.Screen name="chat/[id]/index" options={{ headerShown: false }} />
           <Stack.Screen name="chat/[id]/info" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="follows" options={{ headerShown: false }} />
           {/* Bienvenida y creación de perfil: a pantalla completa, sin volver con el gesto */}
           <Stack.Screen
             name="welcome"

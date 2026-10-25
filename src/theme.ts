@@ -42,101 +42,101 @@ export const PROFILE_BACKGROUNDS = {
   },
   aurora: {
     label: 'Aurora',
-    from: '#E9E2FF',
-    to: '#FFE1D8',
+    from: '#DBD0FF',
+    to: '#FFD3C6',
     accent: '#8F78F5',
     accentSoft: '#EFEBFF',
   }, // lavanda → melocotón, la marca
   atardecer: {
     label: 'Atardecer',
-    from: '#FFE0D6',
-    to: '#FFF1C9',
+    from: '#FFD3C4',
+    to: '#FFECB7',
     accent: '#E8694A',
     accentSoft: '#FFEDE7',
   }, // coral → miel
   menta: {
     label: 'Menta',
-    from: '#D8F4E8',
-    to: '#DDE9FF',
+    from: '#C6F5E0',
+    to: '#CBDDFF',
     accent: '#21986F',
     accentSoft: '#E2F5EE',
   }, // menta → cielo
   cielo: {
     label: 'Cielo',
-    from: '#DCEAFF',
-    to: '#EDE3FF',
+    from: '#CADFFF',
+    to: '#E2D1FF',
     accent: '#3B7FE0',
     accentSoft: '#E6EFFF',
   }, // azul → lila
-  rosa: { label: 'Rosa', from: '#FFE0EC', to: '#E6E2FF', accent: '#D9558C', accentSoft: '#FFE8F1' }, // rosa → lavanda
+  rosa: { label: 'Rosa', from: '#FFCEE1', to: '#D7D0FF', accent: '#D9558C', accentSoft: '#FFE8F1' }, // rosa → lavanda
   limon: {
     label: 'Limón',
-    from: '#F6F4C6',
-    to: '#D7F2E2',
+    from: '#FAF7B0',
+    to: '#C5F2D7',
     accent: '#86931A',
     accentSoft: '#F3F5DA',
   }, // limón → menta
-  mar: { label: 'Mar', from: '#D5F1F3', to: '#FFE3DA', accent: '#14929A', accentSoft: '#DFF4F5' }, // turquesa → melocotón (complementarios)
+  mar: { label: 'Mar', from: '#C2F1F4', to: '#FFD5C8', accent: '#14929A', accentSoft: '#DFF4F5' }, // turquesa → melocotón (complementarios)
   niebla: {
     label: 'Niebla',
-    from: '#F1EEF8',
-    to: '#E2E8F1',
+    from: '#E6DFF5',
+    to: '#D3DEEE',
     accent: '#6E719C',
     accentSoft: '#EEEFF6',
   }, // gris lila → gris azul
   orquidea: {
     label: 'Orquídea',
-    from: '#F4E1FA',
-    to: '#FFE6EE',
+    from: '#F1CEFC',
+    to: '#FFD4E2',
     accent: '#A852C7',
     accentSoft: '#F6E8FB',
   }, // orquídea → rosa palo
   pistacho: {
     label: 'Pistacho',
-    from: '#E6F4D6',
-    to: '#FFF3D9',
+    from: '#DEF5C3',
+    to: '#FFEDC7',
     accent: '#5F9A3A',
     accentSoft: '#EAF4E1',
   }, // pistacho → vainilla
   glaciar: {
     label: 'Glaciar',
-    from: '#DDF3FA',
-    to: '#E7E4FF',
+    from: '#C9F0FC',
+    to: '#D7D2FF',
     accent: '#2391B8',
     accentSoft: '#E2F3FA',
   }, // hielo → lavanda
   mandarina: {
     label: 'Mandarina',
-    from: '#FFE4CC',
-    to: '#FFDDE4',
+    from: '#FFDBBA',
+    to: '#FFCBD6',
     accent: '#DD6B1F',
     accentSoft: '#FFEDDF',
   }, // mandarina → rosa
   salvia: {
     label: 'Salvia',
-    from: '#E2EDE3',
-    to: '#EEE8F7',
+    from: '#D4E9D6',
+    to: '#E4D8F5',
     accent: '#5C8A67',
     accentSoft: '#E7EFE8',
   }, // salvia → lila (complementarios)
   crepusculo: {
     label: 'Crepúsculo',
-    from: '#E3E0FB',
-    to: '#FBDCE6',
+    from: '#D1CCFD',
+    to: '#FEC7D9',
     accent: '#6E5FD8',
     accentSoft: '#ECE9FD',
   }, // índigo claro → rosa
   vainilla: {
     label: 'Vainilla',
-    from: '#FFF6DC',
-    to: '#F2E8FF',
+    from: '#FFF1CA',
+    to: '#E8D6FF',
     accent: '#B8862A',
     accentSoft: '#FAF1DC',
   }, // vainilla → lila (complementarios)
   laguna: {
     label: 'Laguna',
-    from: '#D6F2EE',
-    to: '#FFEFD8',
+    from: '#C4F2EC',
+    to: '#FFE8C6',
     accent: '#16968A',
     accentSoft: '#DEF4F1',
   }, // aguamarina → albaricoque
@@ -150,10 +150,33 @@ export function profileGradient(key: ProfileBackground) {
   return `linear-gradient(160deg, ${from}, ${to})`;
 }
 
-/** Colores de selección de la app, según el fondo del perfil (useTheme). */
-export type Theme = { accent: string; accentSoft: string };
+/**
+ * Colores de la app según el fondo del perfil (useTheme): el de selección, su
+ * fondo claro y los tres tonos de las "eee" del logo de Inicio, de claro a oscuro.
+ */
+export type Theme = { accent: string; accentSoft: string; logo: [string, string, string] };
+
+// Cuánto blanco llevan los dos primeros tonos de las "eee" (el tercero es el acento)
+const LOGO_TINTS = [0.6, 0.3];
+
+/** `hex` mezclado con blanco: 0 = el color tal cual, 1 = blanco. */
+export function tint(hex: string, amount: number) {
+  const channel = (i: number) => {
+    const c = parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+    return Math.round(c + (255 - c) * amount)
+      .toString(16)
+      .padStart(2, '0')
+      .toUpperCase();
+  };
+  return `#${channel(0)}${channel(1)}${channel(2)}`;
+}
 
 export function themeFor(key: ProfileBackground): Theme {
   const { accent, accentSoft } = PROFILE_BACKGROUNDS[key] ?? PROFILE_BACKGROUNDS.none;
-  return { accent, accentSoft };
+  // Sin fondo, el salmón de la marca; con fondo, la escala de su acento, en armonía con él
+  const logo: Theme['logo'] =
+    key === 'none' || !(key in PROFILE_BACKGROUNDS)
+      ? [COLORS.peach, COLORS.peachMid, COLORS.peachDeep]
+      : [tint(accent, LOGO_TINTS[0]), tint(accent, LOGO_TINTS[1]), accent];
+  return { accent, accentSoft, logo };
 }

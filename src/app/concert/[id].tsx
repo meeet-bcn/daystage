@@ -28,10 +28,21 @@ import { useTopSong } from '@/hooks/use-top-song';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
 
+// Como las columnas del perfil: icono y, debajo, el nombre, con la raya del tema
 type Tab = 'info' | 'lugar';
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'info', label: 'Información' },
-  { key: 'lugar', label: 'Lugar' },
+const TABS: {
+  key: Tab;
+  label: string;
+  icon: 'information-circle-outline' | 'map-outline';
+  activeIcon: 'information-circle' | 'map';
+}[] = [
+  {
+    key: 'info',
+    label: 'Información',
+    icon: 'information-circle-outline',
+    activeIcon: 'information-circle',
+  },
+  { key: 'lugar', label: 'Lugar', icon: 'map-outline', activeIcon: 'map' },
 ];
 
 export default function ConcertDetail() {
@@ -174,18 +185,26 @@ export default function ConcertDetail() {
 
           {topSong ? <SongCard song={topSong} title="Escucha a este artista" /> : null}
 
-          <View style={styles.segmented}>
-            {TABS.map((t) => (
-              <Pressable
-                key={t.key}
-                style={[styles.segment, tab === t.key && styles.segmentActive]}
-                onPress={() => setTab(t.key)}
-              >
-                <Text style={[styles.segmentText, tab === t.key && styles.segmentTextActive]}>
-                  {t.label}
-                </Text>
-              </Pressable>
-            ))}
+          <View style={styles.tabs} accessibilityRole="tablist">
+            {TABS.map((t) => {
+              const active = tab === t.key;
+              return (
+                <Pressable
+                  key={t.key}
+                  style={[styles.tab, active && styles.tabActive]}
+                  onPress={() => setTab(t.key)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Ionicons
+                    name={active ? t.activeIcon : t.icon}
+                    size={24}
+                    color={active ? theme.accent : COLORS.muted}
+                  />
+                  <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           {tab === 'info' && (
@@ -338,24 +357,27 @@ const makeStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    segmented: {
+    // A todo lo ancho (sin el margen del cuerpo), como en el perfil
+    tabs: {
       flexDirection: 'row',
-      backgroundColor: COLORS.surface,
-      borderRadius: 14,
-      padding: 4,
-      marginTop: 28,
+      marginTop: 24,
       marginBottom: 20,
+      marginHorizontal: -20,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: COLORS.line,
     },
-    segment: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
-    segmentActive: {
-      backgroundColor: COLORS.white,
-      shadowColor: '#000',
-      shadowOpacity: 0.1,
-      shadowRadius: 6,
-      shadowOffset: { width: 0, height: 2 },
+    tab: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 4,
+      paddingTop: 12,
+      paddingBottom: 10,
+      borderBottomWidth: 2,
+      borderBottomColor: 'transparent',
     },
-    segmentText: { color: COLORS.muted, fontSize: 14, fontWeight: '600' },
-    segmentTextActive: { color: COLORS.text },
+    tabActive: { borderBottomColor: theme.accent },
+    tabText: { color: COLORS.muted, fontSize: 12, fontWeight: '600' },
+    tabTextActive: { color: theme.accent, fontWeight: '700' },
     infoRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',

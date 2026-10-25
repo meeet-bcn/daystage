@@ -1,11 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Animated,
   Linking,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
+  ScrollViewInstance,
   StyleSheet,
   Text,
   useAnimatedValue,
@@ -17,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConcertImage } from '@/components/concert-image';
 import { CreateProfileCard } from '@/components/create-profile-card';
 import { ProfileAvatar } from '@/components/profile-avatar';
+import { SocialIcon } from '@/components/social-icon';
 import { SongCard } from '@/components/song-card';
 import { ProfileBackdrop } from '@/components/profile-backdrop';
 import { ScreenHeader } from '@/components/screen-header';
@@ -26,10 +30,11 @@ import { Concert } from '@/data/concerts';
 import { companionsLabel, isPast, splitPlans } from '@/data/plans';
 import { SOCIAL_NETWORKS, SOCIAL_ORDER } from '@/data/profile';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
-import { COLORS, PROFILE_BACKGROUNDS, Theme } from '@/theme';
+import { COLORS, Theme } from '@/theme';
 
 const COLUMNS = 3;
 const GAP = 2;
+const AVATAR_SIZE = 104;
 
 // Las tres columnas de la cuadrícula, como en Instagram
 type GridTab = 'plans' | 'wishlist' | 'past';
@@ -82,9 +87,27 @@ export default function ProfileScreen() {
   const [gridTab, setGridTab] = useState<GridTab>('plans');
   const scrollY = useAnimatedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
+  // Las tres columnas, una al lado de otra: se arrastran con el dedo como páginas
+  // y la raya de las pestañas las sigue (pagerX / 3)
+  const pager = useRef<ScrollViewInstance>(null);
+  const pagerX = useAnimatedValue(0);
+  // Alto de cada columna: la página mide lo que la que se ve, no lo que la más larga
+  const [pageHeights, setPageHeights] = useState<Partial<Record<GridTab, number>>>({});
+
+  const showColumn = (tab: GridTab) => {
+    const i = GRID_TABS.findIndex((t) => t.key === tab);
+    pager.current?.scrollTo({ x: i * width, animated: true });
+    setGridTab(tab);
+  };
+  const onPageEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const i = Math.round(e.nativeEvent.contentOffset.x / width);
+    setGridTab(GRID_TABS[Math.min(Math.max(i, 0), GRID_TABS.length - 1)].key);
+  };
 
   const { upcoming, past } = splitPlans(plans);
-  const tiles = gridTab === 'plans' ? upcoming : gridTab === 'wishlist' ? wishlist : past;
+  const next = upcoming[0];
+  const hasBackdrop = profile.created && profile.background !== 'none';
+  const tilesOf: Record<GridTab, Concert[]> = { plans: upcoming, wishlist, past };
   const tileWidth = (width - GAP * (COLUMNS - 1)) / COLUMNS;
 
   const socials = SOCIAL_ORDER.filter((n) => profile.socials[n]);
@@ -96,15 +119,45 @@ export default function ProfileScreen() {
     borderColor: `${theme.accent}40`, // el acento al 25 %
   };
 
+  // Como en Instagram: Meeet in lleva a su columna; seguidores y seguidos, a sus listas
+  const openFollows = (tab: 'followers' | 'following') =>
+    router.push({ pathname: '/follows', params: { tab } });
   const stats = [
-    { label: 'Meeet in', value: plans.length },
-    { label: 'Seguidores', value: profile.followers },
-    { label: 'Seguidos', value: profile.following },
-  ];
+    { key: 'plans', label: 'Meeet in', value: plans.length },
+    { key: 'followers', label: 'Seguidores', value: profile.followers },
+    { key: 'following', label: 'Seguidos', value: profile.following },
+  ] as const;
+  const onStat = (key: (typeof stats)[number]['key']) =>
+    key === 'plans' ? showColumn('plans') : openFollows(key);
+
+  const renderTile = (item: Concert, tab: GridTab) => {
+    const gone = isPast(item);
+    // En la lista de deseos aún no vas: la fecha. En tus planes, con quién vas (te incluye a ti)
+    const label = tab === 'wishlist' ? item.date : companionsLabel(goingCount(item) - 1, gone);
+    return (
+      <Pressable
+        key={item.id}
+        // Un deseo que ya ha pasado se queda, más tenue
+        style={[{ width: tileWidth }, tab === 'wishlist' && gone && styles.gone]}
+        onPress={() => router.push({ pathname: '/concert/[id]', params: { id: item.id } })}
+        accessibilityLabel={`${item.artist}, ${item.date}. ${label}`}
+      >
+        <ConcertImage concert={item} prefer="hero" style={styles.tile} iconSize={30} />
+        <View style={styles.caption}>
+          <Text style={styles.captionText} numberOfLines={2}>
+            {label}
+          </Text>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <Animated.FlatList
+      {/* El fondo elegido en Editar perfil (el mismo que ven los demás) cubre todo
+          el perfil, también la cuadrícula: va quieto detrás y la lista pasa por encima */}
+      {hasBackdrop && <ProfileBackdrop background={profile.background} />}
+      <Animated.ScrollView
         // El margen superior lo pone la cabecera fija; sin esto iOS lo suma otra vez
         contentInsetAdjustmentBehavior="never"
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
@@ -112,51 +165,67 @@ export default function ProfileScreen() {
         })}
         scrollEventThrottle={16}
         scrollIndicatorInsets={{ top: headerHeight }}
-        // Sin perfil creado no hay cuadrícula: solo la tarjeta para crearlo
-        data={profile.created ? tiles : []}
-        keyExtractor={(item: Concert) => item.id}
-        numColumns={COLUMNS}
-        columnWrapperStyle={{ gap: GAP }}
-        ItemSeparatorComponent={() => <View style={{ height: GAP }} />}
         contentContainerStyle={{ paddingBottom: insets.bottom + BottomTabInset + 32 }}
-        ListHeaderComponent={
+      >
+        {
+          // Sin perfil creado no hay cuadrícula: solo la tarjeta para crearlo
           !profile.created ? (
             <View style={{ paddingTop: headerHeight }}>
               <CreateProfileCard intro="Tu perfil es cómo te ve la gente que va a tus conciertos: tu foto, tu nick, tus gustos y los conciertos a los que vas. Crea el tuyo para empezar." />
             </View>
           ) : (
             <View>
-              {/* El fondo elegido en Editar perfil, el mismo que ven los demás */}
-              <View
-                // Empieza bajo la cabecera de cristal, que deja ver el degradado a través
-                style={{ paddingTop: headerHeight }}
-              >
-                {profile.background !== 'none' && (
-                  <ProfileBackdrop background={profile.background} />
-                )}
-                {/* Al tirar hacia abajo asoma lo de encima: se rellena con el color de arriba */}
-                {profile.background !== 'none' && (
-                  <View
-                    style={[
-                      styles.overscroll,
-                      { backgroundColor: PROFILE_BACKGROUNDS[profile.background].from },
-                    ]}
-                  />
-                )}
+              {/* Empieza bajo la cabecera de cristal, que deja ver el fondo a través */}
+              <View style={{ paddingTop: headerHeight }}>
                 <View style={styles.header}>
+                  {/* La foto y, a su lado, el próximo concierto y los números: los dos
+                      bloques ocupan juntos el alto de la foto y todo el ancho que queda */}
                   <View style={styles.summary}>
                     <ProfileAvatar
-                      size={86}
+                      size={AVATAR_SIZE}
                       uri={profile.photo || undefined}
                       onPress={() => router.push('/edit-profile')}
+                      rounded
                     />
-                    <View style={styles.stats}>
-                      {stats.map((s) => (
-                        <View key={s.label} style={styles.stat}>
-                          <Text style={styles.statValue}>{s.value}</Text>
-                          <Text style={styles.statLabel}>{s.label}</Text>
-                        </View>
-                      ))}
+                    <View style={[styles.summaryText, !next && styles.summaryCentered]}>
+                      {/* Tu próximo concierto: toca para ir a su ficha */}
+                      {next ? (
+                        <Pressable
+                          style={({ pressed }) => [styles.next, pill, pressed && styles.pressed]}
+                          onPress={() =>
+                            router.push({ pathname: '/concert/[id]', params: { id: next.id } })
+                          }
+                          accessibilityRole="button"
+                          accessibilityLabel={`Próximo concierto: ${next.artist}, ${next.date}, ${next.venue}`}
+                        >
+                          <ConcertImage concert={next} style={styles.nextImage} iconSize={16} />
+                          <View style={styles.nextText}>
+                            <Text style={styles.nextLabel}>Próximo concierto</Text>
+                            <Text style={styles.nextArtist} numberOfLines={1}>
+                              {next.artist}
+                            </Text>
+                            <Text style={styles.nextMeta} numberOfLines={1}>
+                              {next.date}
+                            </Text>
+                          </View>
+                          <Ionicons name="chevron-forward" size={16} color={COLORS.muted} />
+                        </Pressable>
+                      ) : null}
+                      <View style={styles.stats}>
+                        {stats.map((s) => (
+                          <Pressable
+                            key={s.label}
+                            style={({ pressed }) => [styles.stat, pressed && styles.pressed]}
+                            onPress={() => onStat(s.key)}
+                            hitSlop={6}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${s.value} ${s.label}`}
+                          >
+                            <Text style={styles.statValue}>{s.value}</Text>
+                            <Text style={styles.statLabel}>{s.label}</Text>
+                          </Pressable>
+                        ))}
+                      </View>
                     </View>
                   </View>
 
@@ -172,19 +241,26 @@ export default function ProfileScreen() {
                       ) : null}
                     </Text>
                   ) : null}
-                  <Text style={[styles.bio, !profile.bio && styles.muted]}>
-                    {profile.bio || 'Aún no has escrito tu biografía.'}
-                  </Text>
-
-                  {/* Tus gustos: salen de tus artistas y mejoran con lo que haces en la app */}
+                  {/* Tus estilos: salen de tus artistas y mejoran con lo que haces en la app */}
                   {myTastes.length > 0 && (
-                    <View style={styles.tastes}>
-                      <Ionicons name="musical-notes" size={14} style={styles.tastesIcon} />
-                      <Text style={styles.tastesText} numberOfLines={1}>
+                    <View style={styles.meta}>
+                      <Ionicons name="musical-notes" size={14} style={styles.metaIcon} />
+                      <Text style={styles.tastesText} numberOfLines={2}>
                         {myTastes.join(' · ')}
                       </Text>
                     </View>
                   )}
+                  {profile.location ? (
+                    <View style={styles.meta}>
+                      <Ionicons name="location-outline" size={14} style={styles.metaIcon} />
+                      <Text style={styles.locationText} numberOfLines={1}>
+                        {profile.location}
+                      </Text>
+                    </View>
+                  ) : null}
+                  <Text style={[styles.bio, !profile.bio && styles.muted]}>
+                    {profile.bio || 'Aún no has escrito tu biografía.'}
+                  </Text>
 
                   {profile.song ? <SongCard song={profile.song} style={pill} /> : null}
 
@@ -206,7 +282,7 @@ export default function ProfileScreen() {
                             accessibilityRole="link"
                             accessibilityLabel={`${label}: @${handle}`}
                           >
-                            <Ionicons name={icon} size={16} color={COLORS.text} />
+                            <SocialIcon icon={icon} size={16} color={COLORS.text} />
                             <Text style={styles.socialText} numberOfLines={1}>
                               {handle}
                             </Text>
@@ -226,13 +302,23 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.gridTabs} accessibilityRole="tablist">
+                {/* La raya sigue al dedo mientras se arrastran las columnas */}
+                <Animated.View
+                  style={[
+                    styles.gridIndicator,
+                    {
+                      width: width / GRID_TABS.length,
+                      transform: [{ translateX: Animated.divide(pagerX, GRID_TABS.length) }],
+                    },
+                  ]}
+                />
                 {GRID_TABS.map((t) => {
                   const active = gridTab === t.key;
                   return (
                     <Pressable
                       key={t.key}
-                      style={[styles.gridTab, active && styles.gridTabActive]}
-                      onPress={() => setGridTab(t.key)}
+                      style={styles.gridTab}
+                      onPress={() => showColumn(t.key)}
                       accessibilityRole="tab"
                       accessibilityState={{ selected: active }}
                       accessibilityLabel={t.label}
@@ -245,35 +331,47 @@ export default function ProfileScreen() {
                   );
                 })}
               </View>
+
+              {/* Las tres columnas, como páginas: se cambian tocando la pestaña o
+                  arrastrando con el dedo a un lado */}
+              <Animated.ScrollView
+                ref={pager}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: pagerX } } }], {
+                  useNativeDriver: true,
+                })}
+                scrollEventThrottle={16}
+                onMomentumScrollEnd={onPageEnd}
+                style={{ height: pageHeights[gridTab] }}
+              >
+                {GRID_TABS.map((t) => {
+                  const tiles = tilesOf[t.key];
+                  return (
+                    <View
+                      key={t.key}
+                      style={[styles.page, { width }]}
+                      onLayout={(e) => {
+                        const h = e.nativeEvent.layout.height;
+                        setPageHeights((current) =>
+                          current[t.key] === h ? current : { ...current, [t.key]: h }
+                        );
+                      }}
+                    >
+                      {tiles.length > 0 ? (
+                        tiles.map((item) => renderTile(item, t.key))
+                      ) : (
+                        <Text style={[styles.empty, { width }]}>{EMPTY_TEXT[t.key]}</Text>
+                      )}
+                    </View>
+                  );
+                })}
+              </Animated.ScrollView>
             </View>
           )
         }
-        ListEmptyComponent={
-          profile.created ? <Text style={styles.empty}>{EMPTY_TEXT[gridTab]}</Text> : undefined
-        }
-        renderItem={({ item }: { item: Concert }) => {
-          const gone = isPast(item);
-          // En la lista de deseos aún no vas: la fecha. En tus planes, con quién vas (te incluye a ti)
-          const label =
-            gridTab === 'wishlist' ? item.date : companionsLabel(goingCount(item) - 1, gone);
-
-          return (
-            <Pressable
-              // Un deseo que ya ha pasado se queda, más tenue
-              style={[{ width: tileWidth }, gridTab === 'wishlist' && gone && styles.gone]}
-              onPress={() => router.push({ pathname: '/concert/[id]', params: { id: item.id } })}
-              accessibilityLabel={`${item.artist}, ${item.date}. ${label}`}
-            >
-              <ConcertImage concert={item} prefer="hero" style={styles.tile} iconSize={30} />
-              <View style={styles.caption}>
-                <Text style={styles.captionText} numberOfLines={2}>
-                  {label}
-                </Text>
-              </View>
-            </Pressable>
-          );
-        }}
-      />
+      </Animated.ScrollView>
       {/* Fija arriba, de cristal: el nick y los ajustes se quedan; el resto pasa por debajo */}
       <ScreenHeader
         title={profile.nick || 'Perfil'}
@@ -298,34 +396,63 @@ export default function ProfileScreen() {
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
+    // Mismo alto que la foto: el concierto arriba, los números abajo, a todo lo ancho
+    summaryText: { flex: 1, height: AVATAR_SIZE, justifyContent: 'space-between' },
+    summaryCentered: { justifyContent: 'center' },
+    meta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+    metaIcon: { color: theme.accent },
+    locationText: { flex: 1, color: COLORS.text, fontSize: 14, fontWeight: '600' },
+    next: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      padding: 6,
+      paddingRight: 10,
+      borderRadius: 16,
+      backgroundColor: COLORS.surface,
+    },
+    nextImage: { width: 40, height: 40, borderRadius: 10, backgroundColor: COLORS.surface },
+    nextText: { flex: 1 },
+    nextLabel: {
+      color: theme.accent,
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    nextArtist: {
+      color: COLORS.text,
+      fontSize: 14,
+      fontWeight: '700',
+      letterSpacing: -0.3,
+      marginTop: 1,
+    },
+    nextMeta: { color: COLORS.muted, fontSize: 12, marginTop: 1 },
     // Aire entre la cabecera fija y la foto, para que respire
     header: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
-    tastes: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
-    tastesIcon: { color: theme.accent },
     tastesText: { flex: 1, color: theme.accent, fontSize: 14, fontWeight: '700' },
-    overscroll: { position: 'absolute', left: 0, right: 0, top: -1000, height: 1000 },
     gridTabs: {
       flexDirection: 'row',
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: COLORS.line,
       marginBottom: GAP,
     },
-    gridTab: {
-      flex: 1,
-      alignItems: 'center',
-      gap: 4,
-      paddingTop: 12,
-      paddingBottom: 10,
-      borderBottomWidth: 2,
-      borderBottomColor: 'transparent',
+    gridTab: { flex: 1, alignItems: 'center', gap: 4, paddingTop: 12, paddingBottom: 12 },
+    gridIndicator: {
+      position: 'absolute',
+      left: 0,
+      bottom: 0,
+      height: 2,
+      backgroundColor: theme.accent,
     },
-    gridTabActive: { borderBottomColor: theme.accent },
+    // Una columna: las fotos en filas de tres, pegadas
+    page: { flexDirection: 'row', flexWrap: 'wrap', alignContent: 'flex-start', gap: GAP },
     gridIcon: { width: 24, height: 24 },
     gridTabText: { color: COLORS.muted, fontSize: 12, fontWeight: '600' },
     gridTabTextActive: { color: theme.accent, fontWeight: '700' },
     settings: { marginLeft: 'auto', padding: 4 },
-    summary: { flexDirection: 'row', alignItems: 'center', gap: 20 },
-    stats: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
+    summary: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+    stats: { flexDirection: 'row', justifyContent: 'space-around' },
     stat: { alignItems: 'center' },
     statValue: { color: COLORS.text, fontSize: 18, fontWeight: '800' },
     statLabel: { color: COLORS.muted, fontSize: 13, marginTop: 2 },

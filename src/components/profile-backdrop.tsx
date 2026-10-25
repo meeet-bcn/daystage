@@ -1,9 +1,10 @@
 // Fondo del perfil con vida: el degradado elegido en Editar perfil y, encima,
-// dos manchas suaves de sus mismos colores que derivan muy despacio, así que la
-// luz parece moverse sin cambiar el fondo. Con "Reducir movimiento", quieto.
+// tres manchas suaves de sus mismos colores que derivan despacio por toda la
+// pantalla, así que la luz se mueve sin cambiar el fondo. Ocupa el perfil
+// entero (también bajo la cuadrícula). Con "Reducir movimiento", quieto.
 
-import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -13,27 +14,23 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import {
-  PROFILE_BACKGROUNDS,
-  profileGradient,
-  ProfileBackground,
-} from "@/theme";
+import { PROFILE_BACKGROUNDS, profileGradient, ProfileBackground } from '@/theme';
 
-// Ajustes del movimiento
-const DRIFT_MS = [11000, 14000]; // ida de cada mancha (luego vuelve): lento a propósito
-const DRIFT = 0.18; // cuánto se desplaza cada mancha, en fracción del ancho
-const BLOB_SIZE = 1.3; // diámetro de la mancha, en fracción del ancho
+// Ajustes del movimiento: sutil, pero que se note
+const DRIFT_MS = [7000, 9000, 11000]; // ida de cada mancha (luego vuelve)
+const DRIFT = 0.32; // cuánto se desplaza cada mancha, en fracción del ancho
+const PULSE = 0.18; // cuánto crece al ir
+const BLOB_SIZE = 1.2; // diámetro de la mancha, en fracción del ancho
 
 // Mancha circular que se difumina hasta transparente (hex + alfa 00)
-const blobGradient = (color: string) =>
-  `radial-gradient(circle, ${color} 0%, ${color}00 70%)`;
+const blobGradient = (color: string) => `radial-gradient(circle, ${color} 0%, ${color}00 70%)`;
 
 type BlobProps = {
   color: string;
   progress: SharedValue<number>;
-  // Posición de partida (fracción del ancho/alto) y dirección del viaje
+  // Posición de partida (fracción del ancho y del alto) y dirección del viaje
   from: { x: number; y: number };
   dir: { x: number; y: number };
   width: number;
@@ -46,7 +43,7 @@ function Blob({ color, progress, from, dir, width }: BlobProps) {
       transform: [
         { translateX: dir.x * DRIFT * p * width },
         { translateY: dir.y * DRIFT * p * width },
-        { scale: 1 + 0.08 * p },
+        { scale: 1 + PULSE * p },
       ],
     };
   });
@@ -67,77 +64,45 @@ function Blob({ color, progress, from, dir, width }: BlobProps) {
   );
 }
 
-export function ProfileBackdrop({
-  background,
-}: {
-  background: ProfileBackground;
-}) {
+export function ProfileBackdrop({ background }: { background: ProfileBackground }) {
   const reduceMotion = useReducedMotion();
   const a = useSharedValue(0);
   const b = useSharedValue(0);
+  const c = useSharedValue(0);
   const [width, setWidth] = useState(0);
-  const { from, to } =
-    PROFILE_BACKGROUNDS[background] ?? PROFILE_BACKGROUNDS.none;
+  const { from, to } = PROFILE_BACKGROUNDS[background] ?? PROFILE_BACKGROUNDS.none;
 
   useEffect(() => {
     if (reduceMotion) return;
     const ease = Easing.inOut(Easing.sin);
-    a.set(
-      withRepeat(
-        withTiming(1, { duration: DRIFT_MS[0], easing: ease }),
-        -1,
-        true,
-      ),
+    [a, b, c].forEach((v, i) =>
+      v.set(withRepeat(withTiming(1, { duration: DRIFT_MS[i], easing: ease }), -1, true))
     );
-    b.set(
-      withRepeat(
-        withTiming(1, { duration: DRIFT_MS[1], easing: ease }),
-        -1,
-        true,
-      ),
-    );
-    return () => {
-      cancelAnimation(a);
-      cancelAnimation(b);
-    };
-  }, [reduceMotion, a, b]);
+    return () => [a, b, c].forEach((v) => cancelAnimation(v));
+  }, [reduceMotion, a, b, c]);
 
   return (
     <View
       pointerEvents="none"
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      style={[
-        styles.fill,
-        { experimental_backgroundImage: profileGradient(background) },
-      ]}
+      style={[styles.fill, { experimental_backgroundImage: profileGradient(background) }]}
     >
-      {/* El color de abajo sube por la izquierda; el de arriba baja por la derecha */}
-      <Blob
-        color={to}
-        progress={a}
-        from={{ x: 0.1, y: 0.15 }}
-        dir={{ x: 1, y: -0.6 }}
-        width={width}
-      />
+      {/* El color de abajo sube por la izquierda, el de arriba baja por la derecha
+          y otro del de abajo cruza la parte de la cuadrícula */}
+      <Blob color={to} progress={a} from={{ x: 0.1, y: 0.05 }} dir={{ x: 1, y: 0.5 }} width={width} />
       <Blob
         color={from}
         progress={b}
-        from={{ x: 0.9, y: 0.05 }}
-        dir={{ x: -1, y: 0.8 }}
+        from={{ x: 0.9, y: 0.3 }}
+        dir={{ x: -1, y: -0.7 }}
         width={width}
       />
+      <Blob color={to} progress={c} from={{ x: 0.6, y: 0.62 }} dir={{ x: -0.8, y: 0.6 }} width={width} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  fill: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    overflow: "hidden",
-  },
-  blob: { position: "absolute", aspectRatio: 1, opacity: 0.85 },
+  fill: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
+  blob: { position: 'absolute', aspectRatio: 1, opacity: 0.9 },
 });

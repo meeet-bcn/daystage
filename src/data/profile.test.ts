@@ -46,16 +46,20 @@ describe('nickError', () => {
 
 describe('normalizeHandle', () => {
   it.each([
-    ['@Jordi', 'jordi'],
-    ['  jordi.bcn ', 'jordi.bcn'],
-    ['https://www.instagram.com/jordi.bcn/', 'jordi.bcn'],
-    ['instagram.com/jordi?igsh=abc', 'jordi'],
-    ['https://www.tiktok.com/@jordi_23', 'jordi_23'],
-    ['https://x.com/Jordi', 'jordi'],
-    ['https://twitter.com/jordi', 'jordi'],
-    ['', ''],
-  ])('"%s" → "%s"', (input, expected) => {
-    expect(normalizeHandle(input)).toBe(expected);
+    ['instagram', '@Jordi', 'jordi'],
+    ['instagram', '  jordi.bcn ', 'jordi.bcn'],
+    ['instagram', 'https://www.instagram.com/jordi.bcn/', 'jordi.bcn'],
+    ['instagram', 'instagram.com/jordi?igsh=abc', 'jordi'],
+    ['tiktok', 'https://www.tiktok.com/@jordi_23', 'jordi_23'],
+    ['x', 'https://x.com/Jordi', 'jordi'],
+    ['x', 'https://twitter.com/jordi', 'jordi'],
+    ['appleMusic', 'https://music.apple.com/profile/Jordi.bcn', 'jordi.bcn'],
+    ['appleMusic', 'https://music.apple.com/es/profile/jordi', 'jordi'],
+    ['spotify', 'https://open.spotify.com/user/31AbCdEf?si=xyz', '31AbCdEf'],
+    ['spotify', 'https://open.spotify.com/intl-es/user/Jordi_Bcn', 'Jordi_Bcn'],
+    ['instagram', '', ''],
+  ] as const)('%s: "%s" → "%s"', (network, input, expected) => {
+    expect(normalizeHandle(input, network)).toBe(expected);
   });
 });
 
@@ -72,6 +76,10 @@ describe('handleError', () => {
     expect(handleError('x', 'a'.repeat(16))).toBe('Máximo 15 caracteres.');
     expect(handleError('tiktok', 'a'.repeat(25))).toBe('Máximo 24 caracteres.');
     expect(handleError('instagram', 'jordí')).toBe('Solo letras sin acentos, números, "." y "_".');
+    expect(handleError('spotify', '31AbC-d_e')).toBeNull();
+    expect(handleError('spotify', 'jordi bcn')).toBe(
+      'Solo letras sin acentos, números, ".", "_" y "-".'
+    );
   });
 });
 
@@ -80,6 +88,8 @@ describe('SOCIAL_NETWORKS', () => {
     expect(SOCIAL_NETWORKS.instagram.url('jordi')).toBe('https://www.instagram.com/jordi');
     expect(SOCIAL_NETWORKS.tiktok.url('jordi')).toBe('https://www.tiktok.com/@jordi');
     expect(SOCIAL_NETWORKS.x.url('jordi')).toBe('https://x.com/jordi');
+    expect(SOCIAL_NETWORKS.appleMusic.url('jordi')).toBe('https://music.apple.com/profile/jordi');
+    expect(SOCIAL_NETWORKS.spotify.url('31AbCd')).toBe('https://open.spotify.com/user/31AbCd');
   });
 });
 
@@ -104,7 +114,27 @@ describe('pronombres', () => {
 
 describe('loadProfile', () => {
   it('sin nada guardado, perfil vacío y sin crear', () => {
-    expect(loadProfile({})).toMatchObject({ created: false, nick: '', tastes: [] });
+    expect(loadProfile({})).toMatchObject({
+      created: false,
+      nick: '',
+      location: '',
+      tastes: [],
+    });
+  });
+
+  it('las redes nuevas llegan vacías a los perfiles guardados antes', () => {
+    const saved = { socials: { instagram: 'jordi', tiktok: '', x: '' } } as never;
+    expect(loadProfile(saved).socials).toEqual({
+      instagram: 'jordi',
+      tiktok: '',
+      x: '',
+      appleMusic: '',
+      spotify: '',
+    });
+  });
+
+  it('los perfiles guardados sin ubicación la reciben vacía', () => {
+    expect(loadProfile({ nick: 'jordi', bio: 'hola' }).location).toBe('');
   });
 
   it('los perfiles de antes de `created` cuentan como creados si tenían algo', () => {

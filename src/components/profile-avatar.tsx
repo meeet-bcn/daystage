@@ -3,15 +3,24 @@ import { Image, Pressable, StyleSheet } from 'react-native';
 
 import { COLORS } from '@/theme';
 
+// Esquinas de la foto cuadrada (Perfil y Editar perfil), en fracción del lado
+const ROUNDED_RADIUS = 0.28;
+
 type Props = {
   size?: number;
   /** Foto de perfil. Sin ella se muestra el icono genérico. */
   uri?: string;
   onPress?: () => void;
+  /** Cuadrada con las esquinas redondeadas (la foto de tu perfil); si no, en círculo. */
+  rounded?: boolean;
 };
 
-export function ProfileAvatar({ size = 36, uri, onPress }: Props) {
-  const shape = { width: size, height: size, borderRadius: size / 2 };
+export function ProfileAvatar({ size = 36, uri, onPress, rounded = false }: Props) {
+  const shape = {
+    width: size,
+    height: size,
+    borderRadius: rounded ? size * ROUNDED_RADIUS : size / 2,
+  };
 
   return (
     <Pressable

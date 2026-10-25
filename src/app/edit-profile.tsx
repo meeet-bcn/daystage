@@ -6,11 +6,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/chip';
 import { ProfileAvatar } from '@/components/profile-avatar';
+import { SocialIcon } from '@/components/social-icon';
 import { SongPicker } from '@/components/song-picker';
 import { SongRow } from '@/components/song-row';
 import { useApp } from '@/data/app-context';
 import {
   BIO_MAX,
+  LOCATION_MAX,
   handleError,
   NAME_MAX,
   nickError,
@@ -51,6 +53,7 @@ export default function EditProfileScreen() {
   // Se eligen de una lista, no se escriben
   const [pronouns, setPronouns] = useState(() => parsePronouns(profile.pronouns));
   const [bio, setBio] = useState(profile.bio);
+  const [location, setLocation] = useState(profile.location);
   const [socials, setSocials] = useState<Socials>(profile.socials);
   const [song, setSong] = useState<ProfileSong | null>(profile.song);
   const [background, setBackground] = useState<ProfileBackground>(profile.background);
@@ -68,6 +71,7 @@ export default function EditProfileScreen() {
     name.trim() !== profile.name ||
     formatPronouns(pronouns) !== profile.pronouns ||
     bio.trim() !== profile.bio ||
+    location.trim() !== profile.location ||
     SOCIAL_ORDER.some((n) => socials[n] !== profile.socials[n]) ||
     song?.id !== profile.song?.id ||
     background !== profile.background ||
@@ -89,6 +93,7 @@ export default function EditProfileScreen() {
         name: name.trim(),
         pronouns: formatPronouns(pronouns),
         bio: bio.trim(),
+        location: location.trim(),
         socials,
         song,
         background,
@@ -128,7 +133,7 @@ export default function EditProfileScreen() {
         automaticallyAdjustKeyboardInsets
       >
         <View style={styles.photo}>
-          <ProfileAvatar size={96} uri={photo || undefined} onPress={choosePhoto} />
+          <ProfileAvatar size={96} uri={photo || undefined} onPress={choosePhoto} rounded />
           <View style={styles.photoActions}>
             <Pressable onPress={choosePhoto} hitSlop={8}>
               <Text style={styles.link}>{photo ? 'Cambiar foto' : 'Añadir foto'}</Text>
@@ -200,6 +205,18 @@ export default function EditProfileScreen() {
           multiline
           maxLength={BIO_MAX}
           textAlignVertical="top"
+        />
+
+        <Text style={styles.label}>Ubicación</Text>
+        <TextInput
+          value={location}
+          onChangeText={setLocation}
+          placeholder="Barcelona, o de dónde vienes"
+          placeholderTextColor={COLORS.muted}
+          style={styles.field}
+          autoComplete="postal-address-locality"
+          textContentType="addressCity"
+          maxLength={LOCATION_MAX}
         />
 
         <View style={styles.labelRow}>
@@ -276,13 +293,15 @@ export default function EditProfileScreen() {
             return (
               <View key={network}>
                 <View style={[styles.field, styles.nickField, socialError && styles.fieldError]}>
-                  <Ionicons name={icon} size={18} color={COLORS.text} style={styles.socialIcon} />
+                  <View style={styles.socialIcon}>
+                    <SocialIcon icon={icon} size={18} color={COLORS.text} />
+                  </View>
                   <Text style={styles.at}>@</Text>
                   <TextInput
                     value={socials[network]}
                     // Acepta también el enlace del perfil pegado tal cual
                     onChangeText={(text) =>
-                      setSocials((current) => ({ ...current, [network]: normalizeHandle(text) }))
+                      setSocials((current) => ({ ...current, [network]: normalizeHandle(text, network) }))
                     }
                     placeholder={`Usuario de ${label}`}
                     placeholderTextColor={COLORS.muted}

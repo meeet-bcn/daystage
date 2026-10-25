@@ -396,3 +396,16 @@ export function buildDeck(
     .sort((a, b) => b.score - a.score || (a.concert.startsAt ?? 0) - (b.concert.startsAt ?? 0))
     .map((x) => x.concert);
 }
+
+/**
+ * La baraja con `ahead` delante y en su orden: las cartas que ya se están viendo
+ * (la que asoma detrás) no cambian aunque los gustos se recalculen al deslizar.
+ * Las que ya no están en la baraja (deslizadas, o el concierto ya no está) se ignoran.
+ */
+export function keepAhead(deck: Concert[], ahead: string[]) {
+  const pinned = ahead
+    .map((id) => deck.find((c) => c.id === id))
+    .filter((c): c is Concert => c != null);
+  const ids = new Set(pinned.map((c) => c.id));
+  return [...pinned, ...deck.filter((c) => !ids.has(c.id))];
+}

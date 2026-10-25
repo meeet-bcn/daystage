@@ -10,6 +10,8 @@ export type Profile = {
   /** Pronombres elegidos de PRONOUN_OPTIONS, unidos con " · " ("ella · she/her"). En gris junto al nombre. */
   pronouns: string;
   bio: string;
+  /** Dónde vives o desde dónde vienes ("Barcelona", "Lyon, de visita"). Texto libre, o ''. */
+  location: string;
   /** Usuario en cada red, sin "@" ni URL. Vacío si no la tiene. */
   socials: Socials;
   /** Tus gustos musicales (MUSIC_TASTES), para recomendarte conciertos. */
@@ -28,7 +30,7 @@ export type Profile = {
   following: number;
 };
 
-export type SocialNetwork = 'instagram' | 'tiktok' | 'x';
+export type SocialNetwork = 'instagram' | 'tiktok' | 'x' | 'appleMusic' | 'spotify';
 export type Socials = Record<SocialNetwork, string>;
 
 /** PNG de la pestaña: normal y seleccionada, con la foto, el tamaño (pt) y el color del aro con que se hicieron. */
@@ -47,7 +49,8 @@ export const EMPTY_PROFILE: Profile = {
   name: '',
   pronouns: '',
   bio: '',
-  socials: { instagram: '', tiktok: '', x: '' },
+  location: '',
+  socials: { instagram: '', tiktok: '', x: '', appleMusic: '', spotify: '' },
   tastes: [],
   tasteArtists: [],
   song: null,
@@ -82,6 +85,8 @@ export function loadProfile(saved: Partial<Profile>): Profile {
   return {
     ...EMPTY_PROFILE,
     ...saved,
+    // Las redes nuevas llegan vacías a los perfiles guardados antes de existir
+    socials: { ...EMPTY_PROFILE.socials, ...saved.socials },
     created: saved.created ?? Boolean(saved.nick || saved.name || saved.photo),
   };
 }
@@ -89,6 +94,7 @@ export function loadProfile(saved: Partial<Profile>): Profile {
 export const NICK_MAX = 30;
 export const NAME_MAX = 40;
 export const BIO_MAX = 150;
+export const LOCATION_MAX = 40;
 /**
  * Pronombres que se pueden elegir (no se escriben). En español y, como la app
  * la usan turistas, también en inglés. Hasta PRONOUNS_PICK_MAX a la vez.
@@ -115,54 +121,84 @@ export function togglePronoun(picked: string[], option: string) {
   return picked.length < PRONOUNS_PICK_MAX ? [...picked, option] : picked;
 }
 
-/** Datos de cada red: nombre, icono (Ionicons), perfil público y reglas de su usuario. */
+/** Icono de una red: casi todos de Ionicons; Spotify, que no está, de FontAwesome. */
+export type SocialIconName =
+  | { family: 'ionicons'; name: 'logo-instagram' | 'logo-tiktok' | 'logo-x' | 'logo-apple' }
+  | { family: 'fontawesome'; name: 'spotify' };
+
+/** Datos de cada red: nombre, icono, perfil público y reglas de su usuario. */
 export const SOCIAL_NETWORKS: Record<
   SocialNetwork,
   {
     label: string;
-    icon: 'logo-instagram' | 'logo-tiktok' | 'logo-x';
+    icon: SocialIconName;
     max: number;
     chars: RegExp;
+    /** El usuario dentro del enlace del perfil, si lo pegan entero. */
+    link: RegExp;
+    /** Spotify: el id de usuario distingue mayúsculas (en las demás no). */
+    caseSensitive?: boolean;
     url: (handle: string) => string;
   }
 > = {
   instagram: {
     label: 'Instagram',
-    icon: 'logo-instagram',
+    icon: { family: 'ionicons', name: 'logo-instagram' },
     max: 30,
     chars: /^[a-z0-9._]+$/,
+    link: /instagram\.com\/([^/?#\s]+)/i,
     url: (h) => `https://www.instagram.com/${h}`,
   },
   tiktok: {
     label: 'TikTok',
-    icon: 'logo-tiktok',
+    icon: { family: 'ionicons', name: 'logo-tiktok' },
     max: 24,
     chars: /^[a-z0-9._]+$/,
+    link: /tiktok\.com\/@?([^/?#\s]+)/i,
     url: (h) => `https://www.tiktok.com/@${h}`,
   },
   x: {
     label: 'X',
-    icon: 'logo-x',
+    icon: { family: 'ionicons', name: 'logo-x' },
     max: 15,
     chars: /^[a-z0-9_]+$/,
+    link: /(?:x|twitter)\.com\/([^/?#\s]+)/i,
     url: (h) => `https://x.com/${h}`,
+  },
+  appleMusic: {
+    label: 'Apple Music',
+    icon: { family: 'ionicons', name: 'logo-apple' },
+    max: 30,
+    chars: /^[a-z0-9._]+$/,
+    // music.apple.com/profile/usuario (a veces con el país delante)
+    link: /music\.apple\.com\/(?:[a-z]{2}\/)?profile\/([^/?#\s]+)/i,
+    url: (h) => `https://music.apple.com/profile/${h}`,
+  },
+  spotify: {
+    label: 'Spotify',
+    icon: { family: 'fontawesome', name: 'spotify' },
+    max: 64,
+    chars: /^[A-Za-z0-9._-]+$/,
+    // open.spotify.com/user/id (a veces con "intl-es/" delante)
+    link: /open\.spotify\.com\/(?:intl-[a-z]{2}\/)?user\/([^/?#\s]+)/i,
+    caseSensitive: true,
+    url: (h) => `https://open.spotify.com/user/${h}`,
   },
 };
 
-export const SOCIAL_ORDER: SocialNetwork[] = ['instagram', 'tiktok', 'x'];
+export const SOCIAL_ORDER: SocialNetwork[] = ['instagram', 'tiktok', 'x', 'appleMusic', 'spotify'];
 
 /**
  * Lo que pega el usuario, como se guarda: acepta "@usuario" o el enlace de su
- * perfil (instagram.com/usuario, tiktok.com/@usuario, x.com/usuario…).
+ * perfil (instagram.com/usuario, tiktok.com/@usuario, open.spotify.com/user/id…).
  */
-export function normalizeHandle(input: string) {
+export function normalizeHandle(input: string, network: SocialNetwork = 'instagram') {
+  const { link, caseSensitive } = SOCIAL_NETWORKS[network];
   let text = input.trim();
-  const fromUrl = text.match(
-    /^(?:https?:\/\/)?(?:www\.|m\.|mobile\.)?(?:instagram\.com|tiktok\.com|x\.com|twitter\.com)\/@?([^/?#\s]+)/i
-  );
+  const fromUrl = text.match(link);
   if (fromUrl) text = fromUrl[1];
-  // En las tres redes el usuario no distingue mayúsculas
-  return text.replace(/^@+/, '').replace(/\s+/g, '').toLowerCase();
+  text = text.replace(/^@+/, '').replace(/\s+/g, '');
+  return caseSensitive ? text : text.toLowerCase();
 }
 
 /** Motivo por el que el usuario no vale en esa red, o null. Vacío es válido. */
@@ -171,9 +207,9 @@ export function handleError(network: SocialNetwork, handle: string): string | nu
   if (handle === '') return null;
   if (handle.length > max) return `Máximo ${max} caracteres.`;
   if (!chars.test(handle)) {
-    return network === 'x'
-      ? 'Solo letras sin acentos, números y "_".'
-      : 'Solo letras sin acentos, números, "." y "_".';
+    if (network === 'x') return 'Solo letras sin acentos, números y "_".';
+    if (network === 'spotify') return 'Solo letras sin acentos, números, ".", "_" y "-".';
+    return 'Solo letras sin acentos, números, "." y "_".';
   }
   return null;
 }

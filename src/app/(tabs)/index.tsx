@@ -81,6 +81,7 @@ export default function HomeScreen() {
     filters,
     setFilters,
     resetFilters,
+    trimConcerts,
     loadMore,
     hasMore,
     loadingMore,
@@ -315,10 +316,11 @@ export default function HomeScreen() {
             ]}
           >
             {/* Las "eee" en la escala del salmón, de clara a oscura */}m
-            <Text style={{ color: COLORS.peach }}>e</Text>
-            <Text style={{ color: COLORS.peachMid }}>e</Text>
-            <Text style={{ color: COLORS.peachDeep }}>e</Text>t
-            <Text style={{ color: COLORS.accent }}>.</Text>
+            {/* Las "eee" en la escala del color de tu perfil (sin fondo, el salmón de la marca) */}
+            <Text style={{ color: theme.logo[0] }}>e</Text>
+            <Text style={{ color: theme.logo[1] }}>e</Text>
+            <Text style={{ color: theme.logo[2] }}>e</Text>t
+            <Text style={{ color: theme.accent }}>.</Text>
           </Animated.Text>
         </Animated.View>
 
@@ -338,6 +340,16 @@ export default function HomeScreen() {
               style={styles.toolbarScroll}
               contentContainerStyle={styles.toolbar}
             >
+              {/* Todos: sin filtros ni fechas. Si había días del calendario, se vacía
+                  también lo cargado para ellos, como con "Quitar fechas" */}
+              <Chip
+                label="Todos"
+                active={!isFiltered}
+                onPress={() => {
+                  if (filters.dates && !quick) trimConcerts();
+                  resetFilters();
+                }}
+              />
               <Chip
                 icon="options-outline"
                 label={filterCount > 0 ? `Filtros · ${filterCount}` : 'Filtros'}

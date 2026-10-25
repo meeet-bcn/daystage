@@ -52,8 +52,31 @@ export type Concert = {
  */
 export type ConcertsPage = EventPage & { until: number | null };
 
+// Lo más que se espera a una fuente: si la red no la deja pasar, la petición no
+// falla, se queda colgada, y sin límite la lista no saldría nunca
+const SOURCE_TIMEOUT_MS = 15000;
+
+/** `promise`, o un error si tarda más de `ms`. */
+export function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} no ha respondido a tiempo`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
 export async function fetchConcerts(query: EventQuery): Promise<ConcertsPage> {
-  const results = await Promise.allSettled(PROVIDERS.map((p) => p.fetchEvents(query)));
+  const results = await Promise.allSettled(
+    PROVIDERS.map((p) => withTimeout(p.fetchEvents(query), SOURCE_TIMEOUT_MS, p.source))
+  );
 
   const concerts: Concert[] = [];
   const errors: string[] = [];

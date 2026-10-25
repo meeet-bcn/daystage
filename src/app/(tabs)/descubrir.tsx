@@ -11,7 +11,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { TastePicker } from '@/components/taste-picker';
 import { useApp } from '@/data/app-context';
 import { Concert } from '@/data/concerts';
-import { buildDeck, TASTE_PICKS, tasteWeights, topTastes } from '@/data/taste';
+import { buildDeck, keepAhead, TASTE_PICKS, tasteWeights, topTastes } from '@/data/taste';
 import { useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
 
@@ -67,6 +67,8 @@ export default function DiscoverScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const [picking, setPicking] = useState(false);
   const [now] = useState(() => Date.now());
+  // Las cartas que ya se ven (delante y la que asoma detrás): no se reordenan al deslizar
+  const [ahead, setAhead] = useState<string[]>([]);
   const {
     profile,
     updateProfile,
@@ -85,11 +87,23 @@ export default function DiscoverScreen() {
   } = useApp();
 
   const hasTastes = profile.tasteArtists.length >= TASTE_PICKS;
-  const deck = buildDeck(concerts, weights, {
-    now,
-    swiped: new Set(Object.keys(swipes)),
-    going: new Set(plans.map((c) => c.id)),
-  });
+  const deck = keepAhead(
+    buildDeck(concerts, weights, {
+      now,
+      swiped: new Set(Object.keys(swipes)),
+      going: new Set(plans.map((c) => c.id)),
+    }),
+    ahead
+  );
+  // Al quitar una carta, las dos siguientes se quedan fijas: la de detrás pasa delante
+  // tal cual, aunque los gustos (que cambian al deslizar) ordenen el resto de otra forma
+  const pinAfter = (concert: Concert) =>
+    setAhead(
+      deck
+        .filter((c) => c.id !== concert.id)
+        .slice(0, 2)
+        .map((c) => c.id)
+    );
 
   const finishPicking = (picks: string[]) => {
     // Tus gustos en el perfil: lo que ya habías elegido más lo que se deduce de los artistas
@@ -103,10 +117,12 @@ export default function DiscoverScreen() {
 
   // Derecha: te gusta (a tu lista de deseos). Izquierda: no. Las dos enseñan a la app
   const onSwipe = (concert: Concert, liked: boolean) => {
+    pinAfter(concert);
     if (liked && !isWished(concert.id)) toggleWish(concert);
     swipe(concert, liked);
   };
   const onMeeetIn = (concert: Concert) => {
+    pinAfter(concert);
     if (settings.haptics) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     if (!isGoing(concert.id)) toggleGoing(concert);
     swipe(concert, true);
@@ -162,7 +178,7 @@ export default function DiscoverScreen() {
         <Point icon="close-circle-outline" text="Desliza a la izquierda si no te interesa." />
         <Point
           icon="people-outline"
-          text="¿Lo tienes claro? Dale a «Meeet In!» y apúntate para ir con gente."
+          text="¿Lo tienes claro? Desliza hacia arriba o dale a «Meeet In!» y apúntate para ir con gente."
         />
       </Explainer>
     );

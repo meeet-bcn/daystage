@@ -4,6 +4,7 @@ import { makeConcert } from '@/data/__fixtures__/concert';
 import { MUSIC_TASTES } from '@/data/profile';
 import {
   buildDeck,
+  keepAhead,
   pickLanguages,
   TASTE_ARTISTS,
   TASTE_PICKS,
@@ -105,5 +106,21 @@ describe('buildDeck', () => {
       }
     );
     expect(deck.map((c) => c.id)).toEqual(['jazz']);
+  });
+});
+
+describe('keepAhead', () => {
+  const a = makeConcert({ id: 'a' });
+  const b = makeConcert({ id: 'b' });
+  const c = makeConcert({ id: 'c' });
+
+  it('la carta que asomaba detrás pasa delante aunque cambie el orden', () => {
+    // Tras deslizar, los gustos nuevos ponen "c" primero, pero se estaba viendo "b"
+    expect(keepAhead([c, a, b], ['b']).map((x) => x.id)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('ignora las que ya no están en la baraja', () => {
+    expect(keepAhead([c, a], ['b']).map((x) => x.id)).toEqual(['c', 'a']);
+    expect(keepAhead([c, a], []).map((x) => x.id)).toEqual(['c', 'a']);
   });
 });

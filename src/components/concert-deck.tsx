@@ -15,13 +15,14 @@ import { scheduleOnRN } from 'react-native-worklets';
 import type { Concert } from '@/data/concerts';
 import { tasteGenre } from '@/data/taste';
 import { ConcertImage } from '@/components/concert-image';
+import { Imagotipo } from '@/components/imagotipo';
 import { useFadedPreview } from '@/hooks/use-faded-preview';
 import { useThemedStyles } from '@/hooks/use-theme';
 import { useTopSong } from '@/hooks/use-top-song';
 import { COLORS, Theme } from '@/theme';
 
 // Ajustes del gesto
-const SWIPE_DISTANCE = 120; // pt que hay que arrastrar para que cuente
+const SWIPE_DISTANCE = 120; // pt que hay que arrastrar para que cuente (a un lado o hacia arriba)
 const SWIPE_VELOCITY = 800; // o un gesto rápido
 const FLY_MS = 260; // lo que tarda en salir de la pantalla
 // Alto fijo del texto de la carta: los botones flotan sobre la foto, justo encima
@@ -30,12 +31,23 @@ const INFO_H = 150;
 const BEHIND_SCALE = 0.95;
 const BEHIND_OFFSET = 14;
 const PROMOTE_MS = 220;
+// Pastillas que aparecen al arrastrar (Me gusta / No me interesa / Meeet In!)
+const STAMP_HEIGHT = 66;
+const STAMP_GLOW = 340; // diámetro del destello de detrás
 
-type SwipeHandle = { fly: (liked: boolean) => void };
+// La pastilla aparece y crece un poco según lo que se arrastra hacia su lado
+function stampStyle(amount: number) {
+  'worklet';
+  const p = interpolate(amount, [20, SWIPE_DISTANCE], [0, 1], 'clamp');
+  return { opacity: p, transform: [{ scale: 0.85 + 0.15 * p }] };
+}
+
+type SwipeHandle = { fly: (liked: boolean) => void; flyUp: () => void };
 
 /**
  * Una carta de la baraja. La de arriba se arrastra, gira un poco y sale
- * volando al soltarla; la de detrás espera más pequeña. Es la misma pieza de
+ * volando al soltarla: a la derecha, te gusta; a la izquierda, no; hacia
+ * arriba, "Meeet In!". La de detrás espera más pequeña. Es la misma pieza de
  * detrás a delante (misma `key`), así que al pasar delante crece con suavidad
  * y con su foto ya cargada, sin parpadeo ni salto.
  */
@@ -44,6 +56,7 @@ function SwipeCard({
   isTop,
   reason,
   onSwiped,
+  onSwipedUp,
   onOpen,
   ref,
   muted,
@@ -53,6 +66,8 @@ function SwipeCard({
   isTop: boolean;
   reason: string;
   onSwiped: (liked: boolean) => void;
+  /** Deslizada hacia arriba (o el botón): "Meeet In!". */
+  onSwipedUp: () => void;
   /** Tocar la carta (sin arrastrar): abre la ficha del concierto. */
   onOpen: () => void;
   ref?: Ref<SwipeHandle>;
@@ -60,7 +75,7 @@ function SwipeCard({
   onToggleMute: () => void;
 }) {
   const styles = useThemedStyles(makeStyles);
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const x = useSharedValue(0);
   const y = useSharedValue(0);
   // 0 = delante, 1 = detrás. Nace ya en su sitio; solo se anima al pasar delante
@@ -80,18 +95,30 @@ function SwipeCard({
       })
     );
   };
-  useImperativeHandle(ref, () => ({ fly }));
+  const flyUp = () => {
+    y.set(withTiming(-height * 1.2, { duration: FLY_MS }, () => scheduleOnRN(onSwipedUp)));
+  };
+  useImperativeHandle(ref, () => ({ fly, flyUp }));
 
   // Solo la de delante responde a los dedos
   const pan = Gesture.Pan()
     .enabled(isTop)
     .onChange((e) => {
       x.set(e.translationX);
-      y.set(e.translationY * 0.3);
+      // Hacia arriba sigue al dedo (es un gesto: "Meeet In!"); hacia abajo, apenas
+      y.set(e.translationY < 0 ? e.translationY : e.translationY * 0.3);
     })
     .onEnd((e) => {
       const liked = e.translationX > 0;
-      if (Math.abs(e.translationX) > SWIPE_DISTANCE || Math.abs(e.velocityX) > SWIPE_VELOCITY) {
+      const up =
+        (-e.translationY > SWIPE_DISTANCE || -e.velocityY > SWIPE_VELOCITY) &&
+        -e.translationY > Math.abs(e.translationX);
+      if (up) {
+        y.set(withTiming(-height * 1.2, { duration: FLY_MS }, () => scheduleOnRN(onSwipedUp)));
+      } else if (
+        Math.abs(e.translationX) > SWIPE_DISTANCE ||
+        Math.abs(e.velocityX) > SWIPE_VELOCITY
+      ) {
         x.set(
           withTiming((liked ? 1 : -1) * width * 1.4, { duration: FLY_MS }, () => {
             scheduleOnRN(onSwiped, liked);
@@ -119,11 +146,21 @@ function SwipeCard({
       { scale: 1 - depth.get() * (1 - BEHIND_SCALE) },
     ],
   }));
-  const likeStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(x.get(), [20, SWIPE_DISTANCE], [0, 1], 'clamp'),
+  // Cuánto se ha ido hacia cada lado: lo que domina es lo que se marca
+  const likeStyle = useAnimatedStyle(() => stampStyle(x.get() - Math.max(0, -y.get())));
+  const nopeStyle = useAnimatedStyle(() => stampStyle(-x.get() - Math.max(0, -y.get())));
+  const upStyle = useAnimatedStyle(() => stampStyle(-y.get() - Math.abs(x.get())));
+  // Borde del color de lo que se marca, por dentro de la carta
+  const likeEdge = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      Math.max(x.get(), -y.get()) - Math.max(0, -x.get()),
+      [20, SWIPE_DISTANCE],
+      [0, 1],
+      'clamp'
+    ),
   }));
-  const nopeStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(x.get(), [-SWIPE_DISTANCE, -20], [1, 0], 'clamp'),
+  const nopeEdge = useAnimatedStyle(() => ({
+    opacity: interpolate(-x.get() - Math.max(0, -y.get()), [20, SWIPE_DISTANCE], [0, 1], 'clamp'),
   }));
 
   return (
@@ -155,12 +192,33 @@ function SwipeCard({
             </Text>
           </View>
         )}
-        <Animated.View style={[styles.stamp, styles.stampLike, likeStyle]}>
-          <Text style={[styles.stampText, styles.stampLikeText]}>ME GUSTA</Text>
-        </Animated.View>
-        <Animated.View style={[styles.stamp, styles.stampNope, nopeStyle]}>
-          <Text style={[styles.stampText, styles.stampNopeText]}>NO</Text>
-        </Animated.View>
+        {/* Al arrastrar: un borde de color y una pastilla de cristal, como el resto de la app */}
+        <Animated.View pointerEvents="none" style={[styles.edge, styles.edgeLike, likeEdge]} />
+        <Animated.View pointerEvents="none" style={[styles.edge, styles.edgeNope, nopeEdge]} />
+        {/* Cada una con un destello de luz detrás, para leerla sobre cualquier foto */}
+        <View style={styles.stamps} pointerEvents="none">
+          <Animated.View style={[styles.stampWrap, likeStyle]}>
+            <View style={styles.glow} />
+            <View style={[styles.stamp, styles.stampAccent]}>
+              <Ionicons name="heart" size={30} style={styles.stampLikeIcon} />
+              <Text style={[styles.stampText, styles.stampLikeText]}>Me gusta</Text>
+            </View>
+          </Animated.View>
+          <Animated.View style={[styles.stampWrap, nopeStyle]}>
+            <View style={styles.glow} />
+            <View style={styles.stamp}>
+              <Ionicons name="close" size={32} color={COLORS.muted} />
+              <Text style={styles.stampText}>No me interesa</Text>
+            </View>
+          </Animated.View>
+          <Animated.View style={[styles.stampWrap, upStyle]}>
+            <View style={styles.glow} />
+            <View style={[styles.stamp, styles.stampAccent]}>
+              <Imagotipo height={30} />
+              <Text style={[styles.stampText, styles.stampLikeText]}>Meeet In!</Text>
+            </View>
+          </Animated.View>
+        </View>
       </Animated.View>
     </GestureDetector>
   );
@@ -237,6 +295,7 @@ export function ConcertDeck({ deck, weights, onSwipe, onMeeetIn, onOpen }: Props
               concert={c}
               reason={reasonFor(c)}
               onSwiped={(liked) => onSwipe(c, liked)}
+              onSwipedUp={() => onMeeetIn(c)}
               onOpen={() => onOpen(c)}
               muted={muted}
               onToggleMute={() => setMuted((m) => !m)}
@@ -252,7 +311,8 @@ export function ConcertDeck({ deck, weights, onSwipe, onMeeetIn, onOpen }: Props
           >
             <Ionicons name="close" size={28} color={COLORS.muted} />
           </Pressable>
-          <Pressable style={styles.meeetIn} onPress={() => onMeeetIn(top)}>
+          {/* Como deslizar hacia arriba: la carta sale volando y te apuntas */}
+          <Pressable style={styles.meeetIn} onPress={() => handle?.flyUp()}>
             <Text style={styles.meeetInText}>Meeet In!</Text>
           </Pressable>
           <Pressable
@@ -305,19 +365,41 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: 'rgba(42,37,64,0.55)',
     },
     songText: { color: COLORS.white, fontSize: 13, fontWeight: '600', flexShrink: 1 },
-    stamp: {
+    edge: { ...StyleSheet.absoluteFill, borderRadius: 28, borderWidth: 4 },
+    edgeLike: { borderColor: theme.accent },
+    edgeNope: { borderColor: COLORS.muted },
+    // Las tres pastillas en el mismo sitio, en el centro de la foto: solo se ve la que toca
+    stamps: {
       position: 'absolute',
-      top: 40,
-      paddingHorizontal: 14,
-      paddingVertical: 6,
-      borderRadius: 10,
-      borderWidth: 3,
+      left: 0,
+      right: 0,
+      top: '30%',
+      alignItems: 'center',
     },
-    stampLike: { left: 20, borderColor: theme.accent, transform: [{ rotate: '-12deg' }] },
-    stampNope: { right: 20, borderColor: COLORS.muted, transform: [{ rotate: '12deg' }] },
-    stampText: { fontSize: 26, fontWeight: '900', letterSpacing: 1 },
+    stampWrap: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+    // Halo blanco que se difumina: separa la pastilla de la foto
+    glow: {
+      position: 'absolute',
+      width: STAMP_GLOW,
+      height: STAMP_GLOW,
+      experimental_backgroundImage:
+        'radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.55) 35%, rgba(255,255,255,0) 70%)',
+    },
+    stamp: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      height: STAMP_HEIGHT,
+      paddingHorizontal: 28,
+      borderRadius: STAMP_HEIGHT / 2,
+      backgroundColor: 'rgba(255,255,255,0.94)',
+      boxShadow: '0 10px 30px rgba(42,37,64,0.25)',
+    },
+    // Me gusta y Meeet In!: con un resplandor del color del tema
+    stampAccent: { boxShadow: `0 0 36px ${theme.accent}99, 0 10px 30px rgba(42,37,64,0.2)` },
+    stampText: { color: COLORS.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
     stampLikeText: { color: theme.accent },
-    stampNopeText: { color: COLORS.muted },
+    stampLikeIcon: { color: theme.accent },
     controls: {
       position: 'absolute',
       left: 0,
