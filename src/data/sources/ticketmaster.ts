@@ -50,6 +50,24 @@ async function fetchEvents({ page, keyword }: EventQuery): Promise<EventPage> {
   return { concerts: realEvents.map(toConcert), hasMore: page + 1 < totalPages };
 }
 
+/**
+ * El evento de un enlace de su web (al pegarlo en «Añadir concierto»). El id
+ * de la web no es el de la API: se busca por las palabras del enlace y se
+ * elige el evento cuya URL lleva ese id. null si no aparece.
+ */
+export async function fetchTicketmasterByWebUrl(webId: string, keyword: string): Promise<Concert | null> {
+  if (!API_KEY || !keyword) return null;
+  const response = await fetch(
+    'https://app.ticketmaster.com/discovery/v2/events.json' +
+      `?apikey=${encodeURIComponent(API_KEY)}&countryCode=ES&size=50&locale=*` +
+      `&keyword=${encodeURIComponent(keyword)}`
+  );
+  if (!response.ok) return null;
+  const events: any[] = (await response.json())?._embedded?.events ?? [];
+  const match = events.find((e) => typeof e.url === 'string' && e.url.includes(webId));
+  return match ? toConcert(match) : null;
+}
+
 function toConcert(e: any): Concert {
   const v = e._embedded?.venues?.[0];
   const details = parseEventInfo(e.description, e.info, e.pleaseNote);
