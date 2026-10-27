@@ -16,6 +16,10 @@ export const COLORS = {
   /** Escala del salmón para las "eee" del logotipo, de clara a oscura (peach → peachMid → peachDeep). */
   peachMid: '#FFAE98',
   peachDeep: '#F98B6F',
+  /** Degradado de la marca DayStage (luz de escenario): violeta → magenta → naranja. */
+  stageViolet: '#7C5CFA',
+  stageMagenta: '#D946A8',
+  stageOrange: '#FF8A3D',
   danger: '#FF3B30',
   white: '#FFFFFF',
   /** Solo para el visor de fotos a pantalla completa. */
@@ -154,6 +158,9 @@ export function profileGradient(key: ProfileBackground) {
  * Colores de la app según el fondo del perfil (useTheme): el de selección, su
  * fondo claro y los tres tonos de las "eee" del logo de Inicio, de claro a oscuro.
  */
+/** Degradado del imagotipo y del punto de «daystage.». */
+export const BRAND_GRADIENT = `linear-gradient(135deg, ${COLORS.stageViolet}, ${COLORS.stageMagenta}, ${COLORS.stageOrange})`;
+
 export type Theme = { accent: string; accentSoft: string; logo: [string, string, string] };
 
 // Cuánto blanco llevan los dos primeros tonos de las "eee" (el tercero es el acento)

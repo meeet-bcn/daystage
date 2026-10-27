@@ -7,6 +7,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/chip';
+import { DayStageLogo } from '@/components/daystage-mark';
 import { useApp } from '@/data/app-context';
 import { SHIFT_MARGIN_OPTIONS } from '@/data/concert-shifts';
 import { LANGUAGES } from '@/data/filters';
@@ -431,7 +432,11 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        <Text style={styles.slogan}>Every event. Everyone.</Text>
+        {/* Firma: el logo pequeño y la versión */}
+        <View style={styles.signature}>
+          <DayStageLogo size={17} />
+          <Text style={styles.version}>Versión {Constants.expoConfig?.version ?? ''}</Text>
+        </View>
       </ScrollView>
     </View>
   );
@@ -496,5 +501,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'right',
   },
-  slogan: { color: COLORS.muted, fontSize: 13, textAlign: 'center', marginTop: 8 },
+  signature: { alignItems: 'center', gap: 6, marginTop: 16, opacity: 0.85 },
+  version: { color: COLORS.muted, fontSize: 12 },
 });
