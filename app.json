@@ -66,6 +66,13 @@
         {
           "enableRemoteNotifications": false
         }
+      ],
+      "expo-sharing",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "DayStage copia tus turnos a un calendario «DayStage» para que los veas junto al resto de tu agenda."
+        }
       ]
     ],
     "experiments": {
