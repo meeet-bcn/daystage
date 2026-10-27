@@ -24,6 +24,11 @@ export type ShiftType = {
   end: string;
   /** Descanso no trabajado dentro del turno. */
   breakMinutes: number;
+  /**
+   * Todo el día libre (vacaciones, asuntos propios…): se ve en el calendario
+   * con su color, pero cuenta como día libre; `start`/`end` no se usan.
+   */
+  off?: boolean;
 };
 
 /** Secuencia que se repite desde `startDate`: cada posición es un día, `null` = libre. */
@@ -139,7 +144,8 @@ export function crossesMidnight(type: Pick<ShiftType, 'start' | 'end'>) {
 }
 
 /** Horas trabajadas según el horario (sin el descanso). No cuenta el cambio de hora. */
-export function shiftHours(type: Pick<ShiftType, 'start' | 'end' | 'breakMinutes'>) {
+export function shiftHours(type: Pick<ShiftType, 'start' | 'end' | 'breakMinutes' | 'off'>) {
+  if (type.off) return 0;
   const start = minutesOf(type.start);
   let end = minutesOf(type.end);
   if (end <= start) end += 24 * 60;
@@ -174,13 +180,19 @@ export function typeForDate(date: string, plan: ShiftPlan): ShiftType | null {
   return id == null ? null : (plan.types.find((t) => t.id === id) ?? null);
 }
 
+/** El turno de trabajo que empieza en `date`: como typeForDate, pero un tipo `off` (vacaciones) es libre. */
+export function workTypeForDate(date: string, plan: ShiftPlan): ShiftType | null {
+  const type = typeForDate(date, plan);
+  return type && !type.off ? type : null;
+}
+
 /** Turnos que ocupan parte de `date`: el que acaba esta mañana (de la noche anterior) y el de hoy. */
 export function busyIntervals(date: string, plan: ShiftPlan): Interval[] {
   const dayStart = localTime(date, 0);
   const dayEnd = localTime(addDays(date, 1), 0);
   const out: Interval[] = [];
   for (const d of [addDays(date, -1), date]) {
-    const type = typeForDate(d, plan);
+    const type = workTypeForDate(d, plan);
     if (!type) continue;
     const { start, end } = shiftInterval(d, type);
     if (end > dayStart && start < dayEnd) {
@@ -231,7 +243,7 @@ export function availabilityFor(
   let workedBefore = false;
   let worksLater = false;
   for (const d of [addDays(date, -1), date, addDays(date, 1)]) {
-    const type = typeForDate(d, plan);
+    const type = workTypeForDate(d, plan);
     if (!type) continue;
     const { start, end } = shiftInterval(d, type);
     if (concertStartsAt < end + marginMinutes * 60_000 && concertEnd > start) return 'trabajas';
@@ -280,9 +292,14 @@ export function formatMonth(year: number, month: number) {
   return `${name[0].toUpperCase()}${name.slice(1)} ${year}`;
 }
 
-/** "06:00–14:00" */
-export function formatShiftTime(type: Pick<ShiftType, 'start' | 'end'>) {
-  return `${type.start}–${type.end}`;
+/** "06:00–14:00"; un día libre (vacaciones), "Todo el día". */
+export function formatShiftTime(type: Pick<ShiftType, 'start' | 'end' | 'off'>) {
+  return type.off ? 'Todo el día' : `${type.start}–${type.end}`;
+}
+
+/** "08:45" → "8:45" (en el calendario, como en un horario impreso). */
+export function shortTime(time: string) {
+  return time.replace(/^0(\d)/, '$1');
 }
 
 /** Id nuevo para un tipo o una rotación (único en este móvil). */

@@ -12,6 +12,7 @@ import {
   isDateKey,
   isTime,
   monthGrid,
+  shortTime,
   Rotation,
   shiftForDate,
   shiftHours,
@@ -21,6 +22,8 @@ import {
   toDateKey,
   typeForDate,
   weekdayIndex,
+  workTypeForDate,
+  formatShiftTime,
 } from '@/data/shifts';
 
 // Los tests corren en Europe/Madrid (scripts/jest-timezone.js)
@@ -284,5 +287,35 @@ describe('monthGrid', () => {
     expect(grid).toHaveLength(6);
     expect(grid[0][6]).toEqual({ date: '2026-03-01', inMonth: true });
     expect(grid.every((week) => week.length === 7)).toBe(true);
+  });
+});
+
+describe('días libres todo el día (vacaciones)', () => {
+  const VAC = { id: 'vac', name: 'Vacaciones', abbr: 'V', color: 'sol' as const, start: '00:00', end: '00:00', breakMinutes: 0, off: true };
+  const withVacation = (): ShiftPlan => ({
+    types: [...DEFAULT_SHIFT_TYPES, VAC],
+    rotation: ROTATION,
+    overrides: { '2026-10-03': { date: '2026-10-03', shiftTypeId: 'vac' } },
+  });
+
+  it('se ve en el calendario, pero no es un turno de trabajo', () => {
+    expect(typeForDate('2026-10-03', withVacation())?.name).toBe('Vacaciones');
+    expect(workTypeForDate('2026-10-03', withVacation())).toBeNull();
+    expect(shiftHours(VAC)).toBe(0);
+    expect(formatShiftTime(VAC)).toBe('Todo el día');
+  });
+
+  it('cuenta como libre para conciertos y huecos', () => {
+    // El 3 tocaba tarde (14–22): con vacaciones, libre
+    expect(availabilityFor(at('2026-10-03', '21:00'), withVacation())).toBe('libre');
+    expect(freeWindows('2026-10-03', withVacation())).toHaveLength(1);
+  });
+});
+
+describe('shortTime', () => {
+  it('sin el cero de delante', () => {
+    expect(shortTime('08:45')).toBe('8:45');
+    expect(shortTime('16:15')).toBe('16:15');
+    expect(shortTime('00:30')).toBe('0:30');
   });
 });

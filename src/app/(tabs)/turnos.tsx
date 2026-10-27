@@ -19,6 +19,7 @@ import {
   formatShiftTime,
   monthGrid,
   shiftHours,
+  shortTime,
   toDateKey,
   typeForDate,
   WEEKDAY_INITIALS,
@@ -136,12 +137,33 @@ export default function TurnosScreen() {
                         {Number(date.slice(8))}
                       </Text>
                     </View>
-                    <Text
-                      style={[styles.abbr, { color: type ? shiftColor(type.color).ink : COLORS.muted }]}
-                      numberOfLines={1}
-                    >
-                      {type ? type.abbr : rotation ? 'L' : ''}
-                    </Text>
+                    {type && !type.off ? (
+                      // Como en un cuadrante: hora de entrada y, debajo, de salida
+                      <View style={styles.times}>
+                        <Text
+                          style={[styles.timeStart, { color: shiftColor(type.color).ink }]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                        >
+                          {shortTime(type.start)}
+                        </Text>
+                        <Text
+                          style={[styles.timeEnd, { color: shiftColor(type.color).ink }]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                        >
+                          {shortTime(type.end)}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text
+                        style={[styles.abbr, { color: type ? shiftColor(type.color).ink : COLORS.muted }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
+                        {type ? type.abbr : rotation ? 'L' : ''}
+                      </Text>
+                    )}
                     {changed && <View style={styles.changedDot} />}
                     {dayPlans.length > 0 ? (
                       // Tu plan: la foto del concierto con el aro del acento; tocarla abre la ficha
@@ -251,9 +273,14 @@ export default function TurnosScreen() {
 
         <View style={styles.sectionRow}>
           <Text style={[styles.sectionTitle, styles.sectionTitleInline]}>Tipos de turno</Text>
-          <Pressable onPress={() => router.push('/shift-types')} hitSlop={8}>
-            <Text style={styles.edit}>Editar</Text>
-          </Pressable>
+          <View style={styles.sectionActions}>
+            <Pressable onPress={() => router.push('/shift-import')} hitSlop={8}>
+              <Text style={styles.edit}>Importar</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push('/shift-types')} hitSlop={8}>
+              <Text style={styles.edit}>Editar</Text>
+            </Pressable>
+          </View>
         </View>
         <View style={styles.card}>
           {plan.types.length === 0 ? (
@@ -322,7 +349,11 @@ const makeStyles = (theme: Theme) =>
     todayBox: { backgroundColor: theme.accent },
     dayNumber: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
     todayNumber: { color: COLORS.white, fontWeight: '800' },
-    abbr: { fontSize: 15, lineHeight: 18, fontWeight: '800', marginTop: 1 },
+    abbr: { fontSize: 15, lineHeight: 18, fontWeight: '800', marginTop: 1, paddingHorizontal: 2 },
+    times: { alignItems: 'center', marginTop: 1, paddingHorizontal: 2 },
+    timeStart: { fontSize: 13, lineHeight: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
+    timeEnd: { fontSize: 10, lineHeight: 12, fontWeight: '600', fontVariant: ['tabular-nums'] },
+    sectionActions: { flexDirection: 'row', gap: 18 },
     changedDot: {
       position: 'absolute',
       top: 5,

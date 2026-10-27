@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/chip';
@@ -40,8 +40,10 @@ export default function ShiftTypeEditor() {
   const [start, setStart] = useState(existing?.start ?? '08:00');
   const [end, setEnd] = useState(existing?.end ?? '16:00');
   const [breakMinutes, setBreakMinutes] = useState(existing?.breakMinutes ?? 0);
+  // Vacaciones, asuntos propios…: se ve en el calendario pero cuenta como libre
+  const [off, setOff] = useState(existing?.off ?? false);
 
-  const timesOk = isTime(start) && isTime(end);
+  const timesOk = off || (isTime(start) && isTime(end));
   const valid = name.trim() !== '' && abbr.trim() !== '' && timesOk;
   const draft: ShiftType = {
     id: existing?.id ?? '',
@@ -50,7 +52,8 @@ export default function ShiftTypeEditor() {
     color,
     start,
     end,
-    breakMinutes,
+    breakMinutes: off ? 0 : breakMinutes,
+    ...(off ? { off: true } : {}),
   };
 
   const save = () => {
@@ -95,9 +98,11 @@ export default function ShiftTypeEditor() {
         <View style={styles.preview}>
           <ShiftBadge type={draft.abbr ? draft : { ...draft, abbr: '?' }} />
           <Text style={styles.previewText}>
-            {timesOk
-              ? `${shiftHours(draft)} h${crossesMidnight(draft) ? ' · acaba al día siguiente' : ''}`
-              : 'Escribe las horas como 06:00'}
+            {off
+              ? 'Todo el día libre'
+              : timesOk
+                ? `${shiftHours(draft)} h${crossesMidnight(draft) ? ' · acaba al día siguiente' : ''}`
+                : 'Escribe las horas como 06:00'}
           </Text>
         </View>
 
@@ -122,44 +127,57 @@ export default function ShiftTypeEditor() {
           maxLength={3}
         />
 
-        <View style={styles.times}>
-          <View style={styles.time}>
-            <Text style={styles.label}>Empieza</Text>
-            <TextInput
-              style={[styles.input, !isTime(start) && styles.inputError]}
-              value={start}
-              onChangeText={(t) => setStart(normalizeTime(t))}
-              placeholder="06:00"
-              placeholderTextColor={COLORS.muted}
-              keyboardType="numbers-and-punctuation"
-              maxLength={5}
-            />
+        <View style={styles.offRow}>
+          <View style={styles.offText}>
+            <Text style={styles.offLabel}>Todo el día libre</Text>
+            <Text style={styles.offDetail}>Vacaciones, asuntos propios… Cuenta como día libre.</Text>
           </View>
-          <View style={styles.time}>
-            <Text style={styles.label}>Acaba</Text>
-            <TextInput
-              style={[styles.input, !isTime(end) && styles.inputError]}
-              value={end}
-              onChangeText={(t) => setEnd(normalizeTime(t))}
-              placeholder="14:00"
-              placeholderTextColor={COLORS.muted}
-              keyboardType="numbers-and-punctuation"
-              maxLength={5}
-            />
-          </View>
+          <Switch value={off} onValueChange={setOff} trackColor={{ true: theme.accent, false: COLORS.line }} />
         </View>
 
-        <Text style={styles.label}>Descanso</Text>
-        <View style={styles.chips}>
-          {BREAKS.map((b) => (
-            <Chip
-              key={b}
-              label={b === 0 ? 'Sin descanso' : `${b} min`}
-              active={breakMinutes === b}
-              onPress={() => setBreakMinutes(b)}
-            />
-          ))}
-        </View>
+        {!off && (
+          <>
+            <View style={styles.times}>
+              <View style={styles.time}>
+                <Text style={styles.label}>Empieza</Text>
+                <TextInput
+                  style={[styles.input, !isTime(start) && styles.inputError]}
+                  value={start}
+                  onChangeText={(t) => setStart(normalizeTime(t))}
+                  placeholder="06:00"
+                  placeholderTextColor={COLORS.muted}
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                />
+              </View>
+              <View style={styles.time}>
+                <Text style={styles.label}>Acaba</Text>
+                <TextInput
+                  style={[styles.input, !isTime(end) && styles.inputError]}
+                  value={end}
+                  onChangeText={(t) => setEnd(normalizeTime(t))}
+                  placeholder="14:00"
+                  placeholderTextColor={COLORS.muted}
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                />
+              </View>
+            </View>
+
+            <Text style={styles.label}>Descanso</Text>
+            <View style={styles.chips}>
+              {BREAKS.map((b) => (
+                <Chip
+                  key={b}
+                  label={b === 0 ? 'Sin descanso' : `${b} min`}
+                  active={breakMinutes === b}
+                  onPress={() => setBreakMinutes(b)}
+                />
+              ))}
+            </View>
+
+          </>
+        )}
 
         <Text style={styles.label}>Color</Text>
         <View style={styles.colors}>
@@ -220,6 +238,10 @@ const makeStyles = (theme: Theme) =>
     },
     inputError: { borderColor: COLORS.danger },
     times: { flexDirection: 'row', gap: 12 },
+    offRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 },
+    offText: { flex: 1 },
+    offLabel: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
+    offDetail: { color: COLORS.muted, fontSize: 13, marginTop: 2 },
     time: { flex: 1 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     colors: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
