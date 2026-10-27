@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ReactNode, useState } from 'react';
-import { LayoutAnimation, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { loadJSON, saveJSON } from '@/data/storage';
 import { COLORS } from '@/theme';
@@ -22,7 +22,6 @@ type Props = {
 export function CollapsibleSection({ id, title, defaultOpen = true, actions, children }: Props) {
   const [open, setOpen] = useState(() => loadJSON<Record<string, boolean>>(KEY, {})[id] ?? defaultOpen);
   const toggle = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     const next = !open;
     setOpen(next);
     saveJSON(KEY, { ...loadJSON<Record<string, boolean>>(KEY, {}), [id]: next });

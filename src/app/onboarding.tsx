@@ -11,12 +11,10 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/chip';
 import { Imagotipo } from '@/components/imagotipo';
-import { SparkleBurst } from '@/components/meeet-in-burst';
 import { OrganicBackdrop } from '@/components/organic-backdrop';
 import { useApp } from '@/data/app-context';
 import { LANGUAGES } from '@/data/filters';
@@ -45,7 +43,6 @@ export default function OnboardingScreen() {
   const [tastes, setTastes] = useState<string[]>(profile.tastes);
   const [language, setLanguage] = useState(settings.mainLanguage);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [burst, setBurst] = useState(true);
 
   const index = STEPS.indexOf(step);
   const nickProblem = nick === '' ? 'Elige un nick para que te encuentren.' : nickError(nick);
@@ -127,13 +124,7 @@ export default function OnboardingScreen() {
         )}
       </View>
 
-      {/* Cada paso entra por la derecha y sale por la izquierda */}
-      <Animated.View
-        key={step}
-        entering={FadeInRight.duration(420)}
-        exiting={FadeOutLeft.duration(260)}
-        style={styles.step}
-      >
+      <View key={step} style={styles.step}>
         {step === 'nick' && (
           <>
             <Text style={styles.kicker}>Paso 1</Text>
@@ -249,7 +240,6 @@ export default function OnboardingScreen() {
           <View style={styles.done}>
             <View style={styles.doneMark}>
               <Imagotipo height={90} />
-              {burst && <SparkleBurst onEnd={() => setBurst(false)} />}
             </View>
             <Text style={[styles.title, styles.center]}>¡Listo, @{nick}!</Text>
             <Text style={[styles.text, styles.center]}>
@@ -257,7 +247,7 @@ export default function OnboardingScreen() {
             </Text>
           </View>
         )}
-      </Animated.View>
+      </View>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         {step === 'done' ? (

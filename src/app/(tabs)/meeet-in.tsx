@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   Animated,
-  LayoutAnimation,
   Pressable,
   StyleSheet,
   Text,
@@ -40,10 +39,7 @@ export default function MeeetInScreen() {
       ? router.push({ pathname: '/chat/[id]', params: { id } })
       : router.push('/onboarding');
 
-  const togglePast = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setShowPast((v) => !v);
-  };
+  const togglePast = () => setShowPast((v) => !v);
 
   const renderRow = (item: Concert, isPast = false) => {
     const unread = unreadCount(item.id);

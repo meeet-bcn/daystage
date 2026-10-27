@@ -1,25 +1,14 @@
-// Fondo del perfil con vida: el degradado elegido en Editar perfil y, encima,
-// tres manchas suaves de sus mismos colores que derivan despacio por toda la
-// pantalla, así que la luz se mueve sin cambiar el fondo. Ocupa el perfil
-// entero (también bajo la cuadrícula). Con "Reducir movimiento", quieto.
+// Fondo del perfil: el degradado elegido en Editar perfil y, encima, tres
+// manchas suaves de sus mismos colores. Quieto (sin animaciones decorativas).
+// Ocupa el perfil entero (también bajo la cuadrícula).
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  cancelAnimation,
-  Easing,
-  SharedValue,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { SharedValue, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { PROFILE_BACKGROUNDS, profileGradient, ProfileBackground } from '@/theme';
 
-// Ajustes del movimiento: sutil, pero que se note
-const DRIFT_MS = [7000, 9000, 11000]; // ida de cada mancha (luego vuelve)
+// Ajustes de las manchas (están quietas: el progreso se queda en 0)
 const DRIFT = 0.32; // cuánto se desplaza cada mancha, en fracción del ancho
 const PULSE = 0.18; // cuánto crece al ir
 const BLOB_SIZE = 1.2; // diámetro de la mancha, en fracción del ancho
@@ -65,21 +54,12 @@ function Blob({ color, progress, from, dir, width }: BlobProps) {
 }
 
 export function ProfileBackdrop({ background }: { background: ProfileBackground }) {
-  const reduceMotion = useReducedMotion();
   const a = useSharedValue(0);
   const b = useSharedValue(0);
   const c = useSharedValue(0);
   const [width, setWidth] = useState(0);
   const { from, to } = PROFILE_BACKGROUNDS[background] ?? PROFILE_BACKGROUNDS.none;
 
-  useEffect(() => {
-    if (reduceMotion) return;
-    const ease = Easing.inOut(Easing.sin);
-    [a, b, c].forEach((v, i) =>
-      v.set(withRepeat(withTiming(1, { duration: DRIFT_MS[i], easing: ease }), -1, true))
-    );
-    return () => [a, b, c].forEach((v) => cancelAnimation(v));
-  }, [reduceMotion, a, b, c]);
 
   return (
     <View

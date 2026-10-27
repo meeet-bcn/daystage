@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Animated,
   FlatList,
-  LayoutAnimation,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -18,15 +17,13 @@ import {
   useAnimatedValue,
   View,
 } from 'react-native';
-import Reanimated, { Keyframe } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvailabilityPill } from '@/components/availability-pill';
 import { Chip } from '@/components/chip';
 import { EventImage } from '@/components/event-image';
 import { GoButton } from '@/components/go-button';
-import { ImagotipoAnimado } from '@/components/imagotipo';
-import { SparkleBurst } from '@/components/meeet-in-burst';
+import { Imagotipo } from '@/components/imagotipo';
 import { WishButton } from '@/components/wish-button';
 import { TITLE_LINE_HEIGHT, TITLE_SIZE, TITLE_SPACING, TITLE_TOP } from '@/components/screen-title';
 import { BottomTabInset } from '@/constants/theme';
@@ -60,14 +57,7 @@ const SCROLL_RANGE = 80; // cuánto scroll dura la animación
 // Tirar hacia abajo para recargar
 const PULL_TRIGGER = 80; // pt que hay que tirar para que, al soltar, recargue
 const REFRESH_SPACE = 64; // hueco para el imagotipo mientras recarga
-const REFRESH_MIN_MS = 600; // lo mínimo que se ve la animación, aunque cargue antes
-
-// Al terminar de recargar, el imagotipo crece y se desvanece mientras estallan los destellos
-const LOGO_POP = new Keyframe({
-  0: { opacity: 1, transform: [{ scale: 1 }] },
-  40: { opacity: 1, transform: [{ scale: 1.25 }] },
-  100: { opacity: 0, transform: [{ scale: 1.7 }] },
-}).duration(300);
+const REFRESH_MIN_MS = 600; // lo mínimo que se ve el imagotipo, aunque cargue antes
 
 export default function HomeScreen() {
   const styles = useThemedStyles(makeStyles);
@@ -96,9 +86,8 @@ export default function HomeScreen() {
   const scrollY = useAnimatedValue(0);
   const listRef = useRef<FlatList<Concert>>(null);
   const navigation = useNavigation();
-  // Recarga: cargando (imagotipo en el hueco) → explosión al terminar → nada
-  const [refreshPhase, setRefreshPhase] = useState<'idle' | 'loading' | 'burst'>('idle');
-  const refreshing = refreshPhase !== 'idle';
+  // Recarga: el imagotipo, quieto, en el hueco mientras carga
+  const [refreshing, setRefreshing] = useState(false);
   const refreshSound = useAudioPlayer(require('@/assets/sounds/refresh.wav'));
 
   // Tocar Inicio estando ya en Inicio sube arriba del todo (además de lo que haga
@@ -111,24 +100,19 @@ export default function HomeScreen() {
     [navigation]
   );
 
-  // Al soltar tras tirar lo bastante, recarga con el imagotipo animado
+  // Al soltar tras tirar lo bastante, recarga
   const onScrollEndDrag = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (refreshing || e.nativeEvent.contentOffset.y > -PULL_TRIGGER) return;
-    setRefreshPhase('loading');
+    setRefreshing(true);
     if (settings.sounds) {
       refreshSound.seekTo(0);
       refreshSound.play();
     }
     if (settings.haptics) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const minimum = new Promise((resolve) => setTimeout(resolve, REFRESH_MIN_MS));
-    Promise.all([refreshConcerts(), minimum]).finally(() => setRefreshPhase('burst'));
+    Promise.all([refreshConcerts(), minimum]).finally(() => setRefreshing(false));
   };
 
-  // Tras la explosión, el hueco se cierra con suavidad en vez de dar un salto
-  const endRefresh = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setRefreshPhase('idle');
-  };
   // Alto de los chips, fijos en la cabecera: la lista empieza debajo
   const [toolsHeight, setToolsHeight] = useState(0);
   // Hoy (medianoche), fijado al montar: leer la hora en cada render no es puro
@@ -175,35 +159,16 @@ export default function HomeScreen() {
                   outputRange: [1, 0],
                   extrapolate: 'clamp',
                 }),
-            transform: [
-              {
-                scale: refreshing
-                  ? 1
-                  : scrollY.interpolate({
-                      inputRange: [-PULL_TRIGGER, 0],
-                      outputRange: [1, 0.4],
-                      extrapolate: 'clamp',
-                    }),
-              },
-            ],
           },
         ]}
       >
-        {refreshPhase === 'burst' ? (
-          <View style={styles.burst}>
-            <SparkleBurst onEnd={endRefresh} />
-          </View>
-        ) : (
-          <Reanimated.View exiting={LOGO_POP}>
-            <ImagotipoAnimado height={36} />
-          </Reanimated.View>
-        )}
+        <Imagotipo height={36} />
       </Animated.View>
 
-      {/* Primera carga al abrir la app: el imagotipo animado en el centro */}
+      {/* Primera carga al abrir la app: el imagotipo en el centro */}
       {loading && (
         <View pointerEvents="none" style={styles.firstLoad}>
-          <ImagotipoAnimado height={72} />
+          <Imagotipo height={72} />
           <Text style={styles.firstLoadText}>Buscando conciertos…</Text>
         </View>
       )}
@@ -441,7 +406,6 @@ const makeStyles = (theme: Theme) =>
     },
     listHeader: { marginBottom: 20 },
     pull: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-    burst: { width: 1, height: 36 }, // centro de la explosión, donde estaba el imagotipo
     firstLoad: {
       ...StyleSheet.absoluteFill,
       alignItems: 'center',

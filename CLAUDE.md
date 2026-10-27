@@ -215,11 +215,15 @@ scripts/jest-timezone.js              # globalSetup de jest: los tests corren si
 
 **Nombre:** DayStage. En el logotipo, siempre en minúsculas y con punto violeta: `daystage.` (`DayStageLogo` en `daystage-mark.tsx`), en tinta y peso 800. En prosa, «DayStage».
 
-**Imagotipo:** una hoja de calendario con el degradado de escenario (`BRAND_GRADIENT`: `stageViolet` → `stageMagenta` → `stageOrange`, a 135°), dos anillas en tinta y, dentro, dos corcheas unidas por una barra (♫), en blanco y con trazo fino, dibujo propio. Lo dibuja solo `generate-brand-assets.swift`; la app usa su PNG (`assets/images/brand-mark.png`, en `DayStageMark`). El punto de «daystage.» lleva el mismo degradado. Las variantes de color se generan con `swift scripts/generate-brand-assets.swift <carpeta> variantes`. `Imagotipo` / `ImagotipoAnimado` (`imagotipo.tsx`) lo pintan en todas partes (el animado late despacio; quieto con «Reducir movimiento»). La geometría está también en `scripts/generate-brand-assets.swift` (icono sobre `mist`, splash con «daystage.»): si cambia, cámbiala en los dos.
+**Imagotipo:** una hoja de calendario con el degradado de escenario (`BRAND_GRADIENT`: `stageViolet` → `stageMagenta` → `stageOrange`, a 135°), dos anillas en tinta y, dentro, dos corcheas unidas por una barra (♫), en blanco y con trazo fino, dibujo propio. Lo dibuja solo `generate-brand-assets.swift`; la app usa su PNG (`assets/images/brand-mark.png`, en `DayStageMark`). El punto de «daystage.» lleva el mismo degradado. Las variantes de color se generan con `swift scripts/generate-brand-assets.swift <carpeta> variantes`. `Imagotipo` (`imagotipo.tsx`) lo pinta en todas partes, siempre quieto. La geometría está también en `scripts/generate-brand-assets.swift` (icono sobre `mist`, splash con «daystage.»): si cambia, cámbiala en los dos.
 
 **Botón de ir a un concierto:** «¡Voy!» (activo: «Voy ✓»); la pestaña de tus planes y sus chats se llama «Planes» (internamente sigue siendo `meeet-in.tsx`, `isGoing`/`toggleGoing`).
 
 **Estilo minimalista:** días libres sin fondo en el calendario, tarjetas sin relleno, menos texto secundario; secciones largas plegables (`CollapsibleSection`).
+
+**Sin animaciones decorativas** (lo pidió Jordi): nada de latidos, confeti, destellos, giros, rebotes ni fondos que se mueven. Solo las transiciones nativas de navegación, el feedback al pulsar (opacidad, háptica) y lo que sigue al dedo (deslizar cartas, visor de fotos, cabeceras al hacer scroll). Las notas de abajo que hablan de confeti, destellos o «Reducir movimiento» son históricas.
+
+**Instalación nueva sin turnos**: la base de turnos empieza vacía (sin tipos de ejemplo) y el Calendario invita a «Añadir turno» o «Importar turnos».
 
 **Paleta** (`src/theme.ts`, importa `COLORS` desde `@/theme`):
 

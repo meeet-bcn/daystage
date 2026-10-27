@@ -56,12 +56,6 @@ type AppState = {
   refreshConcerts: () => Promise<void>;
   isGoing: (id: string) => boolean;
   toggleGoing: (concert: Concert) => void;
-  /**
-   * El último "¡Voy!" que acabas de darle, para celebrarlo con brillos en
-   * su foto. `at` distingue un toque de otro; se limpia al acabar la animación.
-   */
-  celebration: { id: string; at: number } | null;
-  endCelebration: () => void;
   goingCount: (concert: Concert) => number;
   /** Todos los conciertos a los que has dicho "Voy", también los ya pasados. */
   plans: Concert[];
@@ -169,7 +163,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     swipes: Record<string, Swipe>;
     deckIntroSeen: boolean;
   }>(() => ({ swipes: {}, deckIntroSeen: false, ...loadJSON(STORAGE_KEYS.discover, {}) }));
-  const [celebration, setCelebration] = useState<{ id: string; at: number } | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   // Con cuenta (Supabase): no leídos por sala y cuánta gente va, por id canónico
   const { enabled: backendOn, userId } = useSession();
@@ -403,10 +396,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setMyEvents(({ [concert.id]: existing, ...rest }) =>
           existing ? rest : { ...rest, [concert.id]: concert }
         );
-        setCelebration(joining ? { id: concert.id, at: Date.now() } : null);
       },
-      celebration,
-      endCelebration: () => setCelebration(null),
       goingCount,
       plans,
       myConcerts,
@@ -499,7 +489,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     settings,
     welcomeSeen,
     discover,
-    celebration,
     filters,
     unreadByRoom,
     remoteGoing,

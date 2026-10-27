@@ -162,7 +162,7 @@ render("favicon.png", width: 48, height: 48, background: mist,
 render("android-icon-background.png", width: 512, height: 512, background: mist) { _ in }
 render("android-icon-foreground.png", width: 512, height: 512,
        draw: centeredMark(side: 512, share: 0.44, colors: colors))
-// Monocromo (Android 13+ lo tiñe): solo cuenta el alfa; la corchea queda hueca
+// Monocromo (Android 13+ lo tiñe): solo cuenta el alfa; las corcheas quedan huecas
 render("android-icon-monochrome.png", width: 432, height: 432) { ctx in
   let mono = MarkColors(sheet: [white], note: .clear, rings: white)
   centeredMark(side: 432, share: 0.5, colors: mono)(ctx)
