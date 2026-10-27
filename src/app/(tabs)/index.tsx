@@ -1,419 +1,313 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useAudioPlayer } from 'expo-audio';
-import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
-import { router, useNavigation } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Animated,
-  FlatList,
-  LayoutAnimation,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useAnimatedValue,
-  View,
-} from 'react-native';
-import Reanimated, { Keyframe } from 'react-native-reanimated';
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, useAnimatedValue, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvailabilityPill } from '@/components/availability-pill';
-import { Chip } from '@/components/chip';
-import { EventImage } from '@/components/event-image';
-import { GoButton } from '@/components/go-button';
-import { ImagotipoAnimado } from '@/components/imagotipo';
-import { SparkleBurst } from '@/components/meeet-in-burst';
-import { WishButton } from '@/components/wish-button';
-import { TITLE_LINE_HEIGHT, TITLE_SIZE, TITLE_SPACING, TITLE_TOP } from '@/components/screen-title';
+import { ConcertImage } from '@/components/concert-image';
+import { ExportButtons } from '@/components/export-buttons';
+import { MonthReportCard } from '@/components/month-report-card';
+import { ScreenHeader } from '@/components/screen-header';
+import { ScreenSubtitle } from '@/components/screen-title';
+import { ShiftBadge } from '@/components/shift-badge';
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
-import { Concert } from '@/data/concerts';
+import { canGo, concertsByDate, plansInMonth } from '@/data/concert-shifts';
+import type { Concert } from '@/data/concerts';
 import {
-  activeFilterCount,
-  dateRangeLabel,
-  dayStart,
-  isQuickRange,
-  QUICK_DATES,
-  quickRange,
-  SORT_OPTIONS,
-} from '@/data/filters';
+  formatDay,
+  formatMonth,
+  formatShiftTime,
+  monthGrid,
+  MONTHS,
+  shiftHours,
+  shortTime,
+  toDateKey,
+  typeForDate,
+  WEEKDAY_INITIALS,
+} from '@/data/shifts';
+import { useShifts } from '@/data/shifts-context';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
-import { COLORS, Theme } from '@/theme';
+import { COLORS, shiftColor, Theme } from '@/theme';
 
-// Ajustes del banner (puedes tocar estos números)
-const LOGO_MAX = 72; // tamaño del logo arriba del todo
-const LOGO_MIN = TITLE_SIZE; // ya encogido: igual que los títulos de Descubrir, meeet in y Perfil
-const LINE_MAX = 83; // altura de la caja del logo grande
-const LINE_MIN = TITLE_LINE_HEIGHT; // caja del logo encogido = la de los títulos de pestaña
-const PAD_MAX = 8; // aire inferior con el logo grande
-const PAD_MIN = 12; // aire inferior con el logo encogido (bajo los chips)
-const TOP_MAX = 50; // aire superior con el logo grande
-const TOP_MIN = TITLE_TOP; // aire superior con el logo encogido (= títulos de pestaña)
-const SLOGAN_H = 22; // altura del lema
-const TOOLS_GAP = 14; // aire entre el logo (o el aviso) y los chips, también con el logo encogido
-const SCROLL_RANGE = 80; // cuánto scroll dura la animación
-// Tirar hacia abajo para recargar
-const PULL_TRIGGER = 80; // pt que hay que tirar para que, al soltar, recargue
-const REFRESH_SPACE = 64; // hueco para el imagotipo mientras recarga
-const REFRESH_MIN_MS = 600; // lo mínimo que se ve la animación, aunque cargue antes
-
-// Al terminar de recargar, el imagotipo crece y se desvanece mientras estallan los destellos
-const LOGO_POP = new Keyframe({
-  0: { opacity: 1, transform: [{ scale: 1 }] },
-  40: { opacity: 1, transform: [{ scale: 1.25 }] },
-  100: { opacity: 0, transform: [{ scale: 1.7 }] },
-}).duration(300);
-
-export default function HomeScreen() {
+export default function TurnosScreen() {
   const styles = useThemedStyles(makeStyles);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const {
-    concerts,
-    visibleConcerts,
-    loading,
-    error,
-    isGoing,
-    toggleGoing,
-    goingCount,
-    filters,
-    setFilters,
-    resetFilters,
-    trimConcerts,
-    loadMore,
-    hasMore,
-    loadingMore,
-    refreshConcerts,
-    settings,
-    availability,
-    hasShifts,
-  } = useApp();
-  const scrollY = useAnimatedValue(0);
-  const listRef = useRef<FlatList<Concert>>(null);
-  const navigation = useNavigation();
-  // Recarga: cargando (imagotipo en el hueco) → explosión al terminar → nada
-  const [refreshPhase, setRefreshPhase] = useState<'idle' | 'loading' | 'burst'>('idle');
-  const refreshing = refreshPhase !== 'idle';
-  const refreshSound = useAudioPlayer(require('@/assets/sounds/refresh.wav'));
+  const { plan } = useShifts();
+  const { concerts, availability, plans, isGoing } = useApp();
+  const byDate = useMemo(() => concertsByDate(concerts), [concerts]);
+  // Tus planes ("Meeet In!", también los pasados) por día, para verlos en el mes
+  const plansByDate = useMemo(() => concertsByDate(plans), [plans]);
+  const today = toDateKey();
+  const [month, setMonth] = useState(() => ({
+    year: Number(today.slice(0, 4)),
+    month: Number(today.slice(5, 7)),
+  }));
+  const grid = useMemo(() => monthGrid(month.year, month.month), [month]);
+  const isCurrentMonth = today.startsWith(`${month.year}-${String(month.month).padStart(2, '0')}`);
 
-  // Tocar Inicio estando ya en Inicio sube arriba del todo (además de lo que haga
-  // iOS). El tipo de useNavigation no incluye 'tabPress' de NativeTabs: de ahí el cast
-  useEffect(
-    () =>
-      navigation.addListener('tabPress' as never, () => {
-        if (navigation.isFocused()) listRef.current?.scrollToOffset({ offset: 0, animated: true });
-      }),
-    [navigation]
-  );
-
-  // Al soltar tras tirar lo bastante, recarga con el imagotipo animado
-  const onScrollEndDrag = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (refreshing || e.nativeEvent.contentOffset.y > -PULL_TRIGGER) return;
-    setRefreshPhase('loading');
-    if (settings.sounds) {
-      refreshSound.seekTo(0);
-      refreshSound.play();
-    }
-    if (settings.haptics) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const minimum = new Promise((resolve) => setTimeout(resolve, REFRESH_MIN_MS));
-    Promise.all([refreshConcerts(), minimum]).finally(() => setRefreshPhase('burst'));
-  };
-
-  // Tras la explosión, el hueco se cierra con suavidad en vez de dar un salto
-  const endRefresh = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setRefreshPhase('idle');
-  };
-  // Alto de los chips, fijos en la cabecera: la lista empieza debajo
-  const [toolsHeight, setToolsHeight] = useState(0);
-  // Hoy (medianoche), fijado al montar: leer la hora en cada render no es puro
-  const [today] = useState(() => dayStart(Date.now()));
-  // ¿Las fechas son un atajo (Hoy, Mañana, Próxima semana)? Si no, son del calendario
-  const quick = QUICK_DATES.find((q) => isQuickRange(filters.dates, q.key, today))?.key;
-  const filterCount = activeFilterCount(filters);
-  const sortLabel = SORT_OPTIONS.find((o) => o.key === filters.sort)?.label.toLowerCase();
-  // Donde empieza la lista: bajo la cabecera fija ya desplegada
-  const listTop = insets.top + TOP_MAX + LINE_MAX + SLOGAN_H + toolsHeight + PAD_MAX;
-  const isFiltered = filterCount > 0 || filters.dates != null || filters.freeDaysOnly;
-
-  const shrink = (from: number, to: number) =>
-    scrollY.interpolate({
-      inputRange: [0, SCROLL_RANGE],
-      outputRange: [from, to],
-      extrapolate: 'clamp',
+  const moveMonth = (delta: number) =>
+    setMonth(({ year, month: m }) => {
+      const index = year * 12 + (m - 1) + delta;
+      return { year: Math.floor(index / 12), month: (index % 12) + 1 };
     });
+  const goToday = () =>
+    setMonth({ year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) });
 
-  const logoSize = shrink(LOGO_MAX, LOGO_MIN);
-  const logoLine = shrink(LINE_MAX, LINE_MIN);
-  const logoSpacing = shrink(-2, TITLE_SPACING);
-  const headerPadTop = shrink(insets.top + TOP_MAX, insets.top + TOP_MIN);
-  const headerPadBottom = shrink(PAD_MAX, PAD_MIN);
-  const sloganHeight = shrink(SLOGAN_H, 0);
-  const sloganOpacity = scrollY.interpolate({
-    inputRange: [0, SCROLL_RANGE * 0.5],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-  const lineOpacity = scrollY.interpolate({
-    inputRange: [SCROLL_RANGE - 20, SCROLL_RANGE],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
+  const openDay = (date: string) => router.push({ pathname: '/shift-day', params: { date } });
+  const openConcert = (concert: Concert) =>
+    router.push({ pathname: '/concert/[id]', params: { id: concert.id } });
+  const monthPlans = plansInMonth(plans, month.year, month.month);
+
+  const scrollY = useAnimatedValue(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const rotation = plan.rotation;
 
   return (
     <View style={styles.container}>
-      {/* Imagotipo de "tirar para recargar": queda detrás de la lista y asoma en el hueco */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.pull,
-          { top: listTop + 8 },
-          {
-            opacity: refreshing
-              ? 1
-              : scrollY.interpolate({
-                  inputRange: [-PULL_TRIGGER, -16],
-                  outputRange: [1, 0],
-                  extrapolate: 'clamp',
-                }),
-            transform: [
-              {
-                scale: refreshing
-                  ? 1
-                  : scrollY.interpolate({
-                      inputRange: [-PULL_TRIGGER, 0],
-                      outputRange: [1, 0.4],
-                      extrapolate: 'clamp',
-                    }),
-              },
-            ],
-          },
-        ]}
-      >
-        {refreshPhase === 'burst' ? (
-          <View style={styles.burst}>
-            <SparkleBurst onEnd={endRefresh} />
-          </View>
-        ) : (
-          <Reanimated.View exiting={LOGO_POP}>
-            <ImagotipoAnimado height={36} />
-          </Reanimated.View>
-        )}
-      </Animated.View>
-
-      {/* Primera carga al abrir la app: el imagotipo animado en el centro */}
-      {loading && (
-        <View pointerEvents="none" style={styles.firstLoad}>
-          <ImagotipoAnimado height={72} />
-          <Text style={styles.firstLoadText}>Buscando conciertos…</Text>
-        </View>
-      )}
-
-      <Animated.FlatList
-        ref={listRef}
-        onScrollEndDrag={onScrollEndDrag}
-        data={visibleConcerts}
-        keyExtractor={(item: Concert) => item.id}
-        showsVerticalScrollIndicator={false}
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-        scrollEventThrottle={16}
-        // Al acercarse al final se pide la siguiente página (también si los
-        // filtros dejan la lista corta: FlatList avisa en cuanto no la llena)
-        onEndReached={loadMore}
-        onEndReachedThreshold={1.5}
-        // Rendimiento: tarjetas grandes con foto, se pintan pocas a la vez
-        initialNumToRender={4}
-        maxToRenderPerBatch={4}
-        windowSize={7}
-        removeClippedSubviews
-        ListFooterComponent={
-          loadingMore ? <ActivityIndicator color={theme.accent} style={styles.more} /> : undefined
-        }
+      <Animated.ScrollView
+        contentInsetAdjustmentBehavior="never"
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-          useNativeDriver: false,
+          useNativeDriver: true,
         })}
+        scrollEventThrottle={16}
+        scrollIndicatorInsets={{ top: headerHeight }}
         contentContainerStyle={{
-          paddingTop: listTop + (refreshing ? REFRESH_SPACE : 0),
+          paddingTop: headerHeight,
           paddingBottom: insets.bottom + BottomTabInset + 32,
         }}
-        ListHeaderComponent={
-          <View style={styles.listHeader}>
-            {concerts.length > 0 && (
-              <Text style={styles.results}>
-                {/* Mientras queden páginas, "20+": aún no están todos */}
-                {visibleConcerts.length}
-                {hasMore ? '+' : ''}{' '}
-                {visibleConcerts.length === 1 && !hasMore ? 'concierto' : 'conciertos'} · por{' '}
-                {sortLabel}
-              </Text>
-            )}
-
-            {error && (
-              <Text style={styles.message}>No se han podido cargar los conciertos: {error}</Text>
-            )}
-            {!loading && !error && concerts.length === 0 && (
-              <Text style={styles.message}>No hay conciertos disponibles ahora mismo.</Text>
-            )}
-            {/* Solo cuando ya están todos: si quedan páginas, aún pueden aparecer */}
-            {concerts.length > 0 && visibleConcerts.length === 0 && isFiltered && !hasMore && (
-              <View style={styles.emptyFiltered}>
-                <Text style={styles.message}>Ningún concierto coincide con tus filtros.</Text>
-                <Pressable onPress={resetFilters} hitSlop={8}>
-                  <Text style={styles.link}>Quitar filtros</Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
-        }
-        renderItem={({ item }: { item: Concert }) => {
-          const going = isGoing(item.id);
-          const count = goingCount(item);
-          return (
-            <Pressable
-              style={styles.card}
-              onPress={() => router.push({ pathname: '/concert/[id]', params: { id: item.id } })}
-            >
-              <EventImage concert={item} going={going} holo />
-
-              <View style={styles.cardBody}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.date}>
-                    {item.visibility === 'private' && (
-                      <Ionicons name="lock-closed" size={11} color={COLORS.muted} />
-                    )}
-                    {item.visibility === 'private' ? ' ' : ''}
-                    {item.date}
-                  </Text>
-                  <Text style={styles.artist} numberOfLines={2}>
-                    {item.artist}
-                  </Text>
-                  <Text style={styles.venue} numberOfLines={1}>
-                    {item.venue}
-                  </Text>
-                  {/* Si puedes ir según tus turnos (solo con turnos configurados) */}
-                  <AvailabilityPill availability={availability(item)} style={styles.availability} />
-                  <Text style={styles.going}>
-                    {count === 0
-                      ? 'Sé el primero en apuntarte'
-                      : `${count} ${count === 1 ? 'persona va' : 'personas van'}`}
-                  </Text>
-                </View>
-                {/* Corazón (lista de deseos) junto a "Meeet In!" */}
-                <View style={styles.cardActions}>
-                  <WishButton concert={item} />
-                  <GoButton isGoing={going} onPress={() => toggleGoing(item)} />
-                </View>
-              </View>
-            </Pressable>
-          );
-        }}
-      />
-
-      <Animated.View
-        style={[styles.header, { paddingTop: headerPadTop, paddingBottom: headerPadBottom }]}
       >
-        <BlurView intensity={70} tint="light" style={StyleSheet.absoluteFill} />
-        <View style={[StyleSheet.absoluteFill, styles.glass]} />
+        <ScreenSubtitle>Tu calendario de trabajo</ScreenSubtitle>
 
-        <Animated.View style={[styles.logoRow, { height: logoLine }]}>
-          <Animated.Text
-            style={[
-              styles.logo,
-              { fontSize: logoSize, lineHeight: logoLine, letterSpacing: logoSpacing },
-            ]}
-          >
-            {/* Las "eee" en la escala del salmón, de clara a oscura */}m
-            {/* Las "eee" en la escala del color de tu perfil (sin fondo, el salmón de la marca) */}
-            <Text style={{ color: theme.logo[0] }}>e</Text>
-            <Text style={{ color: theme.logo[1] }}>e</Text>
-            <Text style={{ color: theme.logo[2] }}>e</Text>t
-            <Text style={{ color: theme.accent }}>.</Text>
-          </Animated.Text>
-          {/* Buscar (ya no es pestaña: en la barra solo caben 5) */}
+        <View style={styles.monthRow}>
           <Pressable
-            onPress={() => router.push('/buscar')}
+            onPress={() => moveMonth(-1)}
             hitSlop={10}
-            style={styles.searchButton}
-            accessibilityRole="button"
-            accessibilityLabel="Buscar conciertos"
+            style={styles.arrow}
+            accessibilityLabel="Mes anterior"
           >
-            <Ionicons name="search" size={24} color={COLORS.text} />
+            <Ionicons name="chevron-back" size={22} color={theme.accent} />
           </Pressable>
-        </Animated.View>
-
-        <Animated.Text
-          numberOfLines={1}
-          style={[styles.slogan, { height: sloganHeight, opacity: sloganOpacity }]}
-        >
-          Every event. Everyone.
-        </Animated.Text>
-
-        <View style={styles.tools} onLayout={(e) => setToolsHeight(e.nativeEvent.layout.height)}>
-          {concerts.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              style={styles.toolbarScroll}
-              contentContainerStyle={styles.toolbar}
-            >
-              {/* Todos: sin filtros ni fechas. Si había días del calendario, se vacía
-                  también lo cargado para ellos, como con "Quitar fechas" */}
-              <Chip
-                label="Todos"
-                active={!isFiltered}
-                onPress={() => {
-                  if (filters.dates && !quick) trimConcerts();
-                  resetFilters();
-                }}
-              />
-              <Chip
-                icon="options-outline"
-                label={filterCount > 0 ? `Filtros · ${filterCount}` : 'Filtros'}
-                active={filterCount > 0}
-                onPress={() => router.push('/filters')}
-              />
-              {/* DayStage: solo conciertos a los que puedes ir (libre, o antes o tras tu turno) */}
-              {hasShifts && (
-                <Chip
-                  icon="sunny-outline"
-                  label="Mis días libres"
-                  active={filters.freeDaysOnly}
-                  onPress={() => setFilters((f) => ({ ...f, freeDaysOnly: !f.freeDaysOnly }))}
-                />
-              )}
-              {/* Atajos de fechas (otra vez, se quitan); para otros días, el calendario */}
-              {QUICK_DATES.map((q) => (
-                <Chip
-                  key={q.key}
-                  label={q.label}
-                  active={quick === q.key}
-                  onPress={() =>
-                    setFilters((f) => ({
-                      ...f,
-                      dates: quick === q.key ? null : quickRange(q.key, today),
-                    }))
-                  }
-                />
-              ))}
-              {/* Muchos son turistas: buscan sus días en Barcelona */}
-              <Chip
-                icon="calendar-outline"
-                label={filters.dates && !quick ? dateRangeLabel(filters.dates) : 'Calendario'}
-                active={filters.dates != null && !quick}
-                onPress={() => router.push('/calendar')}
-              />
-            </ScrollView>
-          )}
+          <Pressable onPress={goToday} disabled={isCurrentMonth} style={styles.monthTitleBox}>
+            <Text style={styles.monthTitle}>{formatMonth(month.year, month.month)}</Text>
+            {!isCurrentMonth && <Text style={styles.todayLink}>Volver a hoy</Text>}
+          </Pressable>
+          <Pressable
+            onPress={() => moveMonth(1)}
+            hitSlop={10}
+            style={styles.arrow}
+            accessibilityLabel="Mes siguiente"
+          >
+            <Ionicons name="chevron-forward" size={22} color={theme.accent} />
+          </Pressable>
         </View>
 
-        <Animated.View style={[styles.line, { opacity: lineOpacity }]} />
-      </Animated.View>
+        <View style={styles.calendar}>
+          <View style={styles.week}>
+            {WEEKDAY_INITIALS.map((d) => (
+              <Text key={d} style={styles.weekday}>
+                {d}
+              </Text>
+            ))}
+          </View>
+          {grid.map((week) => (
+            <View key={week[0].date} style={styles.week}>
+              {week.map(({ date, inMonth }) => {
+                const type = typeForDate(date, plan);
+                const isToday = date === today;
+                const changed = date in plan.overrides;
+                // Conciertos cargados ese día a los que puedes ir (libre, antes o tras el turno)
+                const fits = (byDate[date] ?? []).filter(
+                  (c) => !isGoing(c.id) && canGo(availability(c))
+                ).length;
+                const dayPlans = plansByDate[date] ?? [];
+                return (
+                  <Pressable
+                    key={date}
+                    onPress={() => openDay(date)}
+                    style={({ pressed }) => [
+                      styles.day,
+                      type && { backgroundColor: shiftColor(type.color).fill },
+                      !inMonth && styles.outside,
+                      pressed && styles.pressed,
+                    ]}
+                    accessibilityLabel={`${formatDay(date)}: ${type ? type.name : 'libre'}${changed ? ', cambiado' : ''}${dayPlans.length > 0 ? `, vas a ${dayPlans.map((c) => c.artist).join(' y ')}` : ''}${fits > 0 ? `, ${fits} ${fits === 1 ? 'concierto' : 'conciertos'} para ti` : ''}`}
+                  >
+                    <View style={[styles.dayNumberBox, isToday && styles.todayBox]}>
+                      <Text style={[styles.dayNumber, isToday && styles.todayNumber]}>
+                        {Number(date.slice(8))}
+                      </Text>
+                    </View>
+                    {type && !type.off ? (
+                      // Como en un cuadrante: hora de entrada y, debajo, de salida
+                      <View style={styles.times}>
+                        <Text
+                          style={[styles.timeStart, { color: shiftColor(type.color).ink }]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                        >
+                          {shortTime(type.start)}
+                        </Text>
+                        <Text
+                          style={[styles.timeEnd, { color: shiftColor(type.color).ink }]}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                        >
+                          {shortTime(type.end)}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text
+                        style={[styles.abbr, { color: type ? shiftColor(type.color).ink : COLORS.muted }]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                      >
+                        {type ? type.abbr : rotation ? 'L' : ''}
+                      </Text>
+                    )}
+                    {changed && <View style={styles.changedDot} />}
+                    {dayPlans.length > 0 ? (
+                      // Tu plan: la foto del concierto con el aro del acento; tocarla abre la ficha
+                      // (con varios, el día abre la hoja con todos)
+                      <Pressable
+                        style={styles.planBadge}
+                        hitSlop={6}
+                        onPress={() =>
+                          dayPlans.length === 1 ? openConcert(dayPlans[0]) : openDay(date)
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Abrir ${dayPlans[0].artist}`}
+                      >
+                        <ConcertImage concert={dayPlans[0]} style={styles.planThumb} iconSize={10} />
+                        {dayPlans.length > 1 && (
+                          <View style={styles.planCount}>
+                            <Text style={styles.planCountText}>{dayPlans.length}</Text>
+                          </View>
+                        )}
+                      </Pressable>
+                    ) : (
+                      fits > 0 && <View style={styles.concertDot} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+        {/* Leyenda: turno · tus planes · conciertos que te encajan */}
+        <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View style={styles.legendShift} />
+            <Text style={styles.legendText}>Turno</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={styles.legendPlan} />
+            <Text style={styles.legendText}>Vas (Meeet In!)</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={styles.legendDot} />
+            <Text style={styles.legendText}>Conciertos que te encajan</Text>
+          </View>
+        </View>
+        <Text style={styles.hint}>Toca un día para cambiar su turno o ver sus conciertos.</Text>
+
+        {/* Informe del mes que se ve: horas, extra, ganancias y semanas */}
+        <Text style={styles.sectionTitle}>Informe de {MONTHS[month.month - 1]}</Text>
+        <MonthReportCard year={month.year} month={month.month} />
+        <ExportButtons year={month.year} month={month.month} />
+
+        {monthPlans.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Tus planes este mes</Text>
+            <View style={[styles.card, styles.plansCard]}>
+              {monthPlans.map((c, i) => (
+                <Pressable
+                  key={c.id}
+                  onPress={() => openConcert(c)}
+                  style={({ pressed }) => [styles.planRow, i > 0 && styles.planRowLine, pressed && styles.pressed]}
+                >
+                  <ConcertImage concert={c} style={styles.planRowThumb} iconSize={16} />
+                  <View style={styles.planRowText}>
+                    <Text style={styles.planRowDate}>{c.date}</Text>
+                    <Text style={styles.planRowArtist} numberOfLines={1}>
+                      {c.artist}
+                    </Text>
+                    <Text style={styles.planRowVenue} numberOfLines={1}>
+                      {c.venue}
+                    </Text>
+                  </View>
+                  <AvailabilityPill availability={availability(c)} />
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+
+        <Text style={styles.sectionTitle}>Rotación</Text>
+        <View style={styles.card}>
+          {rotation && rotation.cycle.length > 0 ? (
+            <>
+              <Text style={styles.cardTitle}>{rotation.name}</Text>
+              <Text style={styles.cardText}>
+                Ciclo de {rotation.cycle.length} días desde el {formatDay(rotation.startDate)}
+              </Text>
+              <View style={styles.cycle}>
+                {rotation.cycle.map((id, i) => (
+                  <ShiftBadge
+                    key={i}
+                    size="small"
+                    type={plan.types.find((t) => t.id === id) ?? null}
+                  />
+                ))}
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.cardTitle}>Aún no tienes rotación</Text>
+              <Text style={styles.cardText}>
+                Dinos cómo se repiten tus turnos (por ejemplo, 2 mañanas, 2 tardes, 2 noches y 4
+                libres) y llenaremos el calendario por ti.
+              </Text>
+            </>
+          )}
+          <Pressable style={styles.button} onPress={() => router.push('/rotation')}>
+            <Text style={styles.buttonText}>
+              {rotation ? 'Cambiar rotación' : 'Crear rotación'}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.sectionRow}>
+          <Text style={[styles.sectionTitle, styles.sectionTitleInline]}>Tipos de turno</Text>
+          <View style={styles.sectionActions}>
+            <Pressable onPress={() => router.push('/shift-import')} hitSlop={8}>
+              <Text style={styles.edit}>Importar</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push('/shift-types')} hitSlop={8}>
+              <Text style={styles.edit}>Editar</Text>
+            </Pressable>
+          </View>
+        </View>
+        <View style={styles.card}>
+          {plan.types.length === 0 ? (
+            <Text style={styles.cardText}>No tienes tipos de turno. Crea uno en «Editar».</Text>
+          ) : (
+            plan.types.map((t) => (
+              <View key={t.id} style={styles.legendRow}>
+                <ShiftBadge type={t} />
+                <Text style={styles.legendName}>{t.name}</Text>
+                <Text style={styles.legendTime}>
+                  {formatShiftTime(t)} · {shiftHours(t)} h
+                </Text>
+              </View>
+            ))
+          )}
+        </View>
+      </Animated.ScrollView>
+
+      <ScreenHeader title="Calendario" scrollY={scrollY} onHeight={setHeaderHeight} />
     </View>
   );
 }
@@ -421,95 +315,174 @@ export default function HomeScreen() {
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
-    header: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 10,
-      paddingHorizontal: 20,
-      overflow: 'hidden',
-    },
-    glass: { backgroundColor: 'rgba(255,255,255,0.45)' },
-    logoRow: { justifyContent: 'center' },
-    searchButton: {
-      position: 'absolute',
-      right: 16,
-      top: 0,
-      bottom: 0,
-      width: 40,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    // Logo y lema, centrados
-    logo: {
-      alignSelf: 'center',
-      color: COLORS.text,
-      fontWeight: '700',
-    },
-    slogan: {
-      alignSelf: 'center',
-      color: COLORS.muted,
-      fontSize: 15,
-      lineHeight: 20,
-      fontWeight: '500',
-      letterSpacing: 0.2,
-      marginTop: -6,
-      overflow: 'hidden',
-    },
-    line: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: COLORS.line,
-    },
-    listHeader: { marginBottom: 20 },
-    pull: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-    burst: { width: 1, height: 36 }, // centro de la explosión, donde estaba el imagotipo
-    firstLoad: {
-      ...StyleSheet.absoluteFill,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 14,
-    },
-    firstLoadText: { color: COLORS.muted, fontSize: 15, fontWeight: '500' },
-    // Los chips llegan hasta el borde de la pantalla al deslizarlos
-    // El lema sube 6 pt sobre el logo (marginTop: -6): aquí se compensa para
-    // que, ya encogido, los chips no pisen el logo
-    tools: { paddingTop: TOOLS_GAP },
-    toolbarScroll: { marginHorizontal: -20 },
-    toolbar: { gap: 8, paddingHorizontal: 20 },
-    results: { color: COLORS.muted, fontSize: 13, paddingHorizontal: 20 },
-    message: { color: COLORS.muted, fontSize: 15, marginTop: 24, paddingHorizontal: 20 },
-    emptyFiltered: { gap: 12 },
-    more: { marginBottom: 24 },
-    link: { color: theme.accent, fontSize: 15, fontWeight: '700', paddingHorizontal: 20 },
-    card: { marginBottom: 32 },
-    cardBody: {
+    monthRow: {
       flexDirection: 'row',
-      alignItems: 'flex-end',
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      gap: 12,
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 12,
+      marginBottom: 8,
     },
-    cardActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    date: {
-      color: theme.accent,
+    arrow: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+    monthTitleBox: { alignItems: 'center' },
+    monthTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.4 },
+    todayLink: { color: theme.accent, fontSize: 13, fontWeight: '600', marginTop: 2 },
+    calendar: { paddingHorizontal: 14, gap: 4 },
+    week: { flexDirection: 'row', gap: 4 },
+    weekday: {
+      flex: 1,
+      textAlign: 'center',
+      color: COLORS.muted,
       fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      paddingVertical: 4,
+    },
+    day: {
+      flex: 1,
+      aspectRatio: 0.6,
+      borderRadius: 12,
+      backgroundColor: COLORS.surface,
+      alignItems: 'center',
+      paddingTop: 5,
+    },
+    outside: { opacity: 0.35 },
+    pressed: { opacity: 0.6 },
+    dayNumberBox: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    todayBox: { backgroundColor: theme.accent },
+    dayNumber: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
+    todayNumber: { color: COLORS.white, fontWeight: '800' },
+    abbr: { fontSize: 15, lineHeight: 18, fontWeight: '800', marginTop: 1, paddingHorizontal: 2 },
+    times: { alignItems: 'center', marginTop: 1, paddingHorizontal: 2 },
+    timeStart: { fontSize: 13, lineHeight: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
+    timeEnd: { fontSize: 10, lineHeight: 12, fontWeight: '600', fontVariant: ['tabular-nums'] },
+    sectionActions: { flexDirection: 'row', gap: 18 },
+    changedDot: {
+      position: 'absolute',
+      top: 5,
+      right: 5,
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: theme.accent,
+    },
+    planBadge: { marginTop: 3 },
+    planThumb: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      borderWidth: 2,
+      borderColor: theme.accent,
+      backgroundColor: COLORS.surface,
+      overflow: 'hidden',
+    },
+    planCount: {
+      position: 'absolute',
+      top: -4,
+      right: -7,
+      minWidth: 14,
+      height: 14,
+      borderRadius: 7,
+      paddingHorizontal: 3,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.accent,
+    },
+    planCountText: { color: COLORS.white, fontSize: 9, fontWeight: '800' },
+    legend: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      columnGap: 16,
+      rowGap: 6,
+      marginTop: 12,
+      marginHorizontal: 20,
+    },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    legendText: { color: COLORS.muted, fontSize: 12, fontWeight: '600' },
+    legendShift: { width: 14, height: 14, borderRadius: 4, backgroundColor: COLORS.lavender },
+    legendPlan: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      borderWidth: 2,
+      borderColor: theme.accent,
+      backgroundColor: COLORS.surface,
+    },
+    legendDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.text },
+    plansCard: { padding: 0, gap: 0, overflow: 'hidden' },
+    planRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 },
+    planRowLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
+    planRowThumb: { width: 48, height: 48, borderRadius: 12, overflow: 'hidden' },
+    planRowText: { flex: 1 },
+    planRowDate: {
+      color: theme.accent,
+      fontSize: 11,
       fontWeight: '700',
       letterSpacing: 0.4,
       textTransform: 'uppercase',
     },
-    artist: {
-      color: COLORS.text,
-      fontSize: 22,
-      fontWeight: '700',
-      letterSpacing: -0.4,
-      marginTop: 4,
+    planRowArtist: { color: COLORS.text, fontSize: 16, fontWeight: '700', letterSpacing: -0.3 },
+    planRowVenue: { color: COLORS.muted, fontSize: 13, marginTop: 1 },
+    concertDot: {
+      position: 'absolute',
+      bottom: 6,
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: COLORS.text,
     },
-    availability: { marginTop: 6 },
-    venue: { color: COLORS.muted, fontSize: 15, marginTop: 2 },
-    going: { color: COLORS.muted, fontSize: 13, marginTop: 10 },
+    hint: {
+      color: COLORS.muted,
+      fontSize: 13,
+      lineHeight: 18,
+      textAlign: 'center',
+      marginTop: 8,
+      marginHorizontal: 24,
+    },
+    sectionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingRight: 20,
+    },
+    sectionTitle: {
+      color: COLORS.muted,
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      marginTop: 28,
+      marginBottom: 8,
+      marginHorizontal: 24,
+    },
+    sectionTitleInline: { marginRight: 0 },
+    edit: { color: theme.accent, fontSize: 15, fontWeight: '600', marginTop: 20 },
+    card: {
+      marginHorizontal: 20,
+      padding: 16,
+      borderRadius: 18,
+      backgroundColor: COLORS.mist,
+      gap: 8,
+    },
+    cardTitle: { color: COLORS.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.3 },
+    cardText: { color: COLORS.muted, fontSize: 14, lineHeight: 20 },
+    cycle: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+    button: {
+      marginTop: 6,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: theme.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonText: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
+    legendRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 2 },
+    legendName: { flex: 1, color: COLORS.text, fontSize: 16, fontWeight: '600' },
+    legendTime: { color: COLORS.muted, fontSize: 14, fontVariant: ['tabular-nums'] },
   });

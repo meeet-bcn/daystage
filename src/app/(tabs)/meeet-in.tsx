@@ -119,7 +119,7 @@ export default function MeeetInScreen() {
             <Text style={styles.emptyText}>
               Dale a «Meeet In!» en un concierto y aparecerá aquí, con su chat.
             </Text>
-            <Pressable style={styles.emptyButton} onPress={() => router.navigate('/')}>
+            <Pressable style={styles.emptyButton} onPress={() => router.navigate('/eventos')}>
               <Text style={styles.emptyButtonText}>Ver conciertos</Text>
             </Pressable>
           </View>
