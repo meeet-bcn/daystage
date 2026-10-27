@@ -15,6 +15,7 @@ import { deleteTabIcons, saveProfilePhoto } from '@/data/profile-photo';
 import { useSession } from '@/data/session-context';
 import {
   MESSAGES_FROM_OPTIONS,
+  MEAL_TICKET_HOURS,
   parseRate,
   Settings,
   SHIFT_REMINDER_OPTIONS,
@@ -354,6 +355,57 @@ export default function SettingsScreen() {
               maxLength={6}
             />
           </View>
+          <Row
+            icon="restaurant-outline"
+            label="Ticket comida"
+            detail="Cuántos ganas cada mes, en el Calendario"
+            right={
+              <Toggle
+                value={settings.mealTicket.enabled}
+                onChange={(enabled) => updateSettings({ mealTicket: { ...settings.mealTicket, enabled } })}
+              />
+            }
+          />
+          {settings.mealTicket.enabled && (
+            <>
+              <View style={[styles.row, styles.rowLine, styles.rowColumn]}>
+                <View style={styles.rowHead}>
+                  <Ionicons name="time-outline" size={20} color={theme.accent} />
+                  <Text style={styles.rowLabel}>Horas mínimas trabajadas al día (sin el descanso)</Text>
+                </View>
+                <View style={styles.chipsInline}>
+                  {MEAL_TICKET_HOURS.map((h) => (
+                    <Chip
+                      key={h}
+                      label={`${h} h`}
+                      active={settings.mealTicket.minHours === h}
+                      onPress={() => updateSettings({ mealTicket: { ...settings.mealTicket, minHours: h } })}
+                    />
+                  ))}
+                </View>
+              </View>
+              <View style={[styles.row, styles.rowLine]}>
+                <Ionicons name="pricetag-outline" size={20} color={theme.accent} />
+                <View style={styles.rowText}>
+                  <Text style={styles.rowLabel}>Importe por ticket</Text>
+                  <Text style={styles.rowDetail}>Por cada día que llegues al mínimo</Text>
+                </View>
+                <TextInput
+                  style={styles.rateInput}
+                  defaultValue={
+                    settings.mealTicket.amount != null ? settings.mealTicket.amount.toFixed(2).replace('.', ',') : ''
+                  }
+                  onEndEditing={(e) =>
+                    updateSettings({ mealTicket: { ...settings.mealTicket, amount: parseRate(e.nativeEvent.text) } })
+                  }
+                  placeholder="€"
+                  placeholderTextColor={COLORS.muted}
+                  keyboardType="decimal-pad"
+                  maxLength={6}
+                />
+              </View>
+            </>
+          )}
           <Row icon="calendar-outline" label="Tus turnos" onPress={() => router.navigate('/')} />
         </Section>
 

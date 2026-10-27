@@ -15,6 +15,7 @@ import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
 import { canGo, concertsByDate, hasSchedule, plansInMonth } from '@/data/concert-shifts';
 import type { Concert } from '@/data/concerts';
+import { mealTickets, mealTicketsLabel } from '@/data/meal-tickets';
 import {
   formatDay,
   formatMonth,
@@ -28,6 +29,7 @@ import {
   WEEKDAY_INITIALS,
 } from '@/data/shifts';
 import { useShifts } from '@/data/shifts-context';
+import { useCalendarSections } from '@/hooks/use-calendar-sections';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, shiftColor, Theme } from '@/theme';
 
@@ -38,7 +40,9 @@ export default function TurnosScreen() {
   const { plan } = useShifts();
   // Sin tipos ni turnos (instalación nueva): se invita a añadir el primero
   const empty = plan.types.length === 0 && !hasSchedule(plan);
-  const { concerts, availability, plans, isGoing } = useApp();
+  const { concerts, availability, plans, isGoing, settings } = useApp();
+  // Qué se ve bajo el mes (Calendario › Editar); por defecto, solo tus planes
+  const sections = useCalendarSections();
   const byDate = useMemo(() => concertsByDate(concerts), [concerts]);
   // Tus planes ("¡Voy!", también los pasados) por día, para verlos en el mes
   const plansByDate = useMemo(() => concertsByDate(plans), [plans]);
@@ -213,7 +217,7 @@ export default function TurnosScreen() {
         )}
 
         {/* Leyenda: turno · tus planes · conciertos que te encajan */}
-        {!empty && (
+        {!empty && sections.leyenda && (
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <View style={styles.legendShift} />
@@ -230,7 +234,7 @@ export default function TurnosScreen() {
         </View>
         )}
 
-        {monthPlans.length > 0 && (
+        {sections.planes && monthPlans.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>Tus planes este mes</Text>
             <View style={[styles.card, styles.plansCard]}>
@@ -260,12 +264,36 @@ export default function TurnosScreen() {
         {!empty && (
         <>
         {/* Informe del mes que se ve (plegable) y exportar */}
-        <CollapsibleSection id="informe" title={`Informe de ${MONTHS[month.month - 1]}`}>
-          <MonthReportCard year={month.year} month={month.month} />
-          <ExportButtons year={month.year} month={month.month} />
-        </CollapsibleSection>
+        {sections.informe && (
+          <CollapsibleSection id="informe" title={`Informe de ${MONTHS[month.month - 1]}`}>
+            <MonthReportCard year={month.year} month={month.month} />
+            <ExportButtons year={month.year} month={month.month} />
+          </CollapsibleSection>
+        )}
+
+        {/* Ticket comida del mes */}
+        {sections.ticket && (
+          <View style={styles.ticket}>
+            <Ionicons name="restaurant-outline" size={18} color={theme.accent} />
+            {settings.mealTicket.enabled && settings.mealTicket.amount != null ? (
+              <Text style={styles.ticketText}>
+                {mealTicketsLabel(
+                  mealTickets(plan, month.year, month.month, {
+                    minHours: settings.mealTicket.minHours,
+                    amount: settings.mealTicket.amount,
+                  })
+                )}
+              </Text>
+            ) : (
+              <Pressable onPress={() => router.push('/settings')} hitSlop={8} style={styles.ticketTextBox}>
+                <Text style={styles.edit}>Activa el ticket comida en Ajustes › Turnos</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
 
         {/* Tipos de turno: plegado por defecto (hay mucha información) */}
+        {sections.tipos && (
         <CollapsibleSection
           id="tipos"
           title="Tipos de turno"
@@ -297,8 +325,10 @@ export default function TurnosScreen() {
             )}
           </View>
         </CollapsibleSection>
+        )}
 
         {/* La rotación, al final */}
+        {sections.rotacion && (
         <CollapsibleSection id="rotacion" title="Rotación">
           <View style={styles.card}>
             {rotation && rotation.cycle.length > 0 ? (
@@ -333,17 +363,32 @@ export default function TurnosScreen() {
             </Pressable>
           </View>
         </CollapsibleSection>
+        )}
         </>
         )}
       </Animated.ScrollView>
 
-      <ScreenHeader title="Calendario" scrollY={scrollY} onHeight={setHeaderHeight} />
+      <ScreenHeader
+        title="Calendario"
+        accessory={
+          <Pressable onPress={() => router.push('/calendar-sections')} hitSlop={10} style={styles.headerEdit}>
+            <Text style={styles.edit}>Editar</Text>
+          </Pressable>
+        }
+        scrollY={scrollY}
+        onHeight={setHeaderHeight}
+      />
     </View>
   );
 }
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    ticket: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginTop: 20 },
+    ticketText: { flex: 1, color: COLORS.text, fontSize: 15, fontWeight: '600' },
+    ticketTextBox: { flex: 1 },
+    // «Editar» a la derecha de la cabecera
+    headerEdit: { marginLeft: 'auto' },
     empty: { alignItems: 'center', gap: 8, marginHorizontal: 20, marginTop: 28 },
     emptyTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.4, marginTop: 4 },
     emptyText: { color: COLORS.muted, fontSize: 15, textAlign: 'center', marginBottom: 6 },

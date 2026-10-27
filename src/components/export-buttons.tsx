@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useApp } from '@/data/app-context';
+import { mealTickets } from '@/data/meal-tickets';
 import { monthReport } from '@/data/reports';
 import { shareMonthPdf, syncToCalendar } from '@/data/shift-export-service';
 import { useShifts } from '@/data/shifts-context';
@@ -48,7 +49,12 @@ export function ExportButtons({ year, month }: { year: number; month: number }) 
         dailyHours: settings.workdayHours,
         hourlyRate: settings.hourlyRate,
       });
-      await shareMonthPdf(plan, year, month, report);
+      const ticket = settings.mealTicket;
+      const tickets =
+        ticket.enabled && ticket.amount != null
+          ? mealTickets(plan, year, month, { minHours: ticket.minHours, amount: ticket.amount })
+          : null;
+      await shareMonthPdf(plan, year, month, report, tickets);
     } catch {
       Alert.alert('No se pudo crear el PDF', 'Inténtalo otra vez.');
     } finally {

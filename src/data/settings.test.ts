@@ -48,6 +48,20 @@ describe('informes', () => {
     expect(withDefaults({ hourlyRate: -1 }).hourlyRate).toBeNull();
   });
 
+  it('ticket comida: apagado por defecto; lo guardado si vale', () => {
+    expect(withDefaults({}).mealTicket).toEqual({ enabled: false, minHours: 6, amount: null });
+    expect(withDefaults({ mealTicket: { enabled: true, minHours: 7, amount: 9.5 } }).mealTicket).toEqual({
+      enabled: true,
+      minHours: 7,
+      amount: 9.5,
+    });
+    expect(withDefaults({ mealTicket: { enabled: true, minHours: -2, amount: 0 } }).mealTicket).toEqual({
+      enabled: true,
+      minHours: 6,
+      amount: null,
+    });
+  });
+
   it('parseRate', () => {
     expect(parseRate('12,5')).toBe(12.5);
     expect(parseRate(' 10 ')).toBe(10);

@@ -37,6 +37,8 @@ export type Settings = {
   hourlyRate: number | null;
   /** Aviso antes de cada turno (minutos), o null para no avisar. */
   shiftReminderMinutes: number | null;
+  /** Ticket comida: los días con al menos `minHours` horas computadas ganan uno de `amount` €. */
+  mealTicket: { enabled: boolean; minHours: number; amount: number | null };
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -52,6 +54,7 @@ export const DEFAULT_SETTINGS: Settings = {
   workdayHours: 8,
   hourlyRate: null,
   shiftReminderMinutes: null,
+  mealTicket: { enabled: false, minHours: 6, amount: null },
 };
 
 export const MESSAGES_FROM_OPTIONS: { key: MessagesFrom; label: string }[] = [
@@ -77,6 +80,7 @@ export function withDefaults(saved: Partial<Settings>): Settings {
         : DEFAULT_SETTINGS.workdayHours,
     hourlyRate:
       typeof saved.hourlyRate === 'number' && saved.hourlyRate > 0 ? saved.hourlyRate : null,
+    mealTicket: mealTicketWithDefaults(saved.mealTicket),
     shiftReminderMinutes: SHIFT_REMINDER_OPTIONS.includes(saved.shiftReminderMinutes as number)
       ? (saved.shiftReminderMinutes as number)
       : null,
@@ -98,3 +102,16 @@ export function parseRate(text: string): number | null {
 
 /** Aviso antes del turno que se puede elegir (minutos); null = no avisar. */
 export const SHIFT_REMINDER_OPTIONS = [30, 60, 120];
+
+/** Horas mínimas para el ticket comida que se pueden elegir. */
+export const MEAL_TICKET_HOURS = [4, 5, 6, 7, 8];
+
+function mealTicketWithDefaults(saved: Partial<Settings['mealTicket']> | undefined): Settings['mealTicket'] {
+  const d = DEFAULT_SETTINGS.mealTicket;
+  return {
+    enabled: saved?.enabled === true,
+    minHours:
+      typeof saved?.minHours === 'number' && saved.minHours > 0 && saved.minHours <= 24 ? saved.minHours : d.minHours,
+    amount: typeof saved?.amount === 'number' && saved.amount > 0 ? saved.amount : null,
+  };
+}
