@@ -12,6 +12,7 @@ import {
   isDateKey,
   isTime,
   monthGrid,
+  normalizeTimeInput,
   shortTime,
   Rotation,
   shiftForDate,
@@ -317,5 +318,14 @@ describe('shortTime', () => {
     expect(shortTime('08:45')).toBe('8:45');
     expect(shortTime('16:15')).toBe('16:15');
     expect(shortTime('00:30')).toBe('0:30');
+  });
+});
+
+describe('normalizeTimeInput', () => {
+  it('completa la hora mientras escribes', () => {
+    expect(normalizeTimeInput('2130')).toBe('21:30');
+    expect(normalizeTimeInput('930')).toBe('09:30');
+    expect(normalizeTimeInput('9:30')).toBe('09:30');
+    expect(normalizeTimeInput('21')).toBe('21');
   });
 });

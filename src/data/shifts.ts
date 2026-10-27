@@ -297,6 +297,18 @@ export function formatShiftTime(type: Pick<ShiftType, 'start' | 'end' | 'off'>) 
   return type.off ? 'Todo el día' : `${type.start}–${type.end}`;
 }
 
+/** "630" o "6:30" → "06:30" mientras escribes; si no se entiende, tal cual. */
+export function normalizeTimeInput(text: string) {
+  const digits = text.replace(/\D/g, '').slice(0, 4);
+  if (text.includes(':')) {
+    const [h, m = ''] = text.split(':');
+    return `${h.replace(/\D/g, '').padStart(2, '0').slice(-2)}:${m.replace(/\D/g, '').slice(0, 2)}`;
+  }
+  if (digits.length === 4) return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  if (digits.length === 3) return `0${digits[0]}:${digits.slice(1)}`;
+  return digits;
+}
+
 /** "08:45" → "8:45" (en el calendario, como en un horario impreso). */
 export function shortTime(time: string) {
   return time.replace(/^0(\d)/, '$1');

@@ -5,7 +5,7 @@ import type { TicketSource } from '@/data/sources/types';
 
 // Orden de preferencia: Ticketmaster primero; la agenda BCN, que no vende
 // (enlaza a la web de la sala), solo si no hay ninguna ticketera
-const PRIORITY: TicketSource[] = ['ticketmaster', 'fever', 'dice', 'entradas', 'theproject', 'bcn'];
+const PRIORITY: TicketSource[] = ['ticketmaster', 'fever', 'dice', 'entradas', 'theproject', 'bcn', 'user'];
 const rank = (o: TicketOffer) => PRIORITY.indexOf(o.source);
 
 /** Fuentes del concierto en orden (para las pastillas de la foto). */

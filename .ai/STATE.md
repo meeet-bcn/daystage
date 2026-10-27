@@ -16,6 +16,7 @@ _Actualizado: 2026-10-27_
 - El correo gratuito de Supabase manda muy pocos emails por hora («email rate limit exceeded»). Para probar: acceso anónimo activado en el proyecto (2026-10-27) y botón «Probar sin email (desarrollo)», solo con __DEV__. **Desactivar `enable_anonymous_sign_ins` antes de publicar** y poner un correo propio (SMTP).
 - Rama `calendario-planes`: los planes «Meeet In!» se ven en el calendario de Turnos (foto en el día → ficha), «Tus planes este mes» y «Vas a» en la hoja del día. Registro aparcado por decisión de Jordi (2026-10-27).
 - Rama `turnos-sync`: importar turnos pegando texto, tipos de día libre (vacaciones), horas de entrada/salida en el mes, verde/rojo, y copia de los turnos en la cuenta. Migración `20261027100000_turnos_sync` SIN aplicar en remoto (el control de permisos la bloqueó): `npx supabase db push --linked`.
+- Rama `eventos-propios`: añadir conciertos que no salen en Buscar (públicos o privados), editarlos y borrarlos. Migración `20261027110000_eventos_propios` probada en local (RLS correcta) y SIN aplicar en remoto (bloqueada): `npx supabase db push --linked` aplica esta y la de turnos_sync.
 - Sin probar: entrar con un email real en el móvil o el simulador (el enlace debe abrir la app).
 - Pendiente de código: foto de perfil al servidor, lista real de "Gente" en la info de la sala (y bloquear/denunciar desde ahí), Apple y Google, notificaciones push.
 - Siguiente fase (anterior): cruzar turnos con conciertos (`availabilityFor`) en las fichas e Inicio.

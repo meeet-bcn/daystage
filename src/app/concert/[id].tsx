@@ -1,7 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ExpoLinking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   Linking,
   Platform,
@@ -23,6 +26,9 @@ import { SongCard } from '@/components/song-card';
 import { WishButton } from '@/components/wish-button';
 import { YourDayCard } from '@/components/your-day-card';
 import { useApp } from '@/data/app-context';
+import { useSession } from '@/data/session-context';
+import { isUserEvent } from '@/data/user-events';
+import { deleteUserEvent, fetchUserEvent } from '@/data/user-events-service';
 import { buyOffer } from '@/data/offers';
 import { useArtistArtwork } from '@/hooks/use-artist-artwork';
 import { useTopSong } from '@/hooks/use-top-song';
@@ -51,8 +57,12 @@ export default function ConcertDetail() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { concerts, plans, isGoing, toggleGoing, goingCount } = useApp();
+  const { concerts, plans, isGoing, toggleGoing, goingCount, addConcerts } = useApp();
+  const { userId } = useSession();
   const [tab, setTab] = useState<Tab>('info');
+  // Un evento propio que no está cargado (p. ej. un privado abierto con su enlace):
+  // se pide al servidor; mientras no responda, se está buscando
+  const [fetchedId, setFetchedId] = useState<string | null>(null);
 
   // Los conciertos ya pasados no vienen en la API: solo están en tus planes
   const concert = concerts.find((c) => c.id === id) ?? plans.find((c) => c.id === id);
@@ -61,6 +71,28 @@ export default function ConcertDetail() {
   const ownPhoto = concert ? concert.hero || concert.image : '';
   const artistPhoto = useArtistArtwork(concert?.artist ?? '', !ownPhoto);
   const photoUri = ownPhoto || artistPhoto;
+
+  useEffect(() => {
+    if (concert || !id || !isUserEvent(id)) return;
+    let alive = true;
+    fetchUserEvent(id)
+      .then((found) => found && alive && addConcerts([found]))
+      .catch((e) => console.warn('[evento] No se pudo abrir:', e))
+      .finally(() => alive && setFetchedId(id));
+    return () => {
+      alive = false;
+    };
+    // Solo al abrir uno que no está
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, !!concert]);
+
+  if (!concert && id && isUserEvent(id) && fetchedId !== id) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator color={theme.accent} />
+      </View>
+    );
+  }
 
   if (!concert) {
     return (
@@ -93,15 +125,37 @@ export default function ConcertDetail() {
   const buyLabel = free ? 'Entrada gratuita' : 'Comprar entradas';
   const openChat = () => router.push({ pathname: '/chat/[id]', params: { id: concert.id } });
 
+  // Los eventos propios se comparten con su enlace a la app (en los privados, es la invitación)
+  const mine = !!concert.createdBy && concert.createdBy === userId;
+  const shareUrl = isUserEvent(concert.id)
+    ? ExpoLinking.createURL(`/concert/${concert.id}`)
+    : mainOffer.url;
   const onShare = async () => {
     const text = going
       ? `¡Voy a ${concert.artist}! ${concert.date} · ${concert.venue}. ¿Te vienes?`
       : `Mira este concierto: ${concert.artist} · ${concert.date} · ${concert.venue}`;
     await Share.share({
-      message: Platform.OS === 'ios' ? text : `${text}\n${mainOffer.url}`,
-      url: mainOffer.url,
+      message: Platform.OS === 'ios' ? text : `${text}\n${shareUrl}`,
+      url: shareUrl,
     });
   };
+
+  const editEvent = () => router.push({ pathname: '/event-form', params: { id: concert.id } });
+  const removeEvent = () =>
+    Alert.alert('¿Borrar este concierto?', 'Desaparecerá para todo el mundo, también su sala.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Borrar',
+        style: 'destructive',
+        onPress: () =>
+          deleteUserEvent(concert.id)
+            .then(() => {
+              if (going) toggleGoing(concert);
+              router.back();
+            })
+            .catch(() => Alert.alert('No se pudo borrar', 'Inténtalo otra vez.')),
+      },
+    ]);
 
   const infoRows = [
     { label: 'Fecha', value: concert.date },
@@ -131,7 +185,15 @@ export default function ConcertDetail() {
         />
 
         <View style={styles.body}>
-          <Text style={styles.date}>{concert.date}</Text>
+          <View style={styles.dateRow}>
+            <Text style={styles.date}>{concert.date}</Text>
+            {concert.visibility === 'private' && (
+              <View style={styles.privateBadge}>
+                <Ionicons name="lock-closed" size={11} color={COLORS.muted} />
+                <Text style={styles.privateText}>Privado</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.artist}>{concert.artist}</Text>
           <Text style={styles.venue}>{concert.venue}</Text>
 
@@ -182,6 +244,20 @@ export default function ConcertDetail() {
               <Ionicons name="chatbubbles-outline" size={19} color={theme.accent} />
               <Text style={styles.chatBtnText}>Ir a la sala de chat</Text>
             </Pressable>
+          )}
+
+          {/* Tu evento: editarlo o borrarlo */}
+          {mine && (
+            <View style={styles.ownerRow}>
+              <Pressable style={styles.ownerButton} onPress={editEvent}>
+                <Ionicons name="create-outline" size={18} color={theme.accent} />
+                <Text style={styles.ownerText}>Editar</Text>
+              </Pressable>
+              <Pressable style={styles.ownerButton} onPress={removeEvent}>
+                <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+                <Text style={[styles.ownerText, { color: COLORS.danger }]}>Borrar</Text>
+              </Pressable>
+            </View>
           )}
 
           {/* DayStage: tu turno ese día y si puedes ir */}
@@ -353,6 +429,29 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: theme.accentSoft,
     },
     chatBtnText: { color: theme.accent, fontSize: 15, fontWeight: '700' },
+    dateRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    privateBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      height: 20,
+      paddingHorizontal: 8,
+      borderRadius: 10,
+      backgroundColor: COLORS.surface,
+    },
+    privateText: { color: COLORS.muted, fontSize: 11, fontWeight: '700' },
+    ownerRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+    ownerButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      height: 42,
+      borderRadius: 21,
+      backgroundColor: COLORS.surface,
+    },
+    ownerText: { color: theme.accent, fontSize: 15, fontWeight: '700' },
     shareBtn: {
       width: 46,
       height: 46,
