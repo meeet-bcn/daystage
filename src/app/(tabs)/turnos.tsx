@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvailabilityPill } from '@/components/availability-pill';
 import { ConcertImage } from '@/components/concert-image';
+import { ExportButtons } from '@/components/export-buttons';
 import { MonthReportCard } from '@/components/month-report-card';
 import { ScreenHeader } from '@/components/screen-header';
 import { ScreenSubtitle } from '@/components/screen-title';
@@ -215,6 +216,7 @@ export default function TurnosScreen() {
         {/* Informe del mes que se ve: horas, extra, ganancias y semanas */}
         <Text style={styles.sectionTitle}>Informe de {MONTHS[month.month - 1]}</Text>
         <MonthReportCard year={month.year} month={month.month} />
+        <ExportButtons year={month.year} month={month.month} />
 
         {monthPlans.length > 0 && (
           <>
