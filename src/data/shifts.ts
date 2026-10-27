@@ -143,6 +143,22 @@ export function crossesMidnight(type: Pick<ShiftType, 'start' | 'end'>) {
   return minutesOf(type.end) <= minutesOf(type.start);
 }
 
+/** Minutos de entrada a salida (con el descanso). */
+export function shiftSpanMinutes(type: Pick<ShiftType, 'start' | 'end'>) {
+  const start = minutesOf(type.start);
+  let end = minutesOf(type.end);
+  if (end <= start) end += 24 * 60;
+  return end - start;
+}
+
+/**
+ * Descanso que se propone para un horario: en jornadas de 9 h de entrada a
+ * salida, 1 h que no computa (se queda en 8 h). En las demás, ninguno.
+ */
+export function defaultBreakMinutes(type: Pick<ShiftType, 'start' | 'end'>) {
+  return shiftSpanMinutes(type) === 9 * 60 ? 60 : 0;
+}
+
 /** Horas trabajadas según el horario (sin el descanso). No cuenta el cambio de hora. */
 export function shiftHours(type: Pick<ShiftType, 'start' | 'end' | 'breakMinutes' | 'off'>) {
   if (type.off) return 0;

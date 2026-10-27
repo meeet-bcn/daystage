@@ -4,8 +4,9 @@
 //   330301=7:30-15:30 330302=14:00-22:00 330303=V
 // Cada horario distinto es un tipo de turno: de mañana (verde) si acaba a las
 // 19:00 o antes, de tarde (rojo) si acaba más tarde; las vacaciones, ámbar.
+// Los de 9 h de entrada a salida llevan 1 h de descanso que no computa.
 
-import { type DayOverride, isDateKey, isTime, type ShiftType } from '@/data/shifts';
+import { type DayOverride, defaultBreakMinutes, isDateKey, isTime, type ShiftType } from '@/data/shifts';
 
 export type ImportEntry =
   | { date: string; kind: 'work'; start: string; end: string }
@@ -99,7 +100,8 @@ export function buildImport(entries: ImportEntry[], existing: ShiftType[]) {
           color: morning ? 'verde' : 'rojo',
           start: e.start,
           end: e.end,
-          breakMinutes: 0,
+          // Las jornadas de 9 h llevan 1 h de descanso que no computa
+          breakMinutes: defaultBreakMinutes(e),
         });
       }
     }

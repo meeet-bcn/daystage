@@ -53,6 +53,19 @@ describe('classifyShift', () => {
   });
 });
 
+describe('descanso de las jornadas de 9 h', () => {
+  it('1 h que no computa en las de 9 h; ninguno en las demás', () => {
+    const { newTypes } = buildImport(parseShiftList('330301=8:45-17:45 330302=12:00-21:00 330303=8:00-14:00 330304=13:15-22:15').entries, []);
+    const byName = Object.fromEntries(newTypes.map((t) => [t.name, t.breakMinutes]));
+    expect(byName).toEqual({
+      'Mañana 08:00–14:00': 0,
+      'Mañana 08:45–17:45': 60,
+      'Tarde 12:00–21:00': 60,
+      'Tarde 13:15–22:15': 60,
+    });
+  });
+});
+
 describe('buildImport', () => {
   const { entries } = parseShiftList(SAMPLE);
 
