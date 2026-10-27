@@ -95,29 +95,30 @@ export default function SignInScreen() {
           <>
             <Text style={styles.title}>Revisa tu email</Text>
             <Text style={styles.text}>
-              Te hemos enviado un email a {email.trim()}. Ábrelo en este móvil y toca el enlace:
-              volverás aquí con la sesión iniciada. Si el email trae un código, escríbelo abajo.
+              Te hemos enviado un email a {email.trim()}. Ábrelo en este móvil y toca el enlace
+              «Sign in»: la app se abrirá con la sesión iniciada.
             </Text>
+            <Pressable onPress={() => setStep('email')} hitSlop={8}>
+              <Text style={styles.link}>Cambiar el email o pedir otro</Text>
+            </Pressable>
+            {/* Alternativa: solo si la plantilla del email trae el código (hoy, solo enlace) */}
+            <Text style={styles.small}>¿El email trae un código en vez de un enlace? Escríbelo aquí:</Text>
             <TextInput
               style={[styles.input, styles.code]}
               value={code}
               onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 10))}
-              placeholder="00000000"
+              placeholder="Código"
               placeholderTextColor={COLORS.muted}
               keyboardType="number-pad"
               autoComplete="one-time-code"
               textContentType="oneTimeCode"
-              autoFocus
             />
-            <Pressable onPress={() => setStep('email')} hitSlop={8}>
-              <Text style={styles.link}>Cambiar el email o pedir otro</Text>
-            </Pressable>
           </>
         )}
 
         {error && <Text style={styles.error}>{error}</Text>}
 
-        {enabled && (
+        {enabled && (step === 'email' || code.length > 0) && (
           <Pressable
             style={[styles.button, (!canSend || busy) && styles.disabled]}
             disabled={!canSend || busy}
@@ -151,7 +152,8 @@ const makeStyles = (theme: Theme) =>
       color: COLORS.text,
       fontSize: 17,
     },
-    code: { fontSize: 26, letterSpacing: 8, textAlign: 'center', fontVariant: ['tabular-nums'] },
+    code: { fontSize: 20, letterSpacing: 4, textAlign: 'center', fontVariant: ['tabular-nums'] },
+    small: { color: COLORS.muted, fontSize: 13, marginTop: 18 },
     link: { color: theme.accent, fontSize: 14, fontWeight: '600' },
     error: { color: COLORS.danger, fontSize: 14 },
     button: {
