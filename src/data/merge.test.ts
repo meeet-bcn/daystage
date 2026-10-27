@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { fromSource, makeConcert } from '@/data/__fixtures__/concert';
-import { isSameConcert, mergeConcerts } from '@/data/merge';
+import { canonicalConcertId, isSameConcert, mergeConcerts } from '@/data/merge';
 
 const HOUR = 60 * 60 * 1000;
 
@@ -83,5 +83,40 @@ describe('mergeConcerts', () => {
     const undated = makeConcert({ id: 'c', artist: 'Por confirmar', startsAt: null });
     const result = mergeConcerts([undated, later, fontaines, fromSource(later, 'dice', 20, { startsAt: later.startsAt! + 24 * HOUR })]);
     expect(result.map((c) => c.id)).toEqual(['ticketmaster-fon', 'b', 'dice-b', 'c']);
+  });
+});
+
+describe('canonicalConcertId', () => {
+  const at = (h: number) => new Date(2026, 9, 31, h, 0).getTime();
+
+  it('día local + sala + artista principal, solo [a-z0-9_]', () => {
+    const id = canonicalConcertId({
+      artist: 'Fontaines D.C. - D.C. EU TOUR 2026',
+      venue: 'Sant Jordi Club',
+      startsAt: at(21),
+    });
+    expect(id).toBe('20261031_santjordiclub_fontainesdc');
+    expect(id).toMatch(/^[a-z0-9_]{3,120}$/);
+  });
+
+  it('el mismo concierto desde dos fuentes da el mismo id (hora y acentos aparte)', () => {
+    const a = canonicalConcertId({ artist: 'Rosalía', venue: 'Palau Sant Jordi', startsAt: at(21) });
+    const b = canonicalConcertId({ artist: 'ROSALIA', venue: 'Palau Sant Jordi', startsAt: at(20) });
+    expect(a).toBe(b);
+  });
+
+  it('otro día u otra sala, otro id', () => {
+    const base = { artist: 'Rosalía', venue: 'Palau Sant Jordi', startsAt: at(21) };
+    expect(canonicalConcertId(base)).not.toBe(
+      canonicalConcertId({ ...base, startsAt: new Date(2026, 10, 1, 21).getTime() })
+    );
+    expect(canonicalConcertId(base)).not.toBe(canonicalConcertId({ ...base, venue: 'Razzmatazz' }));
+  });
+
+  it('sin fecha, sala o artista sigue siendo un id válido y corto', () => {
+    const id = canonicalConcertId({ artist: '', venue: '', startsAt: null });
+    expect(id).toBe('sinfecha_sinsala_sinartista');
+    const long = canonicalConcertId({ artist: 'x'.repeat(300), venue: 'y'.repeat(300), startsAt: at(21) });
+    expect(long.length).toBeLessThanOrEqual(120);
   });
 });

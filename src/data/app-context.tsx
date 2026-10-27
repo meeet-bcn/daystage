@@ -14,11 +14,13 @@ import type { ChatMessage } from '@/data/chat';
 import { Concert, fetchConcerts } from '@/data/concerts';
 import { concertAvailability, hasSchedule, type Availability } from '@/data/concert-shifts';
 import { applyFilters, DEFAULT_FILTERS, Filters, genresOf } from '@/data/filters';
-import { mergeConcerts } from '@/data/merge';
+import { canonicalConcertId, mergeConcerts } from '@/data/merge';
 import { splitPlans } from '@/data/plans';
 import { EMPTY_PROFILE, loadProfile, Profile } from '@/data/profile';
 import { DEFAULT_SETTINGS, Settings, withDefaults } from '@/data/settings';
 import { Swipe, tasteWeights, topTastes } from '@/data/taste';
+import * as backend from '@/data/chat-service';
+import { useSession } from '@/data/session-context';
 import { useShifts } from '@/data/shifts-context';
 import { loadJSON, saveJSON, STORAGE_KEYS } from '@/data/storage';
 
@@ -119,9 +121,11 @@ type AppState = {
   /** Todo lo enviado en las salas de un concierto (general y de idiomas), por fecha. */
   messagesOfConcert: (concertId: string) => ChatMessage[];
 
-  /** Mensajes de chat sin leer por concierto. Aún no hay chat real: siempre vacío. */
+  /** Mensajes de chat sin leer por concierto (con cuenta en el servidor; sin ella, 0). */
   unreadCount: (id: string) => number;
   unreadTotal: number;
+  /** Vuelve a pedir los no leídos (al entrar en una sala o al volver a Meeet in). */
+  refreshUnread: () => void;
 };
 
 const AppContext = createContext<AppState | null>(null);
@@ -167,7 +171,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }>(() => ({ swipes: {}, deckIntroSeen: false, ...loadJSON(STORAGE_KEYS.discover, {}) }));
   const [celebration, setCelebration] = useState<{ id: string; at: number } | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [unread] = useState<Record<string, number>>({});
+  // Con cuenta (Supabase): no leídos por sala y cuánta gente va, por id canónico
+  const { enabled: backendOn, userId } = useSession();
+  const [unreadByRoom, setUnreadByRoom] = useState<Record<string, number>>({});
+  const [remoteGoing, setRemoteGoing] = useState<Record<string, number> | null>(null);
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
 
   const loadPage = useCallback((page: number) => {
@@ -262,6 +269,52 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => Object.values(myEvents).map((saved) => byId.get(saved.id) ?? saved),
     [myEvents, byId]
   );
+  // --- Backend (Supabase) ----------------------------------------------------
+  // Cuánta gente va de verdad: el recuento del servidor para lo cargado
+  const canonicalIds = useMemo(() => concerts.map(canonicalConcertId), [concerts]);
+  useEffect(() => {
+    if (!backendOn || canonicalIds.length === 0) return;
+    let alive = true;
+    backend
+      .fetchGoingCounts(canonicalIds)
+      .then((counts) => alive && setRemoteGoing(counts))
+      .catch((e) => console.warn('[backend] Recuento de asistentes:', e));
+    return () => {
+      alive = false;
+    };
+  }, [backendOn, canonicalIds, userId]);
+
+  // Al entrar con tu cuenta, tus planes próximos se apuntan también en el servidor
+  useEffect(() => {
+    if (!userId) return;
+    for (const c of splitPlans(Object.values(myEvents)).upcoming) {
+      backend
+        .setAttendance(c, true, userId)
+        .catch((e) => console.warn('[backend] No se pudo sincronizar un plan:', e));
+    }
+    // Solo al cambiar de cuenta, no con cada plan (cada uno se sube al darle a "Meeet In!")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  // No leídos de las salas de tus planes próximos
+  const myRooms = useMemo(
+    () => splitPlans(plans).upcoming.map(canonicalConcertId),
+    [plans]
+  );
+  const refreshUnread = useCallback(() => {
+    if (!userId || myRooms.length === 0) return setUnreadByRoom({});
+    backend
+      .fetchUnreadCounts(myRooms)
+      .then(setUnreadByRoom)
+      .catch((e) => console.warn('[backend] No leídos:', e));
+  }, [userId, myRooms]);
+  useEffect(() => {
+    refreshUnread();
+    if (!userId) return;
+    const timer = setInterval(refreshUnread, 60_000);
+    return () => clearInterval(timer);
+  }, [refreshUnread, userId]);
+
   const wishlist = useMemo(
     () =>
       Object.values(wishes)
@@ -290,22 +343,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ? concerts
           : concerts.filter((c) => c.startsAt != null && c.startsAt <= loadedUntil),
         filters,
-        (c) => c.going + (myEvents[c.id] ? 1 : 0),
+        (c) => countGoing(c, myEvents, remoteGoing),
         availability
       ),
-    [concerts, loadedUntil, filters, myEvents, availability]
+    [concerts, loadedUntil, filters, myEvents, availability, remoteGoing]
   );
 
   useEffect(() => saveJSON(STORAGE_KEYS.plans, myEvents), [myEvents]);
   useEffect(() => saveJSON(STORAGE_KEYS.wishlist, wishes), [wishes]);
   useEffect(() => saveJSON(STORAGE_KEYS.profile, profile), [profile]);
+  // Con cuenta, el perfil creado (onboarding, Editar perfil) también va al servidor
+  useEffect(() => {
+    if (!userId || !profile.created) return;
+    const timer = setTimeout(() => {
+      backend
+        .upsertProfile(profile, userId)
+        .catch((e) => console.warn('[backend] No se pudo guardar el perfil:', e));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [profile, userId]);
   useEffect(() => saveJSON(STORAGE_KEYS.settings, settings), [settings]);
   useEffect(() => saveJSON(STORAGE_KEYS.onboarding, { welcomeSeen }), [welcomeSeen]);
   useEffect(() => saveJSON(STORAGE_KEYS.discover, discover), [discover]);
 
   const value = useMemo<AppState>(() => {
-    const goingCount = (c: Concert) => c.going + (myEvents[c.id] ? 1 : 0);
-    const unreadCount = (id: string) => unread[id] ?? 0;
+    const goingCount = (c: Concert) => countGoing(c, myEvents, remoteGoing);
+    const unreadCount = (id: string) => {
+      const c = byId.get(id) ?? myEvents[id];
+      return c ? (unreadByRoom[canonicalConcertId(c)] ?? 0) : 0;
+    };
     const myConcerts = splitPlans(plans).upcoming;
 
     return {
@@ -324,6 +390,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       isGoing: (id) => id in myEvents,
       toggleGoing: (concert) => {
         const joining = !(concert.id in myEvents);
+        if (userId) {
+          // En el servidor también; el recuento se ajusta ya, sin esperar
+          const key = canonicalConcertId(concert);
+          setRemoteGoing((counts) =>
+            counts && { ...counts, [key]: Math.max(0, (counts[key] ?? 0) + (joining ? 1 : -1)) }
+          );
+          backend
+            .setAttendance(concert, joining, userId)
+            .catch((e) => console.warn('[backend] No se pudo guardar "Meeet In!":', e));
+        }
         setMyEvents(({ [concert.id]: existing, ...rest }) =>
           existing ? rest : { ...rest, [concert.id]: concert }
         );
@@ -396,6 +472,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       unreadCount,
       unreadTotal: myConcerts.reduce((sum, c) => sum + unreadCount(c.id), 0),
+      refreshUnread,
     };
   }, [
     concerts,
@@ -424,11 +501,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     discover,
     celebration,
     filters,
-    unread,
+    unreadByRoom,
+    remoteGoing,
+    userId,
+    refreshUnread,
+    byId,
     messages,
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
+
+/**
+ * Cuánta gente va. Con servidor, su recuento (que ya te incluye si tienes
+ * cuenta); sin él, el de la fuente más tú si vas.
+ */
+function countGoing(
+  c: Concert,
+  mine: Record<string, Concert>,
+  remote: Record<string, number> | null
+) {
+  if (remote) return Math.max(remote[canonicalConcertId(c)] ?? 0, c.id in mine ? 1 : 0);
+  return c.going + (mine[c.id] ? 1 : 0);
 }
 
 /** `current` más los de `extra` que aún no estén (por id). */

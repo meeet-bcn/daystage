@@ -1,7 +1,7 @@
 // Utilidades de las salas de chat (como Telegram o WhatsApp): mensajes de
 // texto o foto, separadores por día y los enlaces compartidos.
 
-/** Mensaje de una sala: texto, foto o vídeo. Por ahora, solo los tuyos. */
+/** Mensaje de una sala: texto, foto o vídeo. Sin cuenta (modo local), solo los tuyos. */
 export type ChatMessage = {
   id: string;
   sentAt: number;
@@ -10,6 +10,11 @@ export type ChatMessage = {
   photo?: string;
   /** URI del vídeo, si es un vídeo. */
   video?: string;
+  /** Con cuenta (Supabase): quién lo escribió y si eres tú. Sin cuenta, siempre tuyo. */
+  userId?: string;
+  mine?: boolean;
+  /** Ruta en Storage de la foto o el vídeo (su URL firmada va en `photo`/`video`). */
+  mediaPath?: string;
 };
 
 /**
