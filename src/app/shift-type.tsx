@@ -6,24 +6,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chip } from '@/components/chip';
 import { NavHeader } from '@/components/nav-header';
 import { ShiftBadge } from '@/components/shift-badge';
-import { crossesMidnight, isTime, newId, shiftHours, type ShiftType } from '@/data/shifts';
+import {
+  crossesMidnight,
+  isTime,
+  newId,
+  normalizeTimeInput,
+  shiftHours,
+  type ShiftType,
+} from '@/data/shifts';
 import { useShifts } from '@/data/shifts-context';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, DEFAULT_SHIFT_COLOR, SHIFT_COLORS, type ShiftColor, Theme } from '@/theme';
 
 const BREAKS = [0, 15, 30, 45, 60];
-
-/** "630" o "6:30" → "06:30" mientras escribes; si no se entiende, tal cual. */
-function normalizeTime(text: string) {
-  const digits = text.replace(/\D/g, '').slice(0, 4);
-  if (text.includes(':')) {
-    const [h, m = ''] = text.split(':');
-    return `${h.replace(/\D/g, '').padStart(2, '0').slice(-2)}:${m.replace(/\D/g, '').slice(0, 2)}`;
-  }
-  if (digits.length === 4) return `${digits.slice(0, 2)}:${digits.slice(2)}`;
-  if (digits.length === 3) return `0${digits[0]}:${digits.slice(1)}`;
-  return digits;
-}
 
 /** Crear o editar un tipo de turno (modal desde Tipos de turno). */
 export default function ShiftTypeEditor() {
@@ -143,7 +138,7 @@ export default function ShiftTypeEditor() {
                 <TextInput
                   style={[styles.input, !isTime(start) && styles.inputError]}
                   value={start}
-                  onChangeText={(t) => setStart(normalizeTime(t))}
+                  onChangeText={(t) => setStart(normalizeTimeInput(t))}
                   placeholder="06:00"
                   placeholderTextColor={COLORS.muted}
                   keyboardType="numbers-and-punctuation"
@@ -155,7 +150,7 @@ export default function ShiftTypeEditor() {
                 <TextInput
                   style={[styles.input, !isTime(end) && styles.inputError]}
                   value={end}
-                  onChangeText={(t) => setEnd(normalizeTime(t))}
+                  onChangeText={(t) => setEnd(normalizeTimeInput(t))}
                   placeholder="14:00"
                   placeholderTextColor={COLORS.muted}
                   keyboardType="numbers-and-punctuation"

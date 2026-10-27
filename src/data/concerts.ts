@@ -36,6 +36,9 @@ export type Concert = {
   priceMin: number | null;
   genre: string;
   status: string;
+  /** Solo eventos propios (añadidos en la app): público o privado y quién lo creó. */
+  visibility?: 'public' | 'private';
+  createdBy?: string;
 };
 
 /**

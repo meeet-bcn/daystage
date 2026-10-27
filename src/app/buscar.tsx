@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -66,6 +67,24 @@ export default function SearchScreen() {
             </Text>
           )
         }
+        // Siempre al final (y sola si no hay resultados): añadir lo que no aparece
+        ListFooterComponent={
+          searching ? undefined : (
+            <Pressable
+              style={({ pressed }) => [styles.addEvent, pressed && styles.pressed]}
+              onPress={() =>
+                router.push({ pathname: '/event-form', params: term.length >= 2 ? { title: term } : {} })
+              }
+              accessibilityRole="button"
+            >
+              <Ionicons name="add-circle-outline" size={22} color={theme.accent} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addEventTitle}>¿No lo encuentras? Añádelo</Text>
+                <Text style={styles.addEventText}>Público para todos o privado para ti y tu gente</Text>
+              </View>
+            </Pressable>
+          )
+        }
         renderItem={({ item }: { item: Concert }) => (
           <Pressable
             style={({ pressed }) => [styles.row, pressed && styles.pressed]}
@@ -113,6 +132,18 @@ export default function SearchScreen() {
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     close: { marginLeft: 'auto' },
+    addEvent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginHorizontal: 20,
+      marginTop: 20,
+      padding: 14,
+      borderRadius: 16,
+      backgroundColor: theme.accentSoft,
+    },
+    addEventTitle: { color: theme.accent, fontSize: 16, fontWeight: '700' },
+    addEventText: { color: COLORS.muted, fontSize: 13, marginTop: 2 },
     closeText: { color: theme.accent, fontSize: 16, fontWeight: '600' },
     container: { flex: 1, backgroundColor: COLORS.background },
     search: { paddingHorizontal: 20, paddingBottom: 12 },

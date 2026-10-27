@@ -6,7 +6,8 @@ export type TicketSource =
   | 'fever'
   | 'dice'
   | 'entradas'
-  | 'theproject';
+  | 'theproject'
+  | 'user'; // Eventos propios: los añade la gente en la app (user_events)
 
 /** Qué página pedir (desde 0) y, si se busca, el texto de la búsqueda. */
 export type EventQuery = { page: number; keyword?: string };

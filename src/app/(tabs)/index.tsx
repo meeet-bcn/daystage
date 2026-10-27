@@ -282,7 +282,13 @@ export default function HomeScreen() {
 
               <View style={styles.cardBody}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.date}>{item.date}</Text>
+                  <Text style={styles.date}>
+                    {item.visibility === 'private' && (
+                      <Ionicons name="lock-closed" size={11} color={COLORS.muted} />
+                    )}
+                    {item.visibility === 'private' ? ' ' : ''}
+                    {item.date}
+                  </Text>
                   <Text style={styles.artist} numberOfLines={2}>
                     {item.artist}
                   </Text>
