@@ -12,12 +12,14 @@ import {
 
 import type { ChatMessage } from '@/data/chat';
 import { Concert, fetchConcerts } from '@/data/concerts';
+import { concertAvailability, hasSchedule, type Availability } from '@/data/concert-shifts';
 import { applyFilters, DEFAULT_FILTERS, Filters, genresOf } from '@/data/filters';
 import { mergeConcerts } from '@/data/merge';
 import { splitPlans } from '@/data/plans';
 import { EMPTY_PROFILE, loadProfile, Profile } from '@/data/profile';
 import { DEFAULT_SETTINGS, Settings, withDefaults } from '@/data/settings';
 import { Swipe, tasteWeights, topTastes } from '@/data/taste';
+import { useShifts } from '@/data/shifts-context';
 import { loadJSON, saveJSON, STORAGE_KEYS } from '@/data/storage';
 
 export type { ChatMessage };
@@ -95,6 +97,14 @@ type AppState = {
   resetFilters: () => void;
   /** Conciertos de Inicio con filtros y orden aplicados. */
   visibleConcerts: Concert[];
+  /**
+   * DayStage: si puedes ir a un concierto según tus turnos ('libre',
+   * 'tras-turno', 'trabajas'), con el margen de Ajustes; null si no tiene hora
+   * o no hay turnos configurados.
+   */
+  availability: (concert: Concert) => Availability | null;
+  /** Hay rotación o algún día cambiado en Turnos (si no, no se etiqueta nada). */
+  hasShifts: boolean;
   genres: string[];
 
   /**
@@ -264,6 +274,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       tasteWeights({ picks: profile.tasteArtists, plans, wishlist, swipes: discover.swipes }),
     [profile.tasteArtists, plans, wishlist, discover.swipes]
   );
+  // Turnos (ShiftsProvider va por fuera de AppProvider)
+  const { plan: shiftPlan } = useShifts();
+  const margin = settings.shiftMarginMinutes;
+  const availability = useCallback(
+    (c: Concert) => concertAvailability(c, shiftPlan, margin),
+    [shiftPlan, margin]
+  );
+  const hasShifts = hasSchedule(shiftPlan);
   const visibleConcerts = useMemo(
     () =>
       applyFilters(
@@ -272,9 +290,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ? concerts
           : concerts.filter((c) => c.startsAt != null && c.startsAt <= loadedUntil),
         filters,
-        (c) => c.going + (myEvents[c.id] ? 1 : 0)
+        (c) => c.going + (myEvents[c.id] ? 1 : 0),
+        availability
       ),
-    [concerts, loadedUntil, filters, myEvents]
+    [concerts, loadedUntil, filters, myEvents, availability]
   );
 
   useEffect(() => saveJSON(STORAGE_KEYS.plans, myEvents), [myEvents]);
@@ -356,6 +375,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setFilters,
       resetFilters: () => setFilters(DEFAULT_FILTERS),
       visibleConcerts,
+      availability,
+      hasShifts,
       genres,
 
       messagesFor: (room) => messages[room] ?? [],
@@ -394,6 +415,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     wishlist,
     weights,
     visibleConcerts,
+    availability,
+    hasShifts,
     genres,
     profile,
     settings,

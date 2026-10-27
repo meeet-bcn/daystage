@@ -11,8 +11,9 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   return (
     <ThemeProvider value={DefaultTheme}>
-      <AppProvider>
-        <ShiftsProvider>
+      {/* Turnos por fuera: AppProvider los usa para "Mis días libres" */}
+      <ShiftsProvider>
+        <AppProvider>
           <AnimatedSplashOverlay />
           <Stack screenOptions={{ contentStyle: { backgroundColor: COLORS.background } }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -32,7 +33,7 @@ export default function RootLayout() {
               options={{
                 headerShown: false,
                 presentation: 'formSheet',
-                sheetAllowedDetents: [0.6, 1],
+                sheetAllowedDetents: [0.7, 1],
                 sheetGrabberVisible: true,
                 sheetCornerRadius: 28,
               }}
@@ -71,8 +72,8 @@ export default function RootLayout() {
               }}
             />
           </Stack>
-        </ShiftsProvider>
-      </AppProvider>
+        </AppProvider>
+      </ShiftsProvider>
     </ThemeProvider>
   );
 }

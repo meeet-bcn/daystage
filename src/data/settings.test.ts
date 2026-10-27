@@ -20,6 +20,14 @@ describe('withDefaults', () => {
     expect(withDefaults({ mainLanguage: 'xx' }).mainLanguage).toBe('es');
     expect(withDefaults({ mainLanguage: 'en' }).mainLanguage).toBe('en');
   });
+
+  it('margen tras el turno: 60 min si no hay o no vale, y lo guardado si vale', () => {
+    expect(withDefaults({}).shiftMarginMinutes).toBe(60);
+    expect(withDefaults({ shiftMarginMinutes: 30 }).shiftMarginMinutes).toBe(30);
+    expect(withDefaults({ shiftMarginMinutes: 0 }).shiftMarginMinutes).toBe(0);
+    expect(withDefaults({ shiftMarginMinutes: -5 }).shiftMarginMinutes).toBe(60);
+    expect(withDefaults({ shiftMarginMinutes: '90' as never }).shiftMarginMinutes).toBe(60);
+  });
 });
 
 

@@ -51,7 +51,7 @@ export type ShiftPlan = {
 
 export type Interval = { start: number; end: number };
 
-export type Availability = 'libre' | 'tras-turno' | 'trabajas';
+export type Availability = 'libre' | 'tras-turno' | 'antes-turno' | 'trabajas';
 
 export const EMPTY_PLAN: ShiftPlan = { types: [], rotation: null, overrides: {} };
 
@@ -216,6 +216,7 @@ export type AvailabilityOptions = {
  * - 'trabajas': el concierto (con su duración) choca con un turno o con el
  *   margen tras acabarlo, o un turno empieza antes de que termine.
  * - 'tras-turno': ese día trabajas, pero el turno acaba con margen suficiente.
+ * - 'antes-turno': ese día trabajas más tarde, pero el concierto acaba antes.
  * - 'libre': ese día no trabajas.
  */
 export function availabilityFor(
@@ -225,16 +226,20 @@ export function availabilityFor(
 ): Availability {
   const date = toDateKey(new Date(concertStartsAt));
   const concertEnd = concertStartsAt + concertMinutes * 60_000;
-  let workedToday = false;
+  const dayStart = localTime(date, 0);
+  const dayEnd = localTime(addDays(date, 1), 0);
+  let workedBefore = false;
+  let worksLater = false;
   for (const d of [addDays(date, -1), date, addDays(date, 1)]) {
     const type = typeForDate(d, plan);
     if (!type) continue;
     const { start, end } = shiftInterval(d, type);
     if (concertStartsAt < end + marginMinutes * 60_000 && concertEnd > start) return 'trabajas';
-    // Un turno que ocupa parte del día del concierto y ya ha acabado
-    if (end <= concertStartsAt && end > localTime(date, 0)) workedToday = true;
+    // Un turno que ocupa parte del día del concierto: ya acabado, o que empieza después
+    if (end <= concertStartsAt && end > dayStart) workedBefore = true;
+    if (start >= concertEnd && start < dayEnd) worksLater = true;
   }
-  return workedToday ? 'tras-turno' : 'libre';
+  return workedBefore ? 'tras-turno' : worksLater ? 'antes-turno' : 'libre';
 }
 
 // --- Calendario ----------------------------------------------------------------

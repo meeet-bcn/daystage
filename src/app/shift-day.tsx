@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AvailabilityPill } from '@/components/availability-pill';
 import { ShiftBadge } from '@/components/shift-badge';
+import { useApp } from '@/data/app-context';
+import { concertsByDate, effectiveStart } from '@/data/concert-shifts';
 import {
   formatDay,
   formatShiftTime,
@@ -19,7 +22,10 @@ import { COLORS, Theme } from '@/theme';
 // "viernes, 30 de octubre" → "Viernes, 30 de octubre" (textTransform pondría mayúscula a cada palabra)
 const capitalize = (text: string) => text[0].toUpperCase() + text.slice(1);
 
-/** Hoja de un día del calendario: cambiar su turno o volver al de la rotación. */
+/**
+ * Hoja de un día del calendario: cambiar su turno o volver al de la rotación,
+ * y los conciertos cargados de ese día con si puedes ir.
+ */
 export default function ShiftDaySheet() {
   const styles = useThemedStyles(makeStyles);
   const theme = useTheme();
@@ -27,6 +33,14 @@ export default function ShiftDaySheet() {
   const params = useLocalSearchParams<{ date: string }>();
   const date = params.date && isDateKey(params.date) ? params.date : toDateKey();
   const { plan, setOverride, clearOverride } = useShifts();
+  const { concerts, availability } = useApp();
+  const dayConcerts = concertsByDate(concerts)[date] ?? [];
+
+  const openConcert = (id: string) => {
+    // Primero se cierra la hoja: la ficha va en la pila de debajo
+    router.back();
+    router.push({ pathname: '/concert/[id]', params: { id } });
+  };
 
   const fromRotation = shiftForDate(date, plan.rotation);
   const current = shiftForDate(date, plan.rotation, plan.overrides);
@@ -62,41 +76,106 @@ export default function ShiftDaySheet() {
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom + 20 }]} collapsable={false}>
-      <Text style={styles.title}>{capitalize(formatDay(date))}</Text>
-      <Text style={styles.subtitle}>
-        {plan.rotation
-          ? `Según tu rotación: ${rotationType ? `${rotationType.name} (${formatShiftTime(rotationType)})` : 'libre'}`
-          : 'Aún no tienes rotación: elige el turno de este día'}
-        {changed ? ' · Cambiado' : ''}
-      </Text>
+    <View style={styles.container}>
+      {/* En una formSheet el primer hijo no puede ser (ni contener) el ScrollView: si no, no se pinta */}
+      <View collapsable={false} />
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>{capitalize(formatDay(date))}</Text>
+        <Text style={styles.subtitle}>
+          {plan.rotation
+            ? `Según tu rotación: ${rotationType ? `${rotationType.name} (${formatShiftTime(rotationType)})` : 'libre'}`
+            : 'Aún no tienes rotación: elige el turno de este día'}
+          {changed ? ' · Cambiado' : ''}
+        </Text>
 
-      <View style={styles.options}>
-        {plan.types.map((t) => option(t))}
-        {option(null)}
-      </View>
+        <View style={styles.options}>
+          {plan.types.map((t) => option(t))}
+          {option(null)}
+        </View>
 
-      {changed && (
-        <Pressable
-          style={({ pressed }) => [styles.reset, pressed && styles.pressed]}
-          onPress={() => {
-            clearOverride(date);
-            router.back();
-          }}
-        >
-          <Ionicons name="refresh" size={18} color={theme.accent} />
-          <Text style={styles.resetText}>
-            {plan.rotation ? 'Volver a la rotación' : 'Quitar el cambio'}
-          </Text>
-        </Pressable>
-      )}
+        {changed && (
+          <Pressable
+            style={({ pressed }) => [styles.reset, pressed && styles.pressed]}
+            onPress={() => {
+              clearOverride(date);
+              router.back();
+            }}
+          >
+            <Ionicons name="refresh" size={18} color={theme.accent} />
+            <Text style={styles.resetText}>
+              {plan.rotation ? 'Volver a la rotación' : 'Quitar el cambio'}
+            </Text>
+          </Pressable>
+        )}
+
+        {dayConcerts.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>
+              {dayConcerts.length === 1 ? 'Un concierto este día' : `${dayConcerts.length} conciertos este día`}
+            </Text>
+            <View style={styles.concerts}>
+              {dayConcerts.map((c, i) => (
+                <Pressable
+                  key={c.id}
+                  onPress={() => openConcert(c.id)}
+                  style={({ pressed }) => [styles.concert, i > 0 && styles.concertLine, pressed && styles.pressed]}
+                >
+                  <Text style={styles.concertTime}>
+                    {/* Sin hora, las fuentes dejan las 00:00 */}
+                    {effectiveStart(c.startsAt!) === c.startsAt
+                      ? new Date(c.startsAt!).toTimeString().slice(0, 5)
+                      : '—'}
+                  </Text>
+                  <View style={styles.concertText}>
+                    <Text style={styles.concertArtist} numberOfLines={1}>
+                      {c.artist}
+                    </Text>
+                    <Text style={styles.concertVenue} numberOfLines={1}>
+                      {c.venue}
+                    </Text>
+                    <AvailabilityPill availability={availability(c)} style={styles.concertPill} />
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+      </ScrollView>
     </View>
   );
 }
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 28 },
+    container: { flex: 1, backgroundColor: COLORS.background },
+    content: { paddingHorizontal: 20, paddingTop: 28 },
+    sectionTitle: {
+      color: COLORS.muted,
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      marginTop: 28,
+      marginBottom: 8,
+    },
+    concerts: { borderRadius: 16, backgroundColor: COLORS.surface, overflow: 'hidden' },
+    concert: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+    concertLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
+    concertTime: {
+      color: theme.accent,
+      fontSize: 15,
+      fontWeight: '700',
+      fontVariant: ['tabular-nums'],
+      width: 48,
+    },
+    concertText: { flex: 1 },
+    concertArtist: { color: COLORS.text, fontSize: 16, fontWeight: '700' },
+    concertVenue: { color: COLORS.muted, fontSize: 13, marginTop: 1 },
+    concertPill: { marginTop: 6 },
     title: {
       color: COLORS.text,
       fontSize: 24,

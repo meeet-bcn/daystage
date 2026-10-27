@@ -7,7 +7,9 @@ _Actualizado: 2026-10-27_
 - Fase 1 (rama `fase-1-turnos`): pestaña Turnos con vista de mes, hoja del día, tipos de turno, asistente de rotación (plantilla 2M-2T-2N-4L) y SQLite (`daystage.db`). 245 tests. Visto en el simulador (capturas): mes con rotación y un día cambiado, rotación, editor de tipo, hoja del día, lista de tipos.
 - Sin verificar a mano (el simulador no se pudo tocar): guardar desde la interfaz (la rotación de ejemplo se metió en la base con sqlite3; la app la leyó bien), escribir horas, borrar un tipo, flechas de mes.
 - Barra en 5 pestañas (Inicio · Turnos · Descubrir · Meeet in · Perfil); Buscar se abre con la lupa de Inicio.
-- Siguiente fase: cruzar turnos con conciertos (`availabilityFor`) en las fichas e Inicio.
+- Fase 2 (rama `fase-2-conciertos-turnos`): conciertos × turnos. Pastilla en Inicio, chip «Mis días libres», «Tu día» en la ficha, puntos en el mes y conciertos en la hoja del día, peso en Descubrir y margen en Ajustes. Cuarto estado `antes-turno`; los conciertos sin hora (00:00) se cruzan como si fueran a las 21:00. 260 tests. Vistos por captura: Inicio con pastilla y chip, ficha con «Tu día» (libre y con turno), mes con puntos, hoja del 1 de noviembre con 9 conciertos.
+- Sin verificar a mano (sin toques en el simulador): pulsar «Mis días libres», abrir una ficha desde la hoja del día, cambiar el margen en Ajustes, orden de Descubrir.
+- Siguiente fase (anterior): cruzar turnos con conciertos (`availabilityFor`) en las fichas e Inicio.
 
 ---
 

@@ -21,6 +21,7 @@ import { GoButton } from '@/components/go-button';
 import { MediaViewer } from '@/components/media-viewer';
 import { SongCard } from '@/components/song-card';
 import { WishButton } from '@/components/wish-button';
+import { YourDayCard } from '@/components/your-day-card';
 import { useApp } from '@/data/app-context';
 import { buyOffer } from '@/data/offers';
 import { useArtistArtwork } from '@/hooks/use-artist-artwork';
@@ -182,6 +183,9 @@ export default function ConcertDetail() {
               <Text style={styles.chatBtnText}>Ir a la sala de chat</Text>
             </Pressable>
           )}
+
+          {/* DayStage: tu turno ese día y si puedes ir */}
+          <YourDayCard concert={concert} />
 
           {topSong ? <SongCard song={topSong} title="Escucha a este artista" /> : null}
 

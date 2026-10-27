@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/chip';
 import { useApp } from '@/data/app-context';
+import { SHIFT_MARGIN_OPTIONS } from '@/data/concert-shifts';
 import { LANGUAGES } from '@/data/filters';
 import { deleteTabIcons, saveProfilePhoto } from '@/data/profile-photo';
 import { MESSAGES_FROM_OPTIONS, Settings } from '@/data/settings';
@@ -242,6 +243,29 @@ export default function SettingsScreen() {
               />
             }
           />
+        </Section>
+
+        <Section
+          title="Turnos"
+          footer="Lo que necesitas tras acabar el turno para llegar a un concierto. Con menos margen, el concierto sale como «Trabajas»."
+        >
+          <View style={[styles.row, styles.rowColumn]}>
+            <View style={styles.rowHead}>
+              <Ionicons name="time-outline" size={20} color={theme.accent} />
+              <Text style={styles.rowLabel}>Margen tras el turno</Text>
+            </View>
+            <View style={styles.chipsInline}>
+              {SHIFT_MARGIN_OPTIONS.map((m) => (
+                <Chip
+                  key={m}
+                  label={m === 0 ? 'Sin margen' : m < 60 ? `${m} min` : `${m / 60} h`.replace('.5', ',5')}
+                  active={settings.shiftMarginMinutes === m}
+                  onPress={() => updateSettings({ shiftMarginMinutes: m })}
+                />
+              ))}
+            </View>
+          </View>
+          <Row icon="calendar-outline" label="Tus turnos" onPress={() => router.navigate('/turnos')} />
         </Section>
 
         <Section title="Experiencia">

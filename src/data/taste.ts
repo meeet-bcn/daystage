@@ -3,6 +3,7 @@
 // Va afinando con lo que haces: tus "Meeet In!", tu lista de deseos y las
 // cartas que deslizas. Todo son funciones puras: el estado vive en app-context.
 
+import type { Availability } from '@/data/concert-shifts';
 import type { Concert } from '@/data/concerts';
 
 /** Artista del carrusel inicial. `image`: portada de un disco (Apple Music: no da fotos de artista). */
@@ -380,19 +381,41 @@ export function pickLanguages(picks: string[]) {
 }
 
 /**
+ * Peso extra en Descubrir según tus turnos (DayStage): los conciertos de tus
+ * días libres suben, los de antes o después del turno un poco menos y los de días en
+ * que trabajas no suman nada.
+ */
+export const AVAILABILITY_BONUS: Record<Availability, number> = {
+  libre: 2,
+  'tras-turno': 1,
+  'antes-turno': 1,
+  trabajas: 0,
+};
+
+/**
  * Las cartas de Descubrir: conciertos futuros que no has deslizado ni marcado
- * con "Meeet In!", los que más encajan con tus gustos primero (y, a igualdad,
- * los más cercanos).
+ * con "Meeet In!", los que más encajan con tus gustos (y con tus días libres)
+ * primero y, a igualdad, los más cercanos.
  */
 export function buildDeck(
   concerts: Concert[],
   weights: Record<string, number>,
-  options: { now: number; swiped: Set<string>; going: Set<string> }
+  options: {
+    now: number;
+    swiped: Set<string>;
+    going: Set<string>;
+    /** Si puedes ir según tus turnos; null o sin pasar = no cuenta. */
+    availability?: (c: Concert) => Availability | null;
+  }
 ) {
+  const bonus = (c: Concert) => {
+    const a = options.availability?.(c);
+    return a ? AVAILABILITY_BONUS[a] : 0;
+  };
   return concerts
     .filter((c) => c.startsAt != null && c.startsAt >= options.now)
     .filter((c) => !options.swiped.has(c.id) && !options.going.has(c.id))
-    .map((c) => ({ concert: c, score: weights[tasteGenre(c.genre)] ?? 0 }))
+    .map((c) => ({ concert: c, score: (weights[tasteGenre(c.genre)] ?? 0) + bonus(c) }))
     .sort((a, b) => b.score - a.score || (a.concert.startsAt ?? 0) - (b.concert.startsAt ?? 0))
     .map((x) => x.concert);
 }

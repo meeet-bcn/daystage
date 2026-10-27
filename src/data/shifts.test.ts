@@ -224,6 +224,13 @@ describe('availabilityFor', () => {
     expect(availabilityFor(at('2026-10-03', '21:00'), plan())).toBe('trabajas');
   });
 
+  it('antes-turno: ese día trabajas más tarde, pero el concierto acaba antes', () => {
+    // El 5 empieza la noche a las 22:00; un concierto a las 11:00 acaba a las 14:00
+    expect(availabilityFor(at('2026-10-05', '11:00'), plan())).toBe('antes-turno');
+    // Tras una mañana, la tarde del concierto ya cuenta como tras el turno
+    expect(availabilityFor(at('2026-10-06', '12:00'), plan())).toBe('tras-turno');
+  });
+
   it('trabajas: el turno de noche empieza antes de que acabe', () => {
     expect(availabilityFor(at('2026-10-05', '20:00'), plan())).toBe('trabajas');
   });
