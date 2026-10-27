@@ -6,8 +6,27 @@ import type { Concert, TicketOffer } from '@/data/concerts';
 import { compactText as normalize, headlinerName } from '@/data/text';
 
 // "Fontaines D.C. - D.C. EU TOUR 2026" → "fontainesdc"; "Niall Horan: Dinner Party" → "niallhoran"
-function headliner(name: string) {
+export function headliner(name: string) {
   return normalize(headlinerName(name));
+}
+
+function pad(n: number) {
+  return String(n).padStart(2, '0');
+}
+
+/**
+ * Id del concierto en el servidor (y de su sala de chat): día local + sala +
+ * artista principal, normalizados, como compara `isSameConcert`. Así el mismo
+ * concierto da el mismo id en todos los móviles, venga de la fuente que venga.
+ * Solo [a-z0-9_], para que sirva también de carpeta en Storage.
+ *   "Fontaines D.C." en "Sala Apolo" el 31/10/2026 → "20261031_salaapolo_fontainesdc"
+ */
+export function canonicalConcertId(concert: Pick<Concert, 'startsAt' | 'venue' | 'artist'>) {
+  const d = concert.startsAt == null ? null : new Date(concert.startsAt);
+  const day = d ? `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}` : 'sinfecha';
+  const venue = normalize(concert.venue).slice(0, 40) || 'sinsala';
+  const artist = (headliner(concert.artist) || normalize(concert.artist)).slice(0, 60) || 'sinartista';
+  return `${day}_${venue}_${artist}`;
 }
 
 function sameArtist(a: string, b: string) {

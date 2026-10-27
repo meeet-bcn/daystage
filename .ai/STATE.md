@@ -9,6 +9,13 @@ _Actualizado: 2026-10-27_
 - Barra en 5 pestañas (Inicio · Turnos · Descubrir · Meeet in · Perfil); Buscar se abre con la lupa de Inicio.
 - Fase 2 (rama `fase-2-conciertos-turnos`): conciertos × turnos. Pastilla en Inicio, chip «Mis días libres», «Tu día» en la ficha, puntos en el mes y conciertos en la hoja del día, peso en Descubrir y margen en Ajustes. Cuarto estado `antes-turno`; los conciertos sin hora (00:00) se cruzan como si fueran a las 21:00. 260 tests. Vistos por captura: Inicio con pastilla y chip, ficha con «Tu día» (libre y con turno), mes con puntos, hoja del 1 de noviembre con 9 conciertos.
 - Sin verificar a mano (sin toques en el simulador): pulsar «Mis días libres», abrir una ficha desde la hoja del día, cambiar el margen en Ajustes, orden de Descubrir.
+- Fase 3 (rama `fase-3-backend`): backend con Supabase (proyecto fafutqrkpnasiccrebpo). Migración en supabase/migrations con RLS, Storage y Realtime; cliente opcional (sin claves, modo local); cuenta con código por email; "Meeet In!" y recuento reales; chat remoto paginado con Realtime, fotos/vídeos y no leídos; denunciar y bloquear manteniendo pulsado un mensaje. 274 tests.
+- Migración aplicada en el proyecto remoto (2026-10-27, `db push`); tablas verificadas por REST. Plantillas de email: no se pueden cambiar en el plan gratuito con el correo por defecto, así que se entra con el enlace (PKCE, daystage://auth-callback).
+- `daystage://**` añadido a las URL de redirección del proyecto (2026-10-27, `config push`; el remoto coincide con config.toml).
+- Para probar en Expo Go: añadida también `exp://192.168.1.241:8081/--/auth-callback` (la IP del iMac en la red de casa). `exp://**` lo bloqueó el control de permisos por demasiado amplio. Quitarla cuando la app esté instalada.
+- El correo gratuito de Supabase manda muy pocos emails por hora («email rate limit exceeded»). Para probar: acceso anónimo activado en el proyecto (2026-10-27) y botón «Probar sin email (desarrollo)», solo con __DEV__. **Desactivar `enable_anonymous_sign_ins` antes de publicar** y poner un correo propio (SMTP).
+- Sin probar: entrar con un email real en el móvil o el simulador (el enlace debe abrir la app).
+- Pendiente de código: foto de perfil al servidor, lista real de "Gente" en la info de la sala (y bloquear/denunciar desde ahí), Apple y Google, notificaciones push.
 - Siguiente fase (anterior): cruzar turnos con conciertos (`availabilityFor`) en las fichas e Inicio.
 
 ---

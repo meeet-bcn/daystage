@@ -11,6 +11,7 @@ import { useApp } from '@/data/app-context';
 import { SHIFT_MARGIN_OPTIONS } from '@/data/concert-shifts';
 import { LANGUAGES } from '@/data/filters';
 import { deleteTabIcons, saveProfilePhoto } from '@/data/profile-photo';
+import { useSession } from '@/data/session-context';
 import { MESSAGES_FROM_OPTIONS, Settings } from '@/data/settings';
 import { useTheme } from '@/hooks/use-theme';
 import { COLORS } from '@/theme';
@@ -85,6 +86,7 @@ export default function SettingsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { settings, updateSettings, profile, trimConcerts, clearUserData } = useApp();
+  const session = useSession();
   const [cacheCleared, setCacheCleared] = useState(false);
 
   const notify = (changes: Partial<Settings['notifications']>) =>
@@ -146,6 +148,23 @@ export default function SettingsScreen() {
             detail="Foto, nick, bio, fondo, canción y redes"
             onPress={() => router.push('/edit-profile')}
           />
+          {/* Cuenta en el servidor (Supabase): solo si hay backend configurado */}
+          {session.enabled &&
+            (session.userId ? (
+              <Row
+                icon="log-out-outline"
+                label="Cerrar sesión"
+                detail={session.anonymous ? 'Cuenta de prueba, sin email' : (session.email ?? undefined)}
+                onPress={() => session.signOut()}
+              />
+            ) : (
+              <Row
+                icon="log-in-outline"
+                label="Crear cuenta o entrar"
+                detail="Para el chat y ver quién va de verdad"
+                onPress={() => router.push('/sign-in')}
+              />
+            ))}
         </Section>
 
         <Section

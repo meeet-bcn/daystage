@@ -18,6 +18,7 @@ import { Media, MediaViewer } from '@/components/media-viewer';
 import { ProfileAvatar } from '@/components/profile-avatar';
 import { VideoThumb } from '@/components/video-thumb';
 import { useApp } from '@/data/app-context';
+import { useChatRoom } from '@/hooks/use-chat-room';
 import { membersLabel } from '@/data/chat';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { useSetlists } from '@/hooks/use-setlists';
@@ -58,7 +59,9 @@ export default function ChatInfoScreen() {
 
   const concert = concerts.find((c) => c.id === id) ?? plans.find((c) => c.id === id);
   const artist = concert?.artist ?? '';
-  const sent = messagesOfConcert(id);
+  // Con cuenta, las fotos y vídeos de la sala del servidor; sin backend, los de este móvil
+  const room = useChatRoom(id, concert, { live: false });
+  const sent = room.mode === 'remote' ? room.messages : messagesOfConcert(id);
   const photos = sent.filter((m) => m.photo);
   const videos = sent.filter((m) => m.video);
   const members = concert ? Math.max(1, goingCount(concert)) : 1;

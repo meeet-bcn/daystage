@@ -20,7 +20,8 @@ import { ConcertImage } from '@/components/concert-image';
 import { Media, MediaViewer } from '@/components/media-viewer';
 import { VideoThumb } from '@/components/video-thumb';
 import { useApp } from '@/data/app-context';
-import { ChatMessage, ChatRow, chatKey, membersLabel, withDaySeparators } from '@/data/chat';
+import { ChatMessage, ChatRow, membersLabel, withDaySeparators } from '@/data/chat';
+import { useChatRoom } from '@/hooks/use-chat-room';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
 
@@ -48,26 +49,63 @@ export default function ChatScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { concerts, plans, messagesFor, sendMessage, sendMedia, goingCount } = useApp();
+  const { concerts, plans, goingCount } = useApp();
   const [draft, setDraft] = useState('');
   const [viewing, setViewing] = useState<Media | null>(null);
 
   const concert = concerts.find((c) => c.id === id) ?? plans.find((c) => c.id === id);
-  const room = chatKey(id);
-  const rows = withDaySeparators(messagesFor(room));
+  // Con cuenta, la sala del servidor; sin backend, la de este móvil (chat-service, use-chat-room)
+  const chat = useChatRoom(id, concert);
+  const rows = withDaySeparators(chat.messages);
   const text = draft.trim();
   const members = concert ? Math.max(1, goingCount(concert)) : 1;
 
   const send = () => {
     if (!text) return;
-    sendMessage(room, text);
+    chat.send(text);
     setDraft('');
   };
 
   const share = (result: ImagePicker.ImagePickerResult) => {
     const asset = result.canceled ? null : result.assets[0];
     if (!asset) return;
-    sendMedia(room, asset.type === 'video' ? { video: asset.uri } : { photo: asset.uri });
+    chat.share(asset.uri, asset.type === 'video' ? 'video' : 'image');
+  };
+
+  // Mantener pulsado un mensaje de otra persona: denunciar o bloquear
+  const moderate = (message: ChatMessage) => {
+    const other = message.userId;
+    if (message.mine || !other) return;
+    const done = (title: string) => Alert.alert(title);
+    const fail = () => Alert.alert('No se pudo hacer', 'Comprueba la conexión e inténtalo otra vez.');
+    Alert.alert('Mensaje', undefined, [
+      {
+        text: 'Denunciar',
+        onPress: () =>
+          chat
+            .report(other, message.id)
+            .then(() => done('Gracias. Lo revisaremos.'))
+            .catch(fail),
+      },
+      {
+        text: 'Bloquear a esta persona',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert(
+            '¿Bloquear?',
+            'Dejarás de ver sus mensajes en todas las salas.',
+            [
+              { text: 'Cancelar', style: 'cancel' },
+              {
+                text: 'Bloquear',
+                style: 'destructive',
+                onPress: () => chat.block(other).then(() => done('Bloqueada.')).catch(fail),
+              },
+            ]
+          ),
+      },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
   };
 
   const pickFromLibrary = async () => share(await ImagePicker.launchImageLibraryAsync(PICKER_OPTIONS));
@@ -97,8 +135,13 @@ export default function ChatScreen() {
       : message.video
         ? { uri: message.video, kind: 'video' }
         : null;
+    const other = message.mine === false;
     return (
-      <View style={[styles.bubble, media && styles.mediaBubble]}>
+      <Pressable
+        onLongPress={() => moderate(message)}
+        disabled={!other}
+        style={[styles.bubble, other && styles.bubbleOther, media && styles.mediaBubble]}
+      >
         {media ? (
           <Pressable
             onPress={() => setViewing(media)}
@@ -112,14 +155,14 @@ export default function ChatScreen() {
             )}
           </Pressable>
         ) : (
-          <Text style={styles.bubbleText}>{message.text}</Text>
+          <Text style={[styles.bubbleText, other && styles.bubbleTextOther]}>{message.text}</Text>
         )}
         {/* Hora y doble check dentro de la burbuja, como en WhatsApp */}
         <View style={[styles.meta, media && styles.metaOnMedia]} pointerEvents="none">
-          <Text style={styles.time}>{timeOf(message.sentAt)}</Text>
-          <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.85)" />
+          <Text style={[styles.time, other && !media && styles.timeOther]}>{timeOf(message.sentAt)}</Text>
+          {!other && <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.85)" />}
         </View>
-      </View>
+      </Pressable>
     );
   };
 
@@ -172,6 +215,9 @@ export default function ChatScreen() {
         keyboardDismissMode="interactive"
         contentContainerStyle={styles.listContent}
         renderItem={renderRow}
+        // Al subir (la lista está invertida: el final es lo más antiguo), la página anterior
+        onEndReached={chat.loadOlder}
+        onEndReachedThreshold={0.3}
         ListEmptyComponent={
           // Mensaje de servicio, como el de Telegram al crear un grupo.
           // En una lista invertida el vacío sale al revés: se vuelve a girar
@@ -181,51 +227,68 @@ export default function ChatScreen() {
               <Text style={styles.serviceTitle}>La sala del concierto</Text>
               <Text style={styles.serviceText}>
                 Saluda a la gente que va, quedad para veros allí y comparte fotos, vídeos o el
-                setlist. De momento, los mensajes solo se ven en tu móvil.
+                setlist.
+                {chat.mode === 'local' ? ' De momento, los mensajes solo se ven en tu móvil.' : ''}
+                {chat.loading ? '\n\nCargando mensajes…' : ''}
               </Text>
             </View>
           </View>
         }
       />
 
-      <View style={[styles.composer, { paddingBottom: insets.bottom + 8 }]}>
-        <Pressable
-          onPress={pickFromLibrary}
-          hitSlop={8}
-          style={styles.attach}
-          accessibilityLabel="Enviar una foto o un vídeo"
-        >
-          <Ionicons name="attach" size={26} color={COLORS.muted} />
-        </Pressable>
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          placeholder="Mensaje"
-          placeholderTextColor={COLORS.muted}
-          style={styles.input}
-          multiline
-          maxLength={MESSAGE_MAX}
-        />
-        {text ? (
-          <Pressable
-            onPress={send}
-            style={styles.send}
-            accessibilityRole="button"
-            accessibilityLabel="Enviar"
-          >
-            <Ionicons name="arrow-up" size={20} color={COLORS.white} />
+      {chat.error && <Text style={styles.error}>{chat.error}</Text>}
+
+      {chat.mode === 'signin' ? (
+        // Con servidor, para hablar con la gente que va hace falta una cuenta
+        <View style={[styles.signin, { paddingBottom: insets.bottom + 12 }]}>
+          <Text style={styles.signinText}>
+            Crea tu cuenta (o entra) para hablar con la gente que va a este concierto.
+          </Text>
+          <Pressable style={styles.signinButton} onPress={() => router.push('/sign-in')}>
+            <Text style={styles.signinButtonText}>Crear cuenta o entrar</Text>
           </Pressable>
-        ) : (
+        </View>
+      ) : (
+        <View style={[styles.composer, { paddingBottom: insets.bottom + 8 }]}>
           <Pressable
-            onPress={takeWithCamera}
+            onPress={pickFromLibrary}
             hitSlop={8}
             style={styles.attach}
-            accessibilityLabel="Hacer una foto o un vídeo"
+            accessibilityLabel="Enviar una foto o un vídeo"
           >
-            <Ionicons name="camera-outline" size={24} color={COLORS.muted} />
+            <Ionicons name="attach" size={26} color={COLORS.muted} />
           </Pressable>
-        )}
-      </View>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Mensaje"
+            placeholderTextColor={COLORS.muted}
+            style={styles.input}
+            multiline
+            maxLength={MESSAGE_MAX}
+          />
+          {text ? (
+            <Pressable
+              onPress={send}
+              style={styles.send}
+              accessibilityRole="button"
+              accessibilityLabel="Enviar"
+            >
+              <Ionicons name="arrow-up" size={20} color={COLORS.white} />
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={takeWithCamera}
+              hitSlop={8}
+              style={styles.attach}
+              accessibilityLabel="Hacer una foto o un vídeo"
+            >
+              <Ionicons name="camera-outline" size={24} color={COLORS.muted} />
+            </Pressable>
+          )}
+        </View>
+
+      )}
 
       <MediaViewer media={viewing} onClose={() => setViewing(null)} />
     </KeyboardAvoidingView>
@@ -281,6 +344,33 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: COLORS.text,
     },
     bubbleText: { color: COLORS.white, fontSize: 16, lineHeight: 21 },
+    // Mensajes de los demás: a la izquierda y en blanco, como en WhatsApp
+    bubbleOther: {
+      alignSelf: 'flex-start',
+      backgroundColor: COLORS.background,
+      borderBottomRightRadius: 18,
+      borderBottomLeftRadius: 5,
+    },
+    bubbleTextOther: { color: COLORS.text },
+    timeOther: { color: COLORS.muted },
+    error: { color: COLORS.danger, fontSize: 13, textAlign: 'center', paddingVertical: 6 },
+    signin: {
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      gap: 10,
+      backgroundColor: COLORS.background,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: COLORS.line,
+    },
+    signinText: { color: COLORS.muted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
+    signinButton: {
+      height: 46,
+      borderRadius: 23,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.accent,
+    },
+    signinButtonText: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
     meta: {
       flexDirection: 'row',
       alignItems: 'center',

@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo/ui": "~58.0.23",
     "@expo/vector-icons": "^15.0.2",
+    "@supabase/supabase-js": "^2.118.0",
     "expo": "~58.0.19",
     "expo-asset": "~58.0.18",
     "expo-audio": "~58.0.10",
@@ -59,7 +60,8 @@
     "check": "tsc --noEmit && expo lint && jest",
     "feed:build": "node --no-warnings scripts/build-bcn-agenda.mjs",
     "feed:serve": "node scripts/serve-feed.mjs",
-    "feed:publish": "bash scripts/publish-bcn-agenda.sh"
+    "feed:publish": "bash scripts/publish-bcn-agenda.sh",
+    "backend:e2e": "node scripts/backend-e2e.mjs"
   },
   "private": true,
   "jest": {
