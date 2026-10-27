@@ -107,6 +107,26 @@ describe('buildDeck', () => {
     );
     expect(deck.map((c) => c.id)).toEqual(['jazz']);
   });
+
+  it('suben los de tus días libres; luego, los de después del turno', () => {
+    const availability = (c: { id: string }) =>
+      c.id === 'jazz' ? ('libre' as const) : c.id === 'rock' ? ('tras-turno' as const) : ('trabajas' as const);
+    // Sin turnos: indie (3) > rock (1) > jazz (0)
+    const deck = buildDeck([rock, jazz, indie], { Indie: 3, Rock: 1 }, { ...options, availability });
+    // Con turnos: indie 3 + 0 = 3, jazz 0 + 2 = 2, rock 1 + 1 = 2 (rock antes: es más cercano)
+    expect(deck.map((c) => c.id)).toEqual(['indie', 'rock', 'jazz']);
+    const free = buildDeck([rock, jazz, indie], {}, { ...options, availability });
+    expect(free.map((c) => c.id)).toEqual(['jazz', 'rock', 'indie']);
+  });
+
+  it('keepAhead sigue fijando las cartas que ya se ven aunque cambien los turnos', () => {
+    const deck = buildDeck([rock, jazz, indie], {}, {
+      ...options,
+      availability: (c) => (c.id === 'indie' ? 'libre' : null),
+    });
+    expect(deck[0].id).toBe('indie');
+    expect(keepAhead(deck, ['jazz', 'rock']).map((c) => c.id)).toEqual(['jazz', 'rock', 'indie']);
+  });
 });
 
 describe('keepAhead', () => {

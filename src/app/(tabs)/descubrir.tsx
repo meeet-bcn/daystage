@@ -84,6 +84,7 @@ export default function DiscoverScreen() {
     isWished,
     toggleWish,
     settings,
+    availability,
   } = useApp();
 
   const hasTastes = profile.tasteArtists.length >= TASTE_PICKS;
@@ -92,6 +93,8 @@ export default function DiscoverScreen() {
       now,
       swiped: new Set(Object.keys(swipes)),
       going: new Set(plans.map((c) => c.id)),
+      // DayStage: suben los conciertos de tus días libres
+      availability,
     }),
     ahead
   );

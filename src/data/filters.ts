@@ -1,3 +1,4 @@
+import { canGo, type Availability } from '@/data/concert-shifts';
 import { Concert } from '@/data/concerts';
 import { compactText, foldText } from '@/data/text';
 
@@ -15,6 +16,8 @@ export type Filters = {
   dates: DateRange | null;
   genres: string[];
   maxPrice: number | null;
+  /** Chip "Mis días libres": solo conciertos a los que puedes ir (libre, o antes o después del turno). */
+  freeDaysOnly: boolean;
 };
 
 export const DEFAULT_FILTERS: Filters = {
@@ -22,6 +25,7 @@ export const DEFAULT_FILTERS: Filters = {
   dates: null,
   genres: [],
   maxPrice: null,
+  freeDaysOnly: false,
 };
 
 export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -120,7 +124,17 @@ function compareNullable(a: number | null, b: number | null) {
   return a - b;
 }
 
-export function applyFilters(concerts: Concert[], f: Filters, goingCount: (c: Concert) => number) {
+/**
+ * `availability` dice si puedes ir a cada concierto según tus turnos
+ * (concert-shifts.ts); null = sin turnos configurados, y entonces "Mis días
+ * libres" no quita nada.
+ */
+export function applyFilters(
+  concerts: Concert[],
+  f: Filters,
+  goingCount: (c: Concert) => number,
+  availability: (c: Concert) => Availability | null = () => null
+) {
   const range = f.dates ? [f.dates.from, addDays(f.dates.to, 1)] : null;
 
   const result = concerts.filter((c) => {
@@ -129,6 +143,10 @@ export function applyFilters(concerts: Concert[], f: Filters, goingCount: (c: Co
     }
     if (f.genres.length > 0 && !f.genres.includes(c.genre)) return false;
     if (f.maxPrice != null && (c.priceMin == null || c.priceMin > f.maxPrice)) return false;
+    if (f.freeDaysOnly) {
+      const a = availability(c);
+      if (a != null && !canGo(a)) return false;
+    }
     return true;
   });
 

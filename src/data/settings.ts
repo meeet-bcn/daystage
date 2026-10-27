@@ -27,6 +27,8 @@ export type Settings = {
   haptics: boolean;
   /** Sonidos de la interfaz (p. ej. al recargar Inicio). */
   sounds: boolean;
+  /** DayStage: minutos que necesitas tras acabar el turno para llegar a un concierto. */
+  shiftMarginMinutes: number;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -37,6 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   messagesFrom: 'going',
   haptics: true,
   sounds: true,
+  shiftMarginMinutes: 60,
 };
 
 export const MESSAGES_FROM_OPTIONS: { key: MessagesFrom; label: string }[] = [
@@ -52,6 +55,10 @@ export function withDefaults(saved: Partial<Settings>): Settings {
     ...saved,
     mainLanguage: known ? (saved.mainLanguage as string) : DEFAULT_SETTINGS.mainLanguage,
     notifications: { ...DEFAULT_SETTINGS.notifications, ...saved.notifications },
+    shiftMarginMinutes:
+      typeof saved.shiftMarginMinutes === 'number' && saved.shiftMarginMinutes >= 0
+        ? saved.shiftMarginMinutes
+        : DEFAULT_SETTINGS.shiftMarginMinutes,
   };
 }
 

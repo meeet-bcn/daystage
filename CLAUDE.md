@@ -36,7 +36,7 @@ src/
     welcome.tsx             # Bienvenida: imagotipo animado y logo; diapositivas (conciertos, Meeet In!, chat, Descubrir, perfil); al final, crear perfil o "Ahora no"
     onboarding.tsx          # Creación de perfil paso a paso: nick → nombre → foto → gustos → idioma → ¡Listo!
     follows.tsx             # Seguidores · Seguidos (desde sus números en Perfil); vacías y explicado hasta que haya cuentas
-    settings.tsx            # Ajustes (Perfil › engranaje): idioma principal, privacidad, notificaciones, vibración, caché, borrar datos, información
+    settings.tsx            # Ajustes (Perfil › engranaje): idioma principal, privacidad, notificaciones, turnos (margen tras el turno), vibración, caché, borrar datos, información
     filters.tsx             # Hoja nativa (formSheet): ordenar, género, precio
     buscar.tsx              # Buscar (lupa de la cabecera de Inicio; ya no es pestaña): conciertos cargados + búsqueda en las ticketeras
     calendar.tsx            # Hoja del calendario: intervalo de días, con punto en los días con conciertos; al bajar por los meses pide más páginas y "Quitar fechas" vacía la caché (`trimConcerts`)
@@ -75,6 +75,8 @@ src/
     app-tabs.web.tsx        # Barra de pestañas para web (expo-router/ui), con un punto rojo como badge
     splash-overlay*.tsx     # Relevo del splash nativo con fundido (en web no hace nada)
     shift-badge.tsx         # Abreviatura de un turno sobre su color (libre: "L" gris)
+    availability-pill.tsx   # Pastilla «Día libre» / «Tras tu turno» / «Antes de tu turno» / «Trabajas» (nada sin turnos)
+    your-day-card.tsx       # «Tu día» en la ficha: turno de ese día y disponibilidad; sin turnos, enlace a Turnos
     nav-header.tsx          # Cabecera de las pantallas de Turnos que se abren encima (flecha o "Cancelar", título, botón a la derecha)
   data/
     concerts.ts             # Tipos `Concert` / `TicketOffer` + fetchConcerts({ page, keyword }): una página de todas las fuentes en paralelo (si falla una, sigue con las demás). La fusión se hace en app-context con todas las páginas juntas
@@ -106,9 +108,10 @@ src/
     save-media.ts           # Guarda una foto o vídeo en la galería (expo-media-library); las remotas se bajan antes
     profile-photo.ts        # Elegir foto (expo-image-picker, recorte cuadrado) y guardarla en documentos (expo-file-system)
     storage.ts              # Persistencia local (expo-sqlite/kv-store): planes y perfil, claves versionadas (`meeet.plans.v1`…)
-    shifts.ts               # Turnos (funciones puras): ShiftType, Rotation, DayOverride, ShiftPlan; shiftForDate, shiftInterval, freeWindows, availabilityFor ('libre' | 'tras-turno' | 'trabajas'), monthGrid, shiftHours; fechas 'YYYY-MM-DD'
+    shifts.ts               # Turnos (funciones puras): ShiftType, Rotation, DayOverride, ShiftPlan; shiftForDate, shiftInterval, freeWindows, availabilityFor ('libre' | 'tras-turno' | 'antes-turno' | 'trabajas'), monthGrid, shiftHours; fechas 'YYYY-MM-DD'
     shift-db.ts             # Turnos en SQLite (`daystage.db`): tablas shift_types, rotations, rotation_days, day_overrides; migraciones con PRAGMA user_version
-    shifts-context.tsx      # ShiftsProvider / useShifts(): el plan de turnos y sus cambios (aparte de app-context)
+    shifts-context.tsx      # ShiftsProvider / useShifts(): el plan de turnos y sus cambios (aparte de app-context, y por fuera de AppProvider)
+    concert-shifts.ts       # Conciertos × turnos: concertAvailability (con el margen de Ajustes), canGo, hasSchedule, concertsByDate, AVAILABILITY_LABELS; las 00:00 = sin hora (se supone las 21:00)
   theme.ts                  # ✅ Paleta de MEEET (COLORS). Úsala siempre
   constants/theme.ts        # Medidas de layout: BottomTabInset, MaxContentWidth
 assets/images/              # Iconos y splash de MEEET (provisionales: monograma "m." y marca "meeet.")
@@ -120,7 +123,8 @@ scripts/generate-tab-icons.swift      # Iconos propios de la barra (casa sin pue
 scripts/jest-timezone.js              # globalSetup de jest: los tests corren siempre en Europe/Madrid
 ```
 
-- **Turnos** (`shifts.ts`): las fechas son días locales en texto `'YYYY-MM-DD'`; los días se suman en UTC (sin cambios de hora) y las horas reales se calculan con la hora local, así que la noche del último domingo de octubre dura 9 h y la de marzo, 7 h. Un turno cuyo fin es igual o anterior al inicio acaba al día siguiente. Antes de `startDate` la rotación sigue hacia atrás (módulo positivo). Un cambio del día (`DayOverride`, `shiftTypeId: null` = libre) manda sobre la rotación; elegir en la hoja lo mismo que dice la rotación borra el cambio. `availabilityFor` da por hecho que un concierto dura 3 h y deja 60 min tras el turno (los dos se pueden cambiar). Los colores de turno se guardan como clave de `SHIFT_COLORS` (`theme.ts`), nunca como hex. Solo hay una rotación.
+- **Turnos** (`shifts.ts`): las fechas son días locales en texto `'YYYY-MM-DD'`; los días se suman en UTC (sin cambios de hora) y las horas reales se calculan con la hora local, así que la noche del último domingo de octubre dura 9 h y la de marzo, 7 h. Un turno cuyo fin es igual o anterior al inicio acaba al día siguiente. Antes de `startDate` la rotación sigue hacia atrás (módulo positivo). Un cambio del día (`DayOverride`, `shiftTypeId: null` = libre) manda sobre la rotación; elegir en la hoja lo mismo que dice la rotación borra el cambio. `availabilityFor` (`'libre' | 'tras-turno' | 'antes-turno' | 'trabajas'`) da por hecho que un concierto dura 3 h y deja 60 min tras el turno (los dos se pueden cambiar). Los colores de turno se guardan como clave de `SHIFT_COLORS` (`theme.ts`), nunca como hex. Solo hay una rotación.
+- **Conciertos × turnos** (Fase 2): `useApp().availability(concierto)` da `'libre' | 'tras-turno' | 'antes-turno' | 'trabajas'` o null (sin hora o sin turnos: entonces no se pinta nada y el chip «Mis días libres» no sale). `'antes-turno'` = ese día trabajas más tarde pero el concierto acaba antes (se añadió a los tres pedidos porque un concierto a las 11:00 antes de una noche salía como «Día libre»). Las fuentes ponen las 00:00 a los conciertos sin hora: `effectiveStart` supone las 21:00 de ese día. El margen tras el turno está en Ajustes › Turnos (`settings.shiftMarginMinutes`, 60 por defecto). Se usa en: pastilla de cada tarjeta de Inicio, chip «Mis días libres» (`Filters.freeDaysOnly`, se puede ir), «Tu día» en la ficha, punto bajo los días del mes de Turnos con conciertos a los que puedes ir (y su lista en la hoja del día) y peso extra en Descubrir (`AVAILABILITY_BONUS`: libre +2, antes/tras +1).
 - **Base de datos de turnos** (`shift-db.ts`): síncrona, se lee entera al arrancar y cada cambio se escribe al momento. Para cambiar el esquema, añade una función al final de `MIGRATIONS` (nunca edites una publicada). Los tres tipos por defecto (Mañana 06–14, Tarde 14–22, Noche 22–06) solo se crean en la migración 1.
 - Barra de pestañas: Inicio · Turnos · Descubrir · Meeet in · Perfil. En iPhone caben 5 (con más, iOS mete las últimas en "More"), así que Buscar no es pestaña: se abre con la lupa de la cabecera de Inicio (`/buscar`). No añadas otra pestaña sin quitar una.
 - Alias de importación: `@/*` → `src/*` y `@/assets/*` → `assets/*`.

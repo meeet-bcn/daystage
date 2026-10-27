@@ -155,7 +155,7 @@ describe('matchesQuery', () => {
 });
 
 describe('activeFilterCount', () => {
-  it('cuenta orden, géneros y precio, pero no el "cuándo"', () => {
+  it('cuenta orden, géneros y precio, pero no el "cuándo" ni "Mis días libres" (tienen su chip)', () => {
     expect(activeFilterCount(DEFAULT_FILTERS)).toBe(0);
     expect(
       activeFilterCount({
@@ -163,6 +163,7 @@ describe('activeFilterCount', () => {
         dates: { from: day(21), to: day(21) },
         genres: ['Rock', 'Pop'],
         maxPrice: 50,
+        freeDaysOnly: true,
       })
     ).toBe(4);
   });
@@ -195,5 +196,30 @@ describe('quickRange', () => {
     expect(isQuickRange({ from: day(22), to: day(22) }, 'tomorrow', today)).toBe(true);
     expect(isQuickRange({ from: day(22), to: day(23) }, 'tomorrow', today)).toBe(false);
     expect(isQuickRange(null, 'today', today)).toBe(false);
+  });
+});
+
+describe('applyFilters · Mis días libres', () => {
+  // Hoy (21) trabajas, el viernes 23 sales del turno a tiempo, el domingo 25 libre
+  const availability = (c: Concert) =>
+    c.id === 'hoy' ? 'trabajas' : c.id === 'vie' ? 'tras-turno' : c.id === 'dom' ? 'libre' : null;
+
+  it('deja libres y tras el turno; quita donde trabajas', () => {
+    const result = applyFilters(
+      [today, friday, sunday],
+      { ...DEFAULT_FILTERS, freeDaysOnly: true },
+      () => 0,
+      availability
+    ).map((c) => c.id);
+    expect(result).toEqual(['vie', 'dom']);
+  });
+
+  it('sin turnos configurados (null) no quita nada', () => {
+    expect(ids({ freeDaysOnly: true })).toEqual(ids({}));
+  });
+
+  it('apagado, no filtra aunque trabajes', () => {
+    const result = applyFilters([today], DEFAULT_FILTERS, () => 0, availability);
+    expect(result.map((c) => c.id)).toEqual(['hoy']);
   });
 });

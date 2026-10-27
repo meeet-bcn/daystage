@@ -8,6 +8,8 @@ import { ScreenHeader } from '@/components/screen-header';
 import { ScreenSubtitle } from '@/components/screen-title';
 import { ShiftBadge } from '@/components/shift-badge';
 import { BottomTabInset } from '@/constants/theme';
+import { useApp } from '@/data/app-context';
+import { canGo, concertsByDate } from '@/data/concert-shifts';
 import {
   formatDay,
   formatMonth,
@@ -27,6 +29,8 @@ export default function TurnosScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { plan } = useShifts();
+  const { concerts, availability } = useApp();
+  const byDate = useMemo(() => concertsByDate(concerts), [concerts]);
   const today = toDateKey();
   const [month, setMonth] = useState(() => ({
     year: Number(today.slice(0, 4)),
@@ -102,6 +106,8 @@ export default function TurnosScreen() {
                 const type = typeForDate(date, plan);
                 const isToday = date === today;
                 const changed = date in plan.overrides;
+                // Conciertos cargados ese día a los que puedes ir (libre o tras el turno)
+                const fits = (byDate[date] ?? []).filter((c) => canGo(availability(c))).length;
                 return (
                   <Pressable
                     key={date}
@@ -112,7 +118,7 @@ export default function TurnosScreen() {
                       !inMonth && styles.outside,
                       pressed && styles.pressed,
                     ]}
-                    accessibilityLabel={`${formatDay(date)}: ${type ? type.name : 'libre'}${changed ? ', cambiado' : ''}`}
+                    accessibilityLabel={`${formatDay(date)}: ${type ? type.name : 'libre'}${changed ? ', cambiado' : ''}${fits > 0 ? `, ${fits} ${fits === 1 ? 'concierto' : 'conciertos'} para ti` : ''}`}
                   >
                     <View style={[styles.dayNumberBox, isToday && styles.todayBox]}>
                       <Text style={[styles.dayNumber, isToday && styles.todayNumber]}>
@@ -126,13 +132,17 @@ export default function TurnosScreen() {
                       {type ? type.abbr : rotation ? 'L' : ''}
                     </Text>
                     {changed && <View style={styles.changedDot} />}
+                    {fits > 0 && <View style={styles.concertDot} />}
                   </Pressable>
                 );
               })}
             </View>
           ))}
         </View>
-        <Text style={styles.hint}>Toca un día para cambiar su turno.</Text>
+        <Text style={styles.hint}>
+          Toca un día para cambiar su turno o ver sus conciertos. El punto de abajo marca los
+          días con conciertos a los que puedes ir.
+        </Text>
 
         <Text style={styles.sectionTitle}>Rotación</Text>
         <View style={styles.card}>
@@ -251,7 +261,22 @@ const makeStyles = (theme: Theme) =>
       borderRadius: 3,
       backgroundColor: theme.accent,
     },
-    hint: { color: COLORS.muted, fontSize: 13, textAlign: 'center', marginTop: 10 },
+    concertDot: {
+      position: 'absolute',
+      bottom: 6,
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: COLORS.text,
+    },
+    hint: {
+      color: COLORS.muted,
+      fontSize: 13,
+      lineHeight: 18,
+      textAlign: 'center',
+      marginTop: 10,
+      marginHorizontal: 24,
+    },
     sectionRow: {
       flexDirection: 'row',
       alignItems: 'center',

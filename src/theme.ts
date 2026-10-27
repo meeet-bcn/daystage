@@ -205,3 +205,14 @@ export const DEFAULT_SHIFT_COLOR: ShiftColor = 'cielo';
 export function shiftColor(key: string) {
   return SHIFT_COLORS[key as ShiftColor] ?? SHIFT_COLORS[DEFAULT_SHIFT_COLOR];
 }
+
+/**
+ * Pastilla de disponibilidad (DayStage), con los colores de turno: verde si es
+ * tu día libre, ámbar si cabe antes o después del turno y gris si trabajas.
+ */
+export const AVAILABILITY_COLORS = {
+  libre: SHIFT_COLORS.menta,
+  'tras-turno': SHIFT_COLORS.sol,
+  'antes-turno': SHIFT_COLORS.sol,
+  trabajas: SHIFT_COLORS.pizarra,
+} as const;

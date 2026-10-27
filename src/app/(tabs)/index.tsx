@@ -21,6 +21,7 @@ import {
 import Reanimated, { Keyframe } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AvailabilityPill } from '@/components/availability-pill';
 import { Chip } from '@/components/chip';
 import { EventImage } from '@/components/event-image';
 import { GoButton } from '@/components/go-button';
@@ -88,6 +89,8 @@ export default function HomeScreen() {
     loadingMore,
     refreshConcerts,
     settings,
+    availability,
+    hasShifts,
   } = useApp();
   const scrollY = useAnimatedValue(0);
   const listRef = useRef<FlatList<Concert>>(null);
@@ -135,7 +138,7 @@ export default function HomeScreen() {
   const sortLabel = SORT_OPTIONS.find((o) => o.key === filters.sort)?.label.toLowerCase();
   // Donde empieza la lista: bajo la cabecera fija ya desplegada
   const listTop = insets.top + TOP_MAX + LINE_MAX + SLOGAN_H + toolsHeight + PAD_MAX;
-  const isFiltered = filterCount > 0 || filters.dates != null;
+  const isFiltered = filterCount > 0 || filters.dates != null || filters.freeDaysOnly;
 
   const shrink = (from: number, to: number) =>
     scrollY.interpolate({
@@ -286,6 +289,8 @@ export default function HomeScreen() {
                   <Text style={styles.venue} numberOfLines={1}>
                     {item.venue}
                   </Text>
+                  {/* Si puedes ir según tus turnos (solo con turnos configurados) */}
+                  <AvailabilityPill availability={availability(item)} style={styles.availability} />
                   <Text style={styles.going}>
                     {count === 0
                       ? 'Sé el primero en apuntarte'
@@ -367,6 +372,15 @@ export default function HomeScreen() {
                 active={filterCount > 0}
                 onPress={() => router.push('/filters')}
               />
+              {/* DayStage: solo conciertos a los que puedes ir (libre, o antes o tras tu turno) */}
+              {hasShifts && (
+                <Chip
+                  icon="sunny-outline"
+                  label="Mis días libres"
+                  active={filters.freeDaysOnly}
+                  onPress={() => setFilters((f) => ({ ...f, freeDaysOnly: !f.freeDaysOnly }))}
+                />
+              )}
               {/* Atajos de fechas (otra vez, se quitan); para otros días, el calendario */}
               {QUICK_DATES.map((q) => (
                 <Chip
@@ -489,6 +503,7 @@ const makeStyles = (theme: Theme) =>
       letterSpacing: -0.4,
       marginTop: 4,
     },
+    availability: { marginTop: 6 },
     venue: { color: COLORS.muted, fontSize: 15, marginTop: 2 },
     going: { color: COLORS.muted, fontSize: 13, marginTop: 10 },
   });
