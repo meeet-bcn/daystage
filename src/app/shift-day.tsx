@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvailabilityPill } from '@/components/availability-pill';
+import { ConcertImage } from '@/components/concert-image';
 import { ShiftBadge } from '@/components/shift-badge';
 import { useApp } from '@/data/app-context';
 import { concertsByDate, effectiveStart } from '@/data/concert-shifts';
@@ -22,6 +23,10 @@ import { COLORS, Theme } from '@/theme';
 // "viernes, 30 de octubre" → "Viernes, 30 de octubre" (textTransform pondría mayúscula a cada palabra)
 const capitalize = (text: string) => text[0].toUpperCase() + text.slice(1);
 
+// "21:30"; sin hora (las fuentes dejan las 00:00), una raya
+const timeLabel = (startsAt: number) =>
+  effectiveStart(startsAt) === startsAt ? new Date(startsAt).toTimeString().slice(0, 5) : '—';
+
 /**
  * Hoja de un día del calendario: cambiar su turno o volver al de la rotación,
  * y los conciertos cargados de ese día con si puedes ir.
@@ -33,8 +38,10 @@ export default function ShiftDaySheet() {
   const params = useLocalSearchParams<{ date: string }>();
   const date = params.date && isDateKey(params.date) ? params.date : toDateKey();
   const { plan, setOverride, clearOverride } = useShifts();
-  const { concerts, availability } = useApp();
-  const dayConcerts = concertsByDate(concerts)[date] ?? [];
+  const { concerts, availability, plans, isGoing } = useApp();
+  // Tus planes de ese día arriba (también los pasados); debajo, los demás conciertos cargados
+  const dayPlans = concertsByDate(plans)[date] ?? [];
+  const dayConcerts = (concertsByDate(concerts)[date] ?? []).filter((c) => !isGoing(c.id));
 
   const openConcert = (id: string) => {
     // Primero se cierra la hoja: la ficha va en la pila de debajo
@@ -91,6 +98,34 @@ export default function ShiftDaySheet() {
           {changed ? ' · Cambiado' : ''}
         </Text>
 
+        {dayPlans.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Vas a</Text>
+            <View style={styles.concerts}>
+              {dayPlans.map((c, i) => (
+                <Pressable
+                  key={c.id}
+                  onPress={() => openConcert(c.id)}
+                  style={({ pressed }) => [styles.concert, i > 0 && styles.concertLine, pressed && styles.pressed]}
+                >
+                  <ConcertImage concert={c} style={styles.planThumb} iconSize={18} />
+                  <View style={styles.concertText}>
+                    <Text style={styles.concertArtist} numberOfLines={1}>
+                      {c.artist}
+                    </Text>
+                    <Text style={styles.concertVenue} numberOfLines={1}>
+                      {timeLabel(c.startsAt!)} · {c.venue}
+                    </Text>
+                    <AvailabilityPill availability={availability(c)} style={styles.concertPill} />
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={COLORS.muted} />
+                </Pressable>
+              ))}
+            </View>
+            <Text style={[styles.sectionTitle, styles.sectionTitleShift]}>Tu turno</Text>
+          </>
+        )}
+
         <View style={styles.options}>
           {plan.types.map((t) => option(t))}
           {option(null)}
@@ -114,7 +149,11 @@ export default function ShiftDaySheet() {
         {dayConcerts.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>
-              {dayConcerts.length === 1 ? 'Un concierto este día' : `${dayConcerts.length} conciertos este día`}
+              {dayPlans.length > 0
+                ? `Más conciertos este día · ${dayConcerts.length}`
+                : dayConcerts.length === 1
+                  ? 'Un concierto este día'
+                  : `${dayConcerts.length} conciertos este día`}
             </Text>
             <View style={styles.concerts}>
               {dayConcerts.map((c, i) => (
@@ -124,10 +163,7 @@ export default function ShiftDaySheet() {
                   style={({ pressed }) => [styles.concert, i > 0 && styles.concertLine, pressed && styles.pressed]}
                 >
                   <Text style={styles.concertTime}>
-                    {/* Sin hora, las fuentes dejan las 00:00 */}
-                    {effectiveStart(c.startsAt!) === c.startsAt
-                      ? new Date(c.startsAt!).toTimeString().slice(0, 5)
-                      : '—'}
+                    {timeLabel(c.startsAt!)}
                   </Text>
                   <View style={styles.concertText}>
                     <Text style={styles.concertArtist} numberOfLines={1}>
@@ -176,6 +212,8 @@ const makeStyles = (theme: Theme) =>
     concertArtist: { color: COLORS.text, fontSize: 16, fontWeight: '700' },
     concertVenue: { color: COLORS.muted, fontSize: 13, marginTop: 1 },
     concertPill: { marginTop: 6 },
+    planThumb: { width: 52, height: 52, borderRadius: 12, overflow: 'hidden' },
+    sectionTitleShift: { marginTop: 24, marginBottom: 0 },
     title: {
       color: COLORS.text,
       fontSize: 24,
