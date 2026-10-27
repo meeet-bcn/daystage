@@ -1,3 +1,5 @@
+> **DayStage Calendar.** Este repo es DayStage Calendar (calendario de turnos con conciertos), nacido de meeet el 2026-10-27. El plan está en https://claude.ai/artifact/71ygyNNPbihGnzva6Ro1zR. Mientras no se diga lo contrario, la marca visual y los textos de la interfaz siguen siendo los de meeet.
+
 @AGENTS.md
 
 # MEEET
