@@ -1,6 +1,17 @@
-# Estado de trabajo — MEEET
+# Estado de trabajo — DayStage (fork de MEEET)
 
-_Actualizado: 2026-10-24_
+_Actualizado: 2026-10-27_
+
+## DayStage
+- Fase 0 (rama `fase-0-daystage`): repo nacido de meeet, renombrado a DayStage (bundle `com.elcantantemudo.daystage`). Compila y arranca en el simulador iOS. Android sin probar: falta Android Studio, el SDK y JDK 17.
+- Fase 1 (rama `fase-1-turnos`): pestaña Turnos con vista de mes, hoja del día, tipos de turno, asistente de rotación (plantilla 2M-2T-2N-4L) y SQLite (`daystage.db`). 245 tests. Visto en el simulador (capturas): mes con rotación y un día cambiado, rotación, editor de tipo, hoja del día, lista de tipos.
+- Sin verificar a mano (el simulador no se pudo tocar): guardar desde la interfaz (la rotación de ejemplo se metió en la base con sqlite3; la app la leyó bien), escribir horas, borrar un tipo, flechas de mes.
+- Barra en 5 pestañas (Inicio · Turnos · Descubrir · Meeet in · Perfil); Buscar se abre con la lupa de Inicio.
+- Siguiente fase: cruzar turnos con conciertos (`availabilityFor`) en las fichas e Inicio.
+
+---
+
+# Estado heredado de MEEET (2026-10-24)
 
 ## Estado actual
 - Expo SDK 58 (React Native 0.88, React 19.3). Actualizado el 2026-10-24: tipos estrictos de RN, NativeTabs estables.

@@ -25,6 +25,9 @@ export default function AppTabs() {
           <TabTrigger name="index" href="/" asChild>
             <TabButton>Inicio</TabButton>
           </TabTrigger>
+          <TabTrigger name="turnos" href="/turnos" asChild>
+            <TabButton>Turnos</TabButton>
+          </TabTrigger>
           <TabTrigger name="descubrir" href="/descubrir" asChild>
             <TabButton>Descubrir</TabButton>
           </TabTrigger>
@@ -33,9 +36,6 @@ export default function AppTabs() {
           </TabTrigger>
           <TabTrigger name="perfil" href="/perfil" asChild>
             <TabButton>Perfil</TabButton>
-          </TabTrigger>
-          <TabTrigger name="buscar" href="/buscar" asChild>
-            <TabButton>Buscar</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>

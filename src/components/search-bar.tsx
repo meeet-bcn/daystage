@@ -7,9 +7,10 @@ type Props = {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  autoFocus?: boolean;
 };
 
-export function SearchBar({ value, onChangeText, placeholder = 'Buscar' }: Props) {
+export function SearchBar({ value, onChangeText, placeholder = 'Buscar', autoFocus = false }: Props) {
   return (
     <View style={styles.container}>
       <Ionicons name="search" size={18} color={COLORS.muted} />
@@ -24,6 +25,7 @@ export function SearchBar({ value, onChangeText, placeholder = 'Buscar' }: Props
         autoCapitalize="none"
         clearButtonMode="never"
         accessibilityLabel={placeholder}
+        autoFocus={autoFocus}
       />
       {value.length > 0 && (
         <Pressable onPress={() => onChangeText('')} hitSlop={10} accessibilityLabel="Borrar búsqueda">
