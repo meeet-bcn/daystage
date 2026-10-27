@@ -60,7 +60,7 @@ export function mergeMessages(current: ChatMessage[], incoming: ChatMessage[]) {
   return [...byId.values()].sort((a, b) => a.sentAt - b.sentAt);
 }
 
-/** Lo mínimo del concierto para el servidor (al decir "Meeet In!"). */
+/** Lo mínimo del concierto para el servidor (al decir "¡Voy!"). */
 export function concertToRow(concert: Concert): ConcertRow {
   return {
     id: canonicalConcertId(concert),

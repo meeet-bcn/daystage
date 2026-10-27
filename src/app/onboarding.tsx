@@ -253,7 +253,7 @@ export default function OnboardingScreen() {
             </View>
             <Text style={[styles.title, styles.center]}>¡Listo, @{nick}!</Text>
             <Text style={[styles.text, styles.center]}>
-              Ya tienes tu perfil. Dale a «Meeet In!» en un concierto y conoce a quien va.
+              Ya tienes tu perfil. Dale a «¡Voy!» en un concierto y conoce a quien va.
             </Text>
           </View>
         )}

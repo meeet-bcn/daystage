@@ -39,12 +39,12 @@ const AVATAR_SIZE = 104;
 // Las tres columnas de la cuadrícula, como en Instagram
 type GridTab = 'plans' | 'wishlist' | 'past';
 const GRID_TABS: { key: GridTab; label: string }[] = [
-  { key: 'plans', label: 'Meeet in' },
+  { key: 'plans', label: 'Planes' },
   { key: 'wishlist', label: 'Lista de deseos' },
   { key: 'past', label: 'Pasados' },
 ];
 const EMPTY_TEXT: Record<GridTab, string> = {
-  plans: 'Cuando le des a «Meeet In!» en un concierto, aparecerá aquí.',
+  plans: 'Cuando le des a «¡Voy!» en un concierto, aparecerá aquí.',
   wishlist: 'Dale al corazón de un concierto para guardarlo en tu lista de deseos.',
   past: 'Aquí quedarán los conciertos a los que ya has ido.',
 };
@@ -123,7 +123,7 @@ export default function ProfileScreen() {
   const openFollows = (tab: 'followers' | 'following') =>
     router.push({ pathname: '/follows', params: { tab } });
   const stats = [
-    { key: 'plans', label: 'Meeet in', value: plans.length },
+    { key: 'plans', label: 'Planes', value: plans.length },
     { key: 'followers', label: 'Seguidores', value: profile.followers },
     { key: 'following', label: 'Seguidos', value: profile.following },
   ] as const;

@@ -32,7 +32,7 @@ export default function AppTabs() {
             <TabButton>Descubrir</TabButton>
           </TabTrigger>
           <TabTrigger name="meeet-in" href="/meeet-in" asChild>
-            <TabButton badge={unreadTotal > 0}>Meeet in</TabButton>
+            <TabButton badge={unreadTotal > 0}>Planes</TabButton>
           </TabTrigger>
           <TabTrigger name="perfil" href="/perfil" asChild>
             <TabButton>Perfil</TabButton>

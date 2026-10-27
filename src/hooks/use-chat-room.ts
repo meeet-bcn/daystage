@@ -44,7 +44,7 @@ export function useChatRoom(
   useEffect(() => {
     if (mode !== 'remote' || !room || !concert || !userId) return;
     let alive = true;
-    // Quien dijo "Meeet In!" antes de tener cuenta aún no está en la sala: se apunta ahora
+    // Quien dijo "¡Voy!" antes de tener cuenta aún no está en la sala: se apunta ahora
     service
       .setAttendance(concert, true, userId)
       .then(() => service.fetchMessages(room, userId))

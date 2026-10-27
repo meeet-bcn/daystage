@@ -28,7 +28,7 @@ type Props = {
 };
 
 /**
- * Foto 16:9 del concierto, la misma en Inicio y en el detalle, con "Meeet In!"
+ * Foto 16:9 del concierto, la misma en Inicio y en el detalle, con "¡Voy!"
  * abajo a la izquierda, sobre el pie de foto. Sin la fuente: no hace falta saber
  * de dónde viene el concierto.
  */
@@ -40,7 +40,7 @@ export function EventImage({
 }: Props) {
   const styles = useThemedStyles(makeStyles);
   const { celebration, endCelebration } = useApp();
-  // Acabas de darle a "Meeet In!" en este concierto: la insignia entra con brillos
+  // Acabas de darle a "¡Voy!" en este concierto: la insignia entra con brillos
   const celebrating = going && celebration?.id === concert.id;
 
   const photo = <ConcertImage concert={concert} style={styles.image} />;
@@ -68,7 +68,7 @@ export function EventImage({
         >
           {/* Los dos círculos se juntan y se separan: vas a conocer gente */}
           <ImagotipoAnimado height={16} />
-          <Text style={styles.goingText}>Meeet In!</Text>
+          <Text style={styles.goingText}>Voy</Text>
           {celebrating && <Shine />}
         </Animated.View>
       )}

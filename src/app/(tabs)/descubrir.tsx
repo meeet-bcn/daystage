@@ -156,7 +156,7 @@ export default function DiscoverScreen() {
         />
         <Point
           icon="trending-up-outline"
-          text="Cuanto más uses la app (tus «Meeet In!», tu lista de deseos, las cartas que deslizas), mejor te conocerá."
+          text="Cuanto más uses la app (tus «¡Voy!», tu lista de deseos, las cartas que deslizas), mejor te conocerá."
         />
       </Explainer>
     );
@@ -181,7 +181,7 @@ export default function DiscoverScreen() {
         <Point icon="close-circle-outline" text="Desliza a la izquierda si no te interesa." />
         <Point
           icon="people-outline"
-          text="¿Lo tienes claro? Desliza hacia arriba o dale a «Meeet In!» y apúntate para ir con gente."
+          text="¿Lo tienes claro? Desliza hacia arriba o dale a «¡Voy!» y apúntate para ir con gente."
         />
       </Explainer>
     );

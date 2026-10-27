@@ -361,7 +361,7 @@ export default function SettingsScreen() {
             first
             icon="phone-portrait-outline"
             label="Vibración"
-            detail="Al darle a «Meeet In!»"
+            detail="Al darle a «¡Voy!»"
             right={
               <Toggle
                 value={settings.haptics}
@@ -414,7 +414,7 @@ export default function SettingsScreen() {
           <Row
             icon="information-circle-outline"
             label="Versión"
-            detail={`meeet ${Constants.expoConfig?.version ?? ''}`}
+            detail={`DayStage ${Constants.expoConfig?.version ?? ''}`}
           />
         </Section>
 

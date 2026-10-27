@@ -23,7 +23,7 @@ export type Settings = {
   showPlans: boolean;
   /** Quién puede escribirte por privado. */
   messagesFrom: MessagesFrom;
-  /** Vibración al darle a "Meeet In!" y en otras acciones. */
+  /** Vibración al darle a "¡Voy!" y en otras acciones. */
   haptics: boolean;
   /** Sonidos de la interfaz (p. ej. al recargar Inicio). */
   sounds: boolean;

@@ -1,6 +1,6 @@
 // Destellos que salen de un punto, giran y se apagan. Se pintan una vez y
 // avisan al acabar (onEnd). Con "Reducir movimiento" no se pinta nada.
-// - MeeetInBurst: al darle a "Meeet In!", alrededor de la insignia de la foto.
+// - MeeetInBurst: al darle a "¡Voy!", alrededor de la insignia de la foto.
 // - SparkleBurst: en círculo, p. ej. al terminar de recargar Inicio.
 
 import { Ionicons } from '@expo/vector-icons';
@@ -119,7 +119,7 @@ function Burst({
   );
 }
 
-/** Destellos alrededor de la insignia "Meeet In!" (colócalo en su misma posición). */
+/** Destellos alrededor de la insignia "¡Voy!" (colócalo en su misma posición). */
 export function MeeetInBurst({ onEnd }: { onEnd: () => void }) {
   return (
     <Burst sparkles={BADGE_SPARKLES} stagger={STAGGER_MS} style={styles.origin} onEnd={onEnd} />

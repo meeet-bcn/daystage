@@ -10,7 +10,7 @@ export type Reminder = { id: string; at: number; title: string; body: string };
 export type ReminderOptions = {
   /** Minutos antes del turno; null = sin avisos de turno. */
   shiftLeadMinutes: number | null;
-  /** Aviso el día antes de cada concierto con «Meeet In!». */
+  /** Aviso el día antes de cada concierto con «¡Voy!». */
   concerts: boolean;
   /** Cuántos días por delante (iOS guarda como mucho 64 avisos). */
   days?: number;

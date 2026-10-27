@@ -72,7 +72,7 @@ export default function WelcomeScreen() {
       ),
     },
     {
-      title: 'Dale a «Meeet In!»',
+      title: 'Dale a «¡Voy!»',
       text: 'Di a qué conciertos vas y descubre quién más va. Comparte fotos, el setlist o lo que quieras del concierto.',
       art: featured ? (
         <View style={styles.eventCard}>
@@ -293,7 +293,7 @@ const makeStyles = (theme: Theme) =>
     coverNameText: { color: COLORS.text, fontSize: 12, fontWeight: '800', textAlign: 'center' },
     photo: { width: '100%', height: '100%' },
     photoEmpty: { backgroundColor: COLORS.lavender },
-    // Diapositiva 2: un concierto de verdad, con "Meeet In!"
+    // Diapositiva 2: un concierto de verdad, con "¡Voy!"
     eventCard: {
       width: '100%',
       borderRadius: 22,

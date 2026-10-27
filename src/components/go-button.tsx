@@ -94,7 +94,7 @@ export function GoButton({ isGoing, onPress }: Props) {
       <Animated.View style={{ transform: [{ scale }] }}>
         <Pressable onPress={handlePress} style={[styles.button, isGoing && styles.buttonActive]}>
           {isGoing && <Ionicons name="checkmark-circle" size={20} color={theme.accent} />}
-          <Text style={[styles.text, isGoing && styles.textActive]}>Meeet In!</Text>
+          <Text style={[styles.text, isGoing && styles.textActive]}>{isGoing ? 'Voy ✓' : '¡Voy!'}</Text>
         </Pressable>
       </Animated.View>
     </View>

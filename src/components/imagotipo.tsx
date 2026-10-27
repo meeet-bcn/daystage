@@ -56,7 +56,7 @@ export function Imagotipo({ height }: { height: number }) {
 }
 
 /**
- * Imagotipo animado para "Meeet In!": los dos círculos se acercan por su
+ * Imagotipo animado para "¡Voy!": los dos círculos se acercan por su
  * diagonal hasta quedar uno encima del otro (un solo círculo, todo cruce) y
  * se vuelven a separar, sin parar. Con "Reducir movimiento", quieto.
  */

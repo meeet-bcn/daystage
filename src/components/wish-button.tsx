@@ -9,7 +9,7 @@ import { COLORS } from '@/theme';
 
 type Props = {
   concert: Concert;
-  /** Lado del botón redondo (46 junto a "Meeet In!", como el resto de botones). */
+  /** Lado del botón redondo (46 junto a "¡Voy!", como el resto de botones). */
   size?: number;
 };
 

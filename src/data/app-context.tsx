@@ -57,7 +57,7 @@ type AppState = {
   isGoing: (id: string) => boolean;
   toggleGoing: (concert: Concert) => void;
   /**
-   * El último "Meeet In!" que acabas de darle, para celebrarlo con brillos en
+   * El último "¡Voy!" que acabas de darle, para celebrarlo con brillos en
    * su foto. `at` distingue un toque de otro; se limpia al acabar la animación.
    */
   celebration: { id: string; at: number } | null;
@@ -69,7 +69,7 @@ type AppState = {
   wishlist: Concert[];
   isWished: (id: string) => boolean;
   toggleWish: (concert: Concert) => void;
-  /** Planes que aún no han pasado, el más cercano primero (pestaña meeet in). */
+  /** Planes que aún no han pasado, el más cercano primero (pestaña Planes). */
   myConcerts: Concert[];
 
   profile: Profile;
@@ -124,7 +124,7 @@ type AppState = {
   /** Mensajes de chat sin leer por concierto (con cuenta en el servidor; sin ella, 0). */
   unreadCount: (id: string) => number;
   unreadTotal: number;
-  /** Vuelve a pedir los no leídos (al entrar en una sala o al volver a Meeet in). */
+  /** Vuelve a pedir los no leídos (al entrar en una sala o al volver a Planes). */
   refreshUnread: () => void;
 };
 
@@ -292,7 +292,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .setAttendance(c, true, userId)
         .catch((e) => console.warn('[backend] No se pudo sincronizar un plan:', e));
     }
-    // Solo al cambiar de cuenta, no con cada plan (cada uno se sube al darle a "Meeet In!")
+    // Solo al cambiar de cuenta, no con cada plan (cada uno se sube al darle a "¡Voy!")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -398,7 +398,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           );
           backend
             .setAttendance(concert, joining, userId)
-            .catch((e) => console.warn('[backend] No se pudo guardar "Meeet In!":', e));
+            .catch((e) => console.warn('[backend] No se pudo guardar "¡Voy!":', e));
         }
         setMyEvents(({ [concert.id]: existing, ...rest }) =>
           existing ? rest : { ...rest, [concert.id]: concert }

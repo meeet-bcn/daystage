@@ -1,6 +1,6 @@
 // Gustos musicales para Descubrir: eliges 5 artistas y, a partir de ahí, la
 // app pondera los estilos que te gustan y ordena las cartas de conciertos.
-// Va afinando con lo que haces: tus "Meeet In!", tu lista de deseos y las
+// Va afinando con lo que haces: tus "¡Voy!", tu lista de deseos y las
 // cartas que deslizas. Todo son funciones puras: el estado vive en app-context.
 
 import type { Availability } from '@/data/concert-shifts';
@@ -394,7 +394,7 @@ export const AVAILABILITY_BONUS: Record<Availability, number> = {
 
 /**
  * Las cartas de Descubrir: conciertos futuros que no has deslizado ni marcado
- * con "Meeet In!", los que más encajan con tus gustos (y con tus días libres)
+ * con "¡Voy!", los que más encajan con tus gustos (y con tus días libres)
  * primero y, a igualdad, los más cercanos.
  */
 export function buildDeck(

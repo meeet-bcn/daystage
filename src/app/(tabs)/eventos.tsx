@@ -303,7 +303,7 @@ export default function HomeScreen() {
                       : `${count} ${count === 1 ? 'persona va' : 'personas van'}`}
                   </Text>
                 </View>
-                {/* Corazón (lista de deseos) junto a "Meeet In!" */}
+                {/* Corazón (lista de deseos) junto a "¡Voy!" */}
                 <View style={styles.cardActions}>
                   <WishButton concert={item} />
                   <GoButton isGoing={going} onPress={() => toggleGoing(item)} />
