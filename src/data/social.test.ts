@@ -45,6 +45,12 @@ describe('daysToShare', () => {
     ]);
   });
 
+  it('las vacaciones cuentan como libre', () => {
+    const vac = { id: 'vac', name: 'Vacaciones', abbr: 'VAC', color: 'sol' as const, start: '00:00', end: '00:00', breakMinutes: 0, off: true };
+    const withVac: ShiftPlan = { ...plan, types: [...plan.types, vac], overrides: { '2026-10-05': { date: '2026-10-05', shiftTypeId: 'vac' } } };
+    expect(daysToShare(withVac, '2026-10-05', 1)).toEqual([{ day: '2026-10-05', status: 'libre' }]);
+  });
+
   it('sin rotación, todo libre', () => {
     expect(daysToShare({ ...plan, rotation: null, overrides: {} }, '2026-10-25', 2)).toEqual([
       { day: '2026-10-25', status: 'libre' },

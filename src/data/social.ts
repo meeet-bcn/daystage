@@ -1,7 +1,7 @@
 // Social (funciones puras): perfiles públicos de otras personas, amigos
 // (seguimiento mutuo), días libres que se comparten y textos de "amigos que van".
 
-import { addDays, type ShiftPlan, typeForDate } from '@/data/shifts';
+import { addDays, type ShiftPlan, workTypeForDate } from '@/data/shifts';
 
 /** Lo que se ve de otra persona. */
 export type PublicProfile = { id: string; nick: string; name: string; photo: string | null };
@@ -30,11 +30,11 @@ export function mutualIds(followers: string[], following: string[]) {
 
 export type SharedDay = { day: string; status: 'libre' | 'trabaja' };
 
-/** Días que se comparten (desde `from`, `count` días): solo libre o trabaja, nunca el turno. */
+/** Días que se comparten (desde `from`, `count` días): solo libre o trabaja, nunca el turno. Vacaciones = libre. */
 export function daysToShare(plan: ShiftPlan, from: string, count: number): SharedDay[] {
   return Array.from({ length: count }, (_, i) => {
     const day = addDays(from, i);
-    return { day, status: typeForDate(day, plan) ? 'trabaja' : 'libre' };
+    return { day, status: workTypeForDate(day, plan) ? 'trabaja' : 'libre' };
   });
 }
 
