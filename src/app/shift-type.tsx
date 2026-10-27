@@ -8,10 +8,12 @@ import { NavHeader } from '@/components/nav-header';
 import { ShiftBadge } from '@/components/shift-badge';
 import {
   crossesMidnight,
+  defaultBreakMinutes,
   isTime,
   newId,
   normalizeTimeInput,
   shiftHours,
+  shiftSpanMinutes,
   type ShiftType,
 } from '@/data/shifts';
 import { useShifts } from '@/data/shifts-context';
@@ -35,6 +37,15 @@ export default function ShiftTypeEditor() {
   const [start, setStart] = useState(existing?.start ?? '08:00');
   const [end, setEnd] = useState(existing?.end ?? '16:00');
   const [breakMinutes, setBreakMinutes] = useState(existing?.breakMinutes ?? 0);
+  // En un tipo nuevo, el descanso se propone solo (1 h en jornadas de 9 h) hasta que lo toques
+  const [breakTouched, setBreakTouched] = useState(!!existing);
+  const changeTimes = (nextStart: string, nextEnd: string) => {
+    setStart(nextStart);
+    setEnd(nextEnd);
+    if (!breakTouched && isTime(nextStart) && isTime(nextEnd)) {
+      setBreakMinutes(defaultBreakMinutes({ start: nextStart, end: nextEnd }));
+    }
+  };
   // Vacaciones, asuntos propios…: se ve en el calendario pero cuenta como libre
   const [off, setOff] = useState(existing?.off ?? false);
 
@@ -96,7 +107,9 @@ export default function ShiftTypeEditor() {
             {off
               ? 'Todo el día libre'
               : timesOk
-                ? `${shiftHours(draft)} h${crossesMidnight(draft) ? ' · acaba al día siguiente' : ''}`
+                ? `${String(shiftHours(draft)).replace('.', ',')} h computadas${
+                    draft.breakMinutes > 0 ? ` (${String(shiftSpanMinutes(draft) / 60).replace('.', ',')} h menos el descanso)` : ''
+                  }${crossesMidnight(draft) ? ' · acaba al día siguiente' : ''}`
                 : 'Escribe las horas como 06:00'}
           </Text>
         </View>
@@ -138,7 +151,7 @@ export default function ShiftTypeEditor() {
                 <TextInput
                   style={[styles.input, !isTime(start) && styles.inputError]}
                   value={start}
-                  onChangeText={(t) => setStart(normalizeTimeInput(t))}
+                  onChangeText={(t) => changeTimes(normalizeTimeInput(t), end)}
                   placeholder="06:00"
                   placeholderTextColor={COLORS.muted}
                   keyboardType="numbers-and-punctuation"
@@ -150,7 +163,7 @@ export default function ShiftTypeEditor() {
                 <TextInput
                   style={[styles.input, !isTime(end) && styles.inputError]}
                   value={end}
-                  onChangeText={(t) => setEnd(normalizeTimeInput(t))}
+                  onChangeText={(t) => changeTimes(start, normalizeTimeInput(t))}
                   placeholder="14:00"
                   placeholderTextColor={COLORS.muted}
                   keyboardType="numbers-and-punctuation"
@@ -159,14 +172,17 @@ export default function ShiftTypeEditor() {
               </View>
             </View>
 
-            <Text style={styles.label}>Descanso</Text>
+            <Text style={styles.label}>Descanso (no computa)</Text>
             <View style={styles.chips}>
               {BREAKS.map((b) => (
                 <Chip
                   key={b}
                   label={b === 0 ? 'Sin descanso' : `${b} min`}
                   active={breakMinutes === b}
-                  onPress={() => setBreakMinutes(b)}
+                  onPress={() => {
+                      setBreakMinutes(b);
+                      setBreakTouched(true);
+                    }}
                 />
               ))}
             </View>

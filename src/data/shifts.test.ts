@@ -13,6 +13,8 @@ import {
   isTime,
   monthGrid,
   normalizeTimeInput,
+  defaultBreakMinutes,
+  shiftSpanMinutes,
   shortTime,
   Rotation,
   shiftForDate,
@@ -327,5 +329,15 @@ describe('normalizeTimeInput', () => {
     expect(normalizeTimeInput('930')).toBe('09:30');
     expect(normalizeTimeInput('9:30')).toBe('09:30');
     expect(normalizeTimeInput('21')).toBe('21');
+  });
+});
+
+describe('descanso por defecto', () => {
+  it('1 h en las jornadas de 9 h (también de noche); si no, 0', () => {
+    expect(defaultBreakMinutes({ start: '08:45', end: '17:45' })).toBe(60);
+    expect(defaultBreakMinutes({ start: '22:00', end: '07:00' })).toBe(60);
+    expect(defaultBreakMinutes({ start: '08:00', end: '14:00' })).toBe(0);
+    expect(shiftSpanMinutes({ start: '22:00', end: '06:00' })).toBe(480);
+    expect(shiftHours({ start: '08:45', end: '17:45', breakMinutes: 60 })).toBe(8);
   });
 });
