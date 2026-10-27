@@ -171,7 +171,7 @@ const API = 'https://musicbrainz.org/ws/2';
 const MIN_INTERVAL_MS = 1100; // algo por encima de 1 petición/s
 const RETRY_AFTER_MS = 2500;
 const CONTACT = process.env.EXPO_PUBLIC_MUSICBRAINZ_CONTACT;
-const USER_AGENT = `MEEET/${Constants.expoConfig?.version ?? '0'}${CONTACT ? ` ( ${CONTACT} )` : ''}`;
+const USER_AGENT = `DayStage/${Constants.expoConfig?.version ?? '0'}${CONTACT ? ` ( ${CONTACT} )` : ''}`;
 
 let queue: Promise<unknown> = Promise.resolve();
 

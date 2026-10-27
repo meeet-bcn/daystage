@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   Animated,
-  LayoutAnimation,
   Pressable,
   StyleSheet,
   Text,
@@ -40,10 +39,7 @@ export default function MeeetInScreen() {
       ? router.push({ pathname: '/chat/[id]', params: { id } })
       : router.push('/onboarding');
 
-  const togglePast = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setShowPast((v) => !v);
-  };
+  const togglePast = () => setShowPast((v) => !v);
 
   const renderRow = (item: Concert, isPast = false) => {
     const unread = unreadCount(item.id);
@@ -106,7 +102,7 @@ export default function MeeetInScreen() {
           ) : (
             // Sin perfil: qué es Meeet in y la invitación a crearlo (los chats lo necesitan)
             <View style={styles.gate}>
-              <CreateProfileCard intro="Meeet in reúne los conciertos a los que vas y la sala de chat de cada uno, para conocer a la gente que también va, quedar y compartir fotos o el setlist. Para entrar en las salas, crea tu perfil." />
+              <CreateProfileCard intro="Planes reúne los conciertos a los que vas y la sala de chat de cada uno, para conocer a la gente que también va, quedar y compartir fotos o el setlist. Para entrar en las salas, crea tu perfil." />
             </View>
           )
         }
@@ -117,7 +113,7 @@ export default function MeeetInScreen() {
               {past.length > 0 ? 'No tienes planes próximos' : 'Aún no tienes planes'}
             </Text>
             <Text style={styles.emptyText}>
-              Dale a «Meeet In!» en un concierto y aparecerá aquí, con su chat.
+              Dale a «¡Voy!» en un concierto y aparecerá aquí, con su chat.
             </Text>
             <Pressable style={styles.emptyButton} onPress={() => router.navigate('/eventos')}>
               <Text style={styles.emptyButtonText}>Ver conciertos</Text>
@@ -156,7 +152,7 @@ export default function MeeetInScreen() {
         }
       />
       {/* Fija arriba, de cristal: la lista pasa por debajo */}
-      <ScreenHeader title="Meeet in" scrollY={scrollY} onHeight={setHeaderHeight} />
+      <ScreenHeader title="Planes" scrollY={scrollY} onHeight={setHeaderHeight} />
     </View>
   );
 }

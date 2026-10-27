@@ -55,7 +55,7 @@ const VISIBILITY: { key: Visibility; icon: 'globe-outline' | 'lock-closed-outlin
 /**
  * Añadir un concierto que no sale en Buscar (o editar uno tuyo, con `id`):
  * lo imprescindible para una ficha completa y si es público o privado. Quien lo
- * crea queda apuntado («Meeet In!»).
+ * crea queda apuntado («¡Voy!»).
  */
 export default function EventFormScreen() {
   const styles = useThemedStyles(makeStyles);

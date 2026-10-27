@@ -113,7 +113,7 @@ export default function ChatScreen() {
   const takeWithCamera = async () => {
     const { granted } = await ImagePicker.requestCameraPermissionsAsync();
     if (!granted) {
-      Alert.alert('Sin acceso a la cámara', 'Permite a meeet usar la cámara desde los ajustes del móvil.');
+      Alert.alert('Sin acceso a la cámara', 'Permite a DayStage usar la cámara desde los ajustes del móvil.');
       return;
     }
     share(await ImagePicker.launchCameraAsync(PICKER_OPTIONS));

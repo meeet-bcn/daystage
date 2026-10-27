@@ -185,7 +185,7 @@ export default function ChatInfoScreen() {
               )
             )}
             {people.length === 0 && (
-              <Text style={styles.note}>Cuando la gente le dé a «Meeet In!», la verás aquí.</Text>
+              <Text style={styles.note}>Cuando la gente le dé a «¡Voy!», la verás aquí.</Text>
             )}
           </View>
         )}
@@ -204,7 +204,7 @@ export default function ChatInfoScreen() {
             <Text style={styles.note}>
               {others > 0
                 ? `${others} ${others === 1 ? 'persona más va' : 'personas más van'} a este concierto.`
-                : 'Cuando más gente le dé a «Meeet In!» a este concierto, la verás aquí.'}{' '}
+                : 'Cuando más gente le dé a «¡Voy!» a este concierto, la verás aquí.'}{' '}
               De momento solo se te ve a ti: aún no hay cuentas de otras personas.
             </Text>
           </View>

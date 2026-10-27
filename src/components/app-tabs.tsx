@@ -68,11 +68,11 @@ export default function AppTabs() {
         </NativeTabs.Trigger>
 
         <NativeTabs.Trigger name="meeet-in" disableAutomaticContentInsets>
-          <NativeTabs.Trigger.Label>Meeet in</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>Planes</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon
             src={{
-              default: require('@/assets/images/tabs/meeet-in.png'),
-              selected: require('@/assets/images/tabs/meeet-in-fill.png'),
+              default: require('@/assets/images/tabs/plans.png'),
+              selected: require('@/assets/images/tabs/plans-fill.png'),
             }}
             md="confirmation_number"
           />

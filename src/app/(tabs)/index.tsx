@@ -5,15 +5,15 @@ import { Animated, Pressable, StyleSheet, Text, useAnimatedValue, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvailabilityPill } from '@/components/availability-pill';
+import { CollapsibleSection } from '@/components/collapsible-section';
 import { ConcertImage } from '@/components/concert-image';
 import { ExportButtons } from '@/components/export-buttons';
 import { MonthReportCard } from '@/components/month-report-card';
 import { ScreenHeader } from '@/components/screen-header';
-import { ScreenSubtitle } from '@/components/screen-title';
 import { ShiftBadge } from '@/components/shift-badge';
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
-import { canGo, concertsByDate, plansInMonth } from '@/data/concert-shifts';
+import { canGo, concertsByDate, hasSchedule, plansInMonth } from '@/data/concert-shifts';
 import type { Concert } from '@/data/concerts';
 import {
   formatDay,
@@ -36,9 +36,11 @@ export default function TurnosScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { plan } = useShifts();
+  // Sin tipos ni turnos (instalación nueva): se invita a añadir el primero
+  const empty = plan.types.length === 0 && !hasSchedule(plan);
   const { concerts, availability, plans, isGoing } = useApp();
   const byDate = useMemo(() => concertsByDate(concerts), [concerts]);
-  // Tus planes ("Meeet In!", también los pasados) por día, para verlos en el mes
+  // Tus planes ("¡Voy!", también los pasados) por día, para verlos en el mes
   const plansByDate = useMemo(() => concertsByDate(plans), [plans]);
   const today = toDateKey();
   const [month, setMonth] = useState(() => ({
@@ -79,7 +81,6 @@ export default function TurnosScreen() {
           paddingBottom: insets.bottom + BottomTabInset + 32,
         }}
       >
-        <ScreenSubtitle>Tu calendario de trabajo</ScreenSubtitle>
 
         <View style={styles.monthRow}>
           <Pressable
@@ -164,7 +165,7 @@ export default function TurnosScreen() {
                         numberOfLines={1}
                         adjustsFontSizeToFit
                       >
-                        {type ? type.abbr : rotation ? 'L' : ''}
+                        {type ? type.abbr : ''}
                       </Text>
                     )}
                     {changed && <View style={styles.changedDot} />}
@@ -196,7 +197,23 @@ export default function TurnosScreen() {
             </View>
           ))}
         </View>
+        {empty && (
+          // Instalación nueva: sin turnos todavía
+          <View style={styles.empty}>
+            <Ionicons name="calendar-outline" size={34} color={theme.accent} />
+            <Text style={styles.emptyTitle}>Añade tu primer turno</Text>
+            <Text style={styles.emptyText}>Crea tus tipos de turno o importa tu horario.</Text>
+            <Pressable style={styles.button} onPress={() => router.push('/shift-type')}>
+              <Text style={styles.buttonText}>Añadir turno</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push('/shift-import')} hitSlop={8}>
+              <Text style={styles.edit}>Importar turnos</Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* Leyenda: turno · tus planes · conciertos que te encajan */}
+        {!empty && (
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <View style={styles.legendShift} />
@@ -204,19 +221,14 @@ export default function TurnosScreen() {
           </View>
           <View style={styles.legendItem}>
             <View style={styles.legendPlan} />
-            <Text style={styles.legendText}>Vas (Meeet In!)</Text>
+            <Text style={styles.legendText}>Vas</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={styles.legendDot} />
             <Text style={styles.legendText}>Conciertos que te encajan</Text>
           </View>
         </View>
-        <Text style={styles.hint}>Toca un día para cambiar su turno o ver sus conciertos.</Text>
-
-        {/* Informe del mes que se ve: horas, extra, ganancias y semanas */}
-        <Text style={styles.sectionTitle}>Informe de {MONTHS[month.month - 1]}</Text>
-        <MonthReportCard year={month.year} month={month.month} />
-        <ExportButtons year={month.year} month={month.month} />
+        )}
 
         {monthPlans.length > 0 && (
           <>
@@ -245,66 +257,84 @@ export default function TurnosScreen() {
           </>
         )}
 
-        <Text style={styles.sectionTitle}>Rotación</Text>
-        <View style={styles.card}>
-          {rotation && rotation.cycle.length > 0 ? (
-            <>
-              <Text style={styles.cardTitle}>{rotation.name}</Text>
-              <Text style={styles.cardText}>
-                Ciclo de {rotation.cycle.length} días desde el {formatDay(rotation.startDate)}
-              </Text>
-              <View style={styles.cycle}>
-                {rotation.cycle.map((id, i) => (
-                  <ShiftBadge
-                    key={i}
-                    size="small"
-                    type={plan.types.find((t) => t.id === id) ?? null}
-                  />
-                ))}
-              </View>
-            </>
-          ) : (
-            <>
-              <Text style={styles.cardTitle}>Aún no tienes rotación</Text>
-              <Text style={styles.cardText}>
-                Dinos cómo se repiten tus turnos (por ejemplo, 2 mañanas, 2 tardes, 2 noches y 4
-                libres) y llenaremos el calendario por ti.
-              </Text>
-            </>
-          )}
-          <Pressable style={styles.button} onPress={() => router.push('/rotation')}>
-            <Text style={styles.buttonText}>
-              {rotation ? 'Cambiar rotación' : 'Crear rotación'}
-            </Text>
-          </Pressable>
-        </View>
+        {!empty && (
+        <>
+        {/* Informe del mes que se ve (plegable) y exportar */}
+        <CollapsibleSection id="informe" title={`Informe de ${MONTHS[month.month - 1]}`}>
+          <MonthReportCard year={month.year} month={month.month} />
+          <ExportButtons year={month.year} month={month.month} />
+        </CollapsibleSection>
 
-        <View style={styles.sectionRow}>
-          <Text style={[styles.sectionTitle, styles.sectionTitleInline]}>Tipos de turno</Text>
-          <View style={styles.sectionActions}>
-            <Pressable onPress={() => router.push('/shift-import')} hitSlop={8}>
-              <Text style={styles.edit}>Importar</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push('/shift-types')} hitSlop={8}>
-              <Text style={styles.edit}>Editar</Text>
+        {/* Tipos de turno: plegado por defecto (hay mucha información) */}
+        <CollapsibleSection
+          id="tipos"
+          title="Tipos de turno"
+          defaultOpen={false}
+          actions={
+              <View style={styles.sectionActions}>
+                <Pressable onPress={() => router.push('/shift-import')} hitSlop={8}>
+                  <Text style={styles.edit}>Importar</Text>
+                </Pressable>
+                <Pressable onPress={() => router.push('/shift-types')} hitSlop={8}>
+                  <Text style={styles.edit}>Editar</Text>
+                </Pressable>
+              </View>
+          }
+        >
+          <View style={styles.card}>
+            {plan.types.length === 0 ? (
+              <Text style={styles.cardText}>No tienes tipos de turno. Crea uno en «Editar».</Text>
+            ) : (
+              plan.types.map((t) => (
+                <View key={t.id} style={styles.legendRow}>
+                  <ShiftBadge type={t} />
+                  <Text style={styles.legendName}>{t.name}</Text>
+                  <Text style={styles.legendTime}>
+                    {formatShiftTime(t)} · {shiftHours(t)} h
+                  </Text>
+                </View>
+              ))
+            )}
+          </View>
+        </CollapsibleSection>
+
+        {/* La rotación, al final */}
+        <CollapsibleSection id="rotacion" title="Rotación">
+          <View style={styles.card}>
+            {rotation && rotation.cycle.length > 0 ? (
+              <>
+                <Text style={styles.cardTitle}>{rotation.name}</Text>
+                <Text style={styles.cardText}>
+                  Ciclo de {rotation.cycle.length} días desde el {formatDay(rotation.startDate)}
+                </Text>
+                <View style={styles.cycle}>
+                  {rotation.cycle.map((id, i) => (
+                    <ShiftBadge
+                      key={i}
+                      size="small"
+                      type={plan.types.find((t) => t.id === id) ?? null}
+                    />
+                  ))}
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.cardTitle}>Aún no tienes rotación</Text>
+                <Text style={styles.cardText}>
+                  Dinos cómo se repiten tus turnos (por ejemplo, 2 mañanas, 2 tardes, 2 noches y 4
+                  libres) y llenaremos el calendario por ti.
+                </Text>
+              </>
+            )}
+            <Pressable style={styles.button} onPress={() => router.push('/rotation')}>
+              <Text style={styles.buttonText}>
+                {rotation ? 'Cambiar rotación' : 'Crear rotación'}
+              </Text>
             </Pressable>
           </View>
-        </View>
-        <View style={styles.card}>
-          {plan.types.length === 0 ? (
-            <Text style={styles.cardText}>No tienes tipos de turno. Crea uno en «Editar».</Text>
-          ) : (
-            plan.types.map((t) => (
-              <View key={t.id} style={styles.legendRow}>
-                <ShiftBadge type={t} />
-                <Text style={styles.legendName}>{t.name}</Text>
-                <Text style={styles.legendTime}>
-                  {formatShiftTime(t)} · {shiftHours(t)} h
-                </Text>
-              </View>
-            ))
-          )}
-        </View>
+        </CollapsibleSection>
+        </>
+        )}
       </Animated.ScrollView>
 
       <ScreenHeader title="Calendario" scrollY={scrollY} onHeight={setHeaderHeight} />
@@ -314,6 +344,9 @@ export default function TurnosScreen() {
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    empty: { alignItems: 'center', gap: 8, marginHorizontal: 20, marginTop: 28 },
+    emptyTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.4, marginTop: 4 },
+    emptyText: { color: COLORS.muted, fontSize: 15, textAlign: 'center', marginBottom: 6 },
     container: { flex: 1, backgroundColor: COLORS.background },
     monthRow: {
       flexDirection: 'row',
@@ -337,11 +370,11 @@ const makeStyles = (theme: Theme) =>
       letterSpacing: 0.4,
       paddingVertical: 4,
     },
+    // Minimalista: los días libres sin fondo; solo los turnos llevan color
     day: {
       flex: 1,
       aspectRatio: 0.6,
       borderRadius: 12,
-      backgroundColor: COLORS.surface,
       alignItems: 'center',
       paddingTop: 5,
     },
@@ -465,9 +498,7 @@ const makeStyles = (theme: Theme) =>
     edit: { color: theme.accent, fontSize: 15, fontWeight: '600', marginTop: 20 },
     card: {
       marginHorizontal: 20,
-      padding: 16,
-      borderRadius: 18,
-      backgroundColor: COLORS.mist,
+      paddingVertical: 4,
       gap: 8,
     },
     cardTitle: { color: COLORS.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.3 },

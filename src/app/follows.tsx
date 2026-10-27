@@ -26,7 +26,7 @@ const EMPTY: Record<Tab, { icon: 'people-outline' | 'person-add-outline'; title:
     followers: {
       icon: 'people-outline',
       title: 'Aún no te sigue nadie',
-      text: 'Aquí verás a la gente que te sigue. Ve a conciertos y dale a «Meeet In!»: así te encontrarán.',
+      text: 'Aquí verás a la gente que te sigue. Ve a conciertos y dale a «¡Voy!»: así te encontrarán.',
     },
     following: {
       icon: 'person-add-outline',

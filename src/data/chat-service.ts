@@ -39,7 +39,7 @@ async function ensureConcert(concert: Concert) {
   if (error) throw error;
 }
 
-/** "Meeet In!" en el servidor: apuntarte (y entrar en la sala) o desapuntarte. */
+/** "¡Voy!" en el servidor: apuntarte (y entrar en la sala) o desapuntarte. */
 export async function setAttendance(concert: Concert, going: boolean, userId: string) {
   const db = client();
   const concertId = canonicalConcertId(concert);

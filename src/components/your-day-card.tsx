@@ -54,7 +54,8 @@ export function YourDayCard({ concert }: { concert: Concert }) {
         <ShiftBadge type={type} />
         <Text style={styles.shift}>
           {type
-            ? `${type.name} · ${formatShiftTime(type)}${crossesMidnight(type) ? ' (acaba al día siguiente)' : ''}`
+            ? // Los tipos importados ya llevan el horario en el nombre ("Mañana 08:45–17:45")
+              `${type.name.includes(formatShiftTime(type)) ? type.name : `${type.name} · ${formatShiftTime(type)}`}${crossesMidnight(type) ? ' (acaba al día siguiente)' : ''}`
             : 'No trabajas ese día'}
         </Text>
         <Ionicons name="chevron-forward" size={16} color={COLORS.muted} />

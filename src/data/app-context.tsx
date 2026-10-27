@@ -56,12 +56,6 @@ type AppState = {
   refreshConcerts: () => Promise<void>;
   isGoing: (id: string) => boolean;
   toggleGoing: (concert: Concert) => void;
-  /**
-   * El último "Meeet In!" que acabas de darle, para celebrarlo con brillos en
-   * su foto. `at` distingue un toque de otro; se limpia al acabar la animación.
-   */
-  celebration: { id: string; at: number } | null;
-  endCelebration: () => void;
   goingCount: (concert: Concert) => number;
   /** Todos los conciertos a los que has dicho "Voy", también los ya pasados. */
   plans: Concert[];
@@ -69,7 +63,7 @@ type AppState = {
   wishlist: Concert[];
   isWished: (id: string) => boolean;
   toggleWish: (concert: Concert) => void;
-  /** Planes que aún no han pasado, el más cercano primero (pestaña meeet in). */
+  /** Planes que aún no han pasado, el más cercano primero (pestaña Planes). */
   myConcerts: Concert[];
 
   profile: Profile;
@@ -124,7 +118,7 @@ type AppState = {
   /** Mensajes de chat sin leer por concierto (con cuenta en el servidor; sin ella, 0). */
   unreadCount: (id: string) => number;
   unreadTotal: number;
-  /** Vuelve a pedir los no leídos (al entrar en una sala o al volver a Meeet in). */
+  /** Vuelve a pedir los no leídos (al entrar en una sala o al volver a Planes). */
   refreshUnread: () => void;
 };
 
@@ -169,7 +163,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     swipes: Record<string, Swipe>;
     deckIntroSeen: boolean;
   }>(() => ({ swipes: {}, deckIntroSeen: false, ...loadJSON(STORAGE_KEYS.discover, {}) }));
-  const [celebration, setCelebration] = useState<{ id: string; at: number } | null>(null);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   // Con cuenta (Supabase): no leídos por sala y cuánta gente va, por id canónico
   const { enabled: backendOn, userId } = useSession();
@@ -292,7 +285,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .setAttendance(c, true, userId)
         .catch((e) => console.warn('[backend] No se pudo sincronizar un plan:', e));
     }
-    // Solo al cambiar de cuenta, no con cada plan (cada uno se sube al darle a "Meeet In!")
+    // Solo al cambiar de cuenta, no con cada plan (cada uno se sube al darle a "¡Voy!")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -398,15 +391,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           );
           backend
             .setAttendance(concert, joining, userId)
-            .catch((e) => console.warn('[backend] No se pudo guardar "Meeet In!":', e));
+            .catch((e) => console.warn('[backend] No se pudo guardar "¡Voy!":', e));
         }
         setMyEvents(({ [concert.id]: existing, ...rest }) =>
           existing ? rest : { ...rest, [concert.id]: concert }
         );
-        setCelebration(joining ? { id: concert.id, at: Date.now() } : null);
       },
-      celebration,
-      endCelebration: () => setCelebration(null),
       goingCount,
       plans,
       myConcerts,
@@ -499,7 +489,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     settings,
     welcomeSeen,
     discover,
-    celebration,
     filters,
     unreadByRoom,
     remoteGoing,

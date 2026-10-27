@@ -87,14 +87,14 @@ export function MonthReportCard({ year, month }: { year: number; month: number }
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
-    card: { marginHorizontal: 20, padding: 16, borderRadius: 18, backgroundColor: COLORS.mist, gap: 14 },
+    card: { marginHorizontal: 20, gap: 14 },
     tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     tile: {
       flexBasis: '47%',
       flexGrow: 1,
       padding: 12,
       borderRadius: 14,
-      backgroundColor: COLORS.background,
+      backgroundColor: COLORS.mist,
     },
     tileValue: { color: COLORS.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
     tileLabel: { color: COLORS.muted, fontSize: 12, fontWeight: '600', marginTop: 2 },

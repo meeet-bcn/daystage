@@ -1,4 +1,4 @@
-> **DayStage Calendar.** Este repo es DayStage Calendar (calendario de turnos con conciertos), nacido de meeet el 2026-10-27. El plan está en https://claude.ai/artifact/71ygyNNPbihGnzva6Ro1zR. Mientras no se diga lo contrario, la marca visual y los textos de la interfaz siguen siendo los de meeet.
+> **DayStage Calendar.** Este repo es DayStage Calendar (calendario de turnos con conciertos), nacido de meeet el 2026-10-27. El plan está en https://claude.ai/artifact/71ygyNNPbihGnzva6Ro1zR. La marca ya es DayStage (logotipo «daystage.», imagotipo de calendario con dos corcheas (♫) y el degradado de escenario); las notas de abajo sobre la marca meeet son históricas salvo donde se diga lo contrario.
 
 @AGENTS.md
 
@@ -33,7 +33,7 @@ src/
     concert/[id].tsx        # Detalle (fuera de las pestañas): hero, "Meeet In!", "Comprar entradas" / "Entrada gratuita", compartir, "Ir a la sala de chat" (solo si vas), fragmento de la canción más popular del artista, pestañas Información/Lugar con icono y texto debajo, como las columnas del perfil
     chat/[id]/index.tsx     # Sala de chat de un concierto, estilo Telegram/WhatsApp (solo desde Meeet in): una sola sala; cabecera con la foto del evento y miembros, mensajes por día, fotos y vídeos (clip = galería, cámara), hora y doble check
     chat/[id]/info.tsx      # Información de la sala: Gente · Fotos · Vídeos · Setlist (setlist.fm)
-    welcome.tsx             # Bienvenida: imagotipo animado y logo; diapositivas (conciertos, Meeet In!, chat, Descubrir, perfil); al final, crear perfil o "Ahora no"
+    welcome.tsx             # Bienvenida minimalista: logo y 4 diapositivas (turnos, conciertos que encajan, planes con amigos, horas y avisos), cada una con un icono grande en el degradado; «Empezar» entra en la app (sin pedir perfil ni cuenta)
     onboarding.tsx          # Creación de perfil paso a paso: nick → nombre → foto → gustos → idioma → ¡Listo!
     follows.tsx             # Seguidores · Seguidos (desde sus números en Perfil): con cuenta, listas reales, buscador por nick y Seguir/Siguiendo; sin ella, explicado
     settings.tsx            # Ajustes (Perfil › engranaje): idioma principal, privacidad, notificaciones, turnos (margen tras el turno), vibración, caché, borrar datos, información
@@ -200,7 +200,8 @@ scripts/jest-timezone.js              # globalSetup de jest: los tests corren si
 - Ajustes en `storage.ts` (`meeet.settings.v1`), cargados con `withDefaults` para que los campos nuevos tomen su valor inicial. Privacidad y notificaciones aún solo se guardan (no hay cuentas ni notificaciones): la pantalla lo dice. La vibración sí se aplica (`GoButton`).
 - Bienvenida y perfil: `(tabs)/_layout.tsx` redirige a `/welcome` mientras `welcomeSeen` sea false (se guarda en `meeet.onboarding.v1`). Sin perfil (`profile.created`, que se pone al terminar `/onboarding`), Perfil muestra `CreateProfileCard`, y el chat y el corazón llevan a crearlo: son las ventajas que se prometen, así que deben cumplirse. Los perfiles de antes de `created` cuentan como creados si tenían nick, nombre o foto (`loadProfile`). Ajustes › "Borrar perfil y empezar de nuevo" lo borra todo y vuelve a la bienvenida.
 - Descubrir y tus gustos: eliges 5 artistas de `TASTE_ARTISTS` (`profile.tasteArtists`). Las fotos son portadas de discos de Apple Music (no da fotos de artistas), guardadas fijas en el catálogo para no pedir 36 portadas cada vez. `tasteWeights` pondera estilos: artistas ×2, "Meeet In!" ×1, deseos ×0,5, cartas a la derecha +0,5 y a la izquierda −0,4 (sin bajar de 0), así que la app mejora sola. Las cartas (`buildDeck`) son conciertos futuros sin deslizar ni marcados, de más a menos afines. Derecha = a la lista de deseos; arriba o "Meeet In!" = vas (el botón también hace volar la carta hacia arriba); un toque abre la ficha (y se vuelve a la misma carta). Arriba a la izquierda, la canción que suena o "Sin música disponible". La carta que asoma detrás es siempre la que pasa delante: al deslizar cambian los gustos y la baraja se reordena, así que las dos siguientes se fijan (`keepAhead`, estado `ahead` en `descubrir.tsx`). Cada carta es la misma pieza de detrás a delante (misma `key`): al avanzar crece con una animación, sin volver a montarse; si se monta de nuevo, se ve un salto. Descubrir solo reserva la zona segura abajo: la pantalla ya acaba sobre la barra de pestañas (con `BottomTabInset` quedaba un hueco blanco). Deslizadas en `meeet.discover.v1`. Los géneros de Ticketmaster y de la agenda se traducen a MUSIC_TASTES con `tasteGenre`. Los conciertos no traen idioma: el idioma de tus artistas se muestra, pero aún no ordena las cartas.
-- Fotos de artistas de la bienvenida (`assets/images/welcome`): de Wikimedia Commons, CC BY-SA, recortadas. La licencia obliga a citar a sus autores: el crédito está en la diapositiva 1 (`PHOTO_CREDITS`). Si cambias una foto, cambia también el crédito. No uses fotos sin licencia libre (por eso no está Alcalá Norte: en Commons solo hay su logo).
+- La bienvenida no muestra artistas ni conciertos concretos, ni pide perfil o cuenta: eso se pide luego, cuando hace falta. Si algún día vuelve a llevar fotos, que sean con licencia libre y con su crédito.
+- Ajustes acaba con una firma: el logo pequeño y la versión.
 - "Meeet In!" y el corazón son para quien tiene perfil: sin él, llevan a `/onboarding`.
 - Lista de deseos (`wishlist`, `toggleWish`): conciertos que te interesan aunque no vayas. Como los planes, guarda una copia del concierto (`meeet.wishlist.v1`) para que no desaparezca al pasar.
 - Fondo del perfil (`profile.background`, `PROFILE_BACKGROUNDS` en `theme.ts`): pasteles en degradado suave, armónicos o complementarios. Se pinta detrás de todo el perfil con `ProfileBackdrop`, fijo mientras la lista pasa por encima y animado de forma sutil pero visible. Es público: lo verá quien entre en tu perfil cuando haya perfiles de otros.
@@ -212,20 +213,17 @@ scripts/jest-timezone.js              # globalSetup de jest: los tests corren si
 
 ## Identidad de marca
 
-**Nombre:** se escribe siempre en minúsculas, con tres "e" y un punto violeta: `meeet.`. En el logo, la "m" y la "t" van en tinta y las "eee" en la escala del salmón, de clara a oscura (en Inicio, en la escala del color del perfil: `theme.logo`, que sin fondo es este mismo salmón y con fondo son dos mezclas de su acento con blanco y el acento; el punto de Inicio también va en el acento del tema):
-```tsx
-<Text style={{ color: COLORS.text, fontWeight: '700' }}>
-  m<Text style={{ color: COLORS.peach }}>e</Text>
-  <Text style={{ color: COLORS.peachMid }}>e</Text>
-  <Text style={{ color: COLORS.peachDeep }}>e</Text>t
-  <Text style={{ color: COLORS.accent }}>.</Text>
-</Text>
-```
+**Nombre:** DayStage. En el logotipo, siempre en minúsculas y con punto violeta: `daystage.` (`DayStageLogo` en `daystage-mark.tsx`), en tinta y peso 800. En prosa, «DayStage».
 
-**Imagotipo:** dos círculos que se encuentran: lavanda abajo a la izquierda, melocotón arriba a la derecha y el cruce en violeta (`<Imagotipo height={…} />`, `imagotipo.tsx`). Junto al logotipo (como en la hoja de marca) mide 1,14 × el cuerpo de letra, con 0,37 × el cuerpo de separación. En el logo de Inicio no va: se probó y no quedaba bien. La geometría está también en `scripts/generate-brand-assets.swift` (iconos y splash): si cambia, cámbiala en los dos. Icono de la app: variante "Lavanda" de la hoja de marca (círculo blanco + melocotón sobre lavanda); hay también "Claro" (sobre `mist`) y "Oscuro".
-En prosa, "MEEET" o "meeet". Nunca "Meet" ni "Meeet".
+**Imagotipo:** una hoja de calendario con el degradado de escenario (`BRAND_GRADIENT`: `stageViolet` → `stageMagenta` → `stageOrange`, a 135°), dos anillas en tinta y, dentro, dos corcheas unidas por una barra (♫), en blanco y con trazo fino, dibujo propio. Lo dibuja solo `generate-brand-assets.swift`; la app usa su PNG (`assets/images/brand-mark.png`, en `DayStageMark`). El punto de «daystage.» lleva el mismo degradado. Las variantes de color se generan con `swift scripts/generate-brand-assets.swift <carpeta> variantes`. `Imagotipo` (`imagotipo.tsx`) lo pinta en todas partes, siempre quieto. La geometría está también en `scripts/generate-brand-assets.swift` (icono sobre `mist`, splash con «daystage.»): si cambia, cámbiala en los dos.
 
-**Lema:** `Every event. Everyone.` (va en inglés aunque la interfaz esté en español).
+**Botón de ir a un concierto:** «¡Voy!» (activo: «Voy ✓»); la pestaña de tus planes y sus chats se llama «Planes» (internamente sigue siendo `meeet-in.tsx`, `isGoing`/`toggleGoing`).
+
+**Estilo minimalista:** días libres sin fondo en el calendario, tarjetas sin relleno, menos texto secundario; secciones largas plegables (`CollapsibleSection`).
+
+**Sin animaciones decorativas** (lo pidió Jordi): nada de latidos, confeti, destellos, giros, rebotes ni fondos que se mueven. Solo las transiciones nativas de navegación, el feedback al pulsar (opacidad, háptica) y lo que sigue al dedo (deslizar cartas, visor de fotos, cabeceras al hacer scroll). Las notas de abajo que hablan de confeti, destellos o «Reducir movimiento» son históricas.
+
+**Instalación nueva sin turnos**: la base de turnos empieza vacía (sin tipos de ejemplo) y el Calendario invita a «Añadir turno» o «Importar turnos».
 
 **Paleta** (`src/theme.ts`, importa `COLORS` desde `@/theme`):
 

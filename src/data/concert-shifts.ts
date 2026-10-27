@@ -72,7 +72,7 @@ export function concertsByDate(concerts: Concert[]): Record<string, Concert[]> {
 }
 
 /**
- * Tus planes ("Meeet In!", también los pasados) de un mes, por fecha y hora:
+ * Tus planes ("¡Voy!", también los pasados) de un mes, por fecha y hora:
  * los que se ven en el calendario de Turnos. `month` de 1 a 12.
  */
 export function plansInMonth(plans: Concert[], year: number, month: number) {

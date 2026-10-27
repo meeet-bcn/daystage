@@ -7,7 +7,7 @@ import { useShifts } from '@/data/shifts-context';
 
 /**
  * Sin interfaz: mantiene programados los avisos (antes de cada turno y el día
- * antes de cada concierto con «Meeet In!») según tus turnos, planes y Ajustes.
+ * antes de cada concierto con «¡Voy!») según tus turnos, planes y Ajustes.
  */
 export function ReminderScheduler() {
   const { plan } = useShifts();

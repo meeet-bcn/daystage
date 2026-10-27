@@ -47,7 +47,7 @@ type SwipeHandle = { fly: (liked: boolean) => void; flyUp: () => void };
 /**
  * Una carta de la baraja. La de arriba se arrastra, gira un poco y sale
  * volando al soltarla: a la derecha, te gusta; a la izquierda, no; hacia
- * arriba, "Meeet In!". La de detrás espera más pequeña. Es la misma pieza de
+ * arriba, "¡Voy!". La de detrás espera más pequeña. Es la misma pieza de
  * detrás a delante (misma `key`), así que al pasar delante crece con suavidad
  * y con su foto ya cargada, sin parpadeo ni salto.
  */
@@ -66,7 +66,7 @@ function SwipeCard({
   isTop: boolean;
   reason: string;
   onSwiped: (liked: boolean) => void;
-  /** Deslizada hacia arriba (o el botón): "Meeet In!". */
+  /** Deslizada hacia arriba (o el botón): "¡Voy!". */
   onSwipedUp: () => void;
   /** Tocar la carta (sin arrastrar): abre la ficha del concierto. */
   onOpen: () => void;
@@ -105,7 +105,7 @@ function SwipeCard({
     .enabled(isTop)
     .onChange((e) => {
       x.set(e.translationX);
-      // Hacia arriba sigue al dedo (es un gesto: "Meeet In!"); hacia abajo, apenas
+      // Hacia arriba sigue al dedo (es un gesto: "¡Voy!"); hacia abajo, apenas
       y.set(e.translationY < 0 ? e.translationY : e.translationY * 0.3);
     })
     .onEnd((e) => {
@@ -215,7 +215,7 @@ function SwipeCard({
             <View style={styles.glow} />
             <View style={[styles.stamp, styles.stampAccent]}>
               <Imagotipo height={30} />
-              <Text style={[styles.stampText, styles.stampLikeText]}>Meeet In!</Text>
+              <Text style={[styles.stampText, styles.stampLikeText]}>¡Voy!</Text>
             </View>
           </Animated.View>
         </View>
@@ -255,7 +255,7 @@ type Props = {
 
 /**
  * Cartas de conciertos como en Tinder: derecha = te gusta, izquierda = no.
- * Abajo, los mismos gestos en botones y el gran "Meeet In!".
+ * Abajo, los mismos gestos en botones y el gran "¡Voy!".
  */
 export function ConcertDeck({ deck, weights, onSwipe, onMeeetIn, onOpen }: Props) {
   const styles = useThemedStyles(makeStyles);
@@ -313,7 +313,7 @@ export function ConcertDeck({ deck, weights, onSwipe, onMeeetIn, onOpen }: Props
           </Pressable>
           {/* Como deslizar hacia arriba: la carta sale volando y te apuntas */}
           <Pressable style={styles.meeetIn} onPress={() => handle?.flyUp()}>
-            <Text style={styles.meeetInText}>Meeet In!</Text>
+            <Text style={styles.meeetInText}>¡Voy!</Text>
           </Pressable>
           <Pressable
             style={styles.round}

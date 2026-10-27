@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Animated,
   FlatList,
-  LayoutAnimation,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -18,15 +17,13 @@ import {
   useAnimatedValue,
   View,
 } from 'react-native';
-import Reanimated, { Keyframe } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvailabilityPill } from '@/components/availability-pill';
 import { Chip } from '@/components/chip';
 import { EventImage } from '@/components/event-image';
 import { GoButton } from '@/components/go-button';
-import { ImagotipoAnimado } from '@/components/imagotipo';
-import { SparkleBurst } from '@/components/meeet-in-burst';
+import { Imagotipo } from '@/components/imagotipo';
 import { WishButton } from '@/components/wish-button';
 import { TITLE_LINE_HEIGHT, TITLE_SIZE, TITLE_SPACING, TITLE_TOP } from '@/components/screen-title';
 import { BottomTabInset } from '@/constants/theme';
@@ -45,28 +42,22 @@ import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
 
 // Ajustes del banner (puedes tocar estos números)
-const LOGO_MAX = 72; // tamaño del logo arriba del todo
-const LOGO_MIN = TITLE_SIZE; // ya encogido: igual que los títulos de Descubrir, meeet in y Perfil
-const LINE_MAX = 83; // altura de la caja del logo grande
-const LINE_MIN = TITLE_LINE_HEIGHT; // caja del logo encogido = la de los títulos de pestaña
-const PAD_MAX = 8; // aire inferior con el logo grande
-const PAD_MIN = 12; // aire inferior con el logo encogido (bajo los chips)
-const TOP_MAX = 50; // aire superior con el logo grande
-const TOP_MIN = TITLE_TOP; // aire superior con el logo encogido (= títulos de pestaña)
-const SLOGAN_H = 22; // altura del lema
+// El título «Eventos» es como el de las demás pestañas: no crece ni se encoge
+const LOGO_MAX = TITLE_SIZE;
+const LOGO_MIN = TITLE_SIZE;
+const LINE_MAX = TITLE_LINE_HEIGHT;
+const LINE_MIN = TITLE_LINE_HEIGHT;
+const PAD_MAX = 12; // aire bajo los chips
+const PAD_MIN = 12;
+const TOP_MAX = TITLE_TOP;
+const TOP_MIN = TITLE_TOP;
+const SLOGAN_H = 0; // sin lema
 const TOOLS_GAP = 14; // aire entre el logo (o el aviso) y los chips, también con el logo encogido
 const SCROLL_RANGE = 80; // cuánto scroll dura la animación
 // Tirar hacia abajo para recargar
 const PULL_TRIGGER = 80; // pt que hay que tirar para que, al soltar, recargue
 const REFRESH_SPACE = 64; // hueco para el imagotipo mientras recarga
-const REFRESH_MIN_MS = 600; // lo mínimo que se ve la animación, aunque cargue antes
-
-// Al terminar de recargar, el imagotipo crece y se desvanece mientras estallan los destellos
-const LOGO_POP = new Keyframe({
-  0: { opacity: 1, transform: [{ scale: 1 }] },
-  40: { opacity: 1, transform: [{ scale: 1.25 }] },
-  100: { opacity: 0, transform: [{ scale: 1.7 }] },
-}).duration(300);
+const REFRESH_MIN_MS = 600; // lo mínimo que se ve el imagotipo, aunque cargue antes
 
 export default function HomeScreen() {
   const styles = useThemedStyles(makeStyles);
@@ -95,9 +86,8 @@ export default function HomeScreen() {
   const scrollY = useAnimatedValue(0);
   const listRef = useRef<FlatList<Concert>>(null);
   const navigation = useNavigation();
-  // Recarga: cargando (imagotipo en el hueco) → explosión al terminar → nada
-  const [refreshPhase, setRefreshPhase] = useState<'idle' | 'loading' | 'burst'>('idle');
-  const refreshing = refreshPhase !== 'idle';
+  // Recarga: el imagotipo, quieto, en el hueco mientras carga
+  const [refreshing, setRefreshing] = useState(false);
   const refreshSound = useAudioPlayer(require('@/assets/sounds/refresh.wav'));
 
   // Tocar Inicio estando ya en Inicio sube arriba del todo (además de lo que haga
@@ -110,24 +100,19 @@ export default function HomeScreen() {
     [navigation]
   );
 
-  // Al soltar tras tirar lo bastante, recarga con el imagotipo animado
+  // Al soltar tras tirar lo bastante, recarga
   const onScrollEndDrag = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (refreshing || e.nativeEvent.contentOffset.y > -PULL_TRIGGER) return;
-    setRefreshPhase('loading');
+    setRefreshing(true);
     if (settings.sounds) {
       refreshSound.seekTo(0);
       refreshSound.play();
     }
     if (settings.haptics) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const minimum = new Promise((resolve) => setTimeout(resolve, REFRESH_MIN_MS));
-    Promise.all([refreshConcerts(), minimum]).finally(() => setRefreshPhase('burst'));
+    Promise.all([refreshConcerts(), minimum]).finally(() => setRefreshing(false));
   };
 
-  // Tras la explosión, el hueco se cierra con suavidad en vez de dar un salto
-  const endRefresh = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setRefreshPhase('idle');
-  };
   // Alto de los chips, fijos en la cabecera: la lista empieza debajo
   const [toolsHeight, setToolsHeight] = useState(0);
   // Hoy (medianoche), fijado al montar: leer la hora en cada render no es puro
@@ -149,15 +134,9 @@ export default function HomeScreen() {
 
   const logoSize = shrink(LOGO_MAX, LOGO_MIN);
   const logoLine = shrink(LINE_MAX, LINE_MIN);
-  const logoSpacing = shrink(-2, TITLE_SPACING);
+  const logoSpacing = shrink(TITLE_SPACING, TITLE_SPACING);
   const headerPadTop = shrink(insets.top + TOP_MAX, insets.top + TOP_MIN);
   const headerPadBottom = shrink(PAD_MAX, PAD_MIN);
-  const sloganHeight = shrink(SLOGAN_H, 0);
-  const sloganOpacity = scrollY.interpolate({
-    inputRange: [0, SCROLL_RANGE * 0.5],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
   const lineOpacity = scrollY.interpolate({
     inputRange: [SCROLL_RANGE - 20, SCROLL_RANGE],
     outputRange: [0, 1],
@@ -180,35 +159,16 @@ export default function HomeScreen() {
                   outputRange: [1, 0],
                   extrapolate: 'clamp',
                 }),
-            transform: [
-              {
-                scale: refreshing
-                  ? 1
-                  : scrollY.interpolate({
-                      inputRange: [-PULL_TRIGGER, 0],
-                      outputRange: [1, 0.4],
-                      extrapolate: 'clamp',
-                    }),
-              },
-            ],
           },
         ]}
       >
-        {refreshPhase === 'burst' ? (
-          <View style={styles.burst}>
-            <SparkleBurst onEnd={endRefresh} />
-          </View>
-        ) : (
-          <Reanimated.View exiting={LOGO_POP}>
-            <ImagotipoAnimado height={36} />
-          </Reanimated.View>
-        )}
+        <Imagotipo height={36} />
       </Animated.View>
 
-      {/* Primera carga al abrir la app: el imagotipo animado en el centro */}
+      {/* Primera carga al abrir la app: el imagotipo en el centro */}
       {loading && (
         <View pointerEvents="none" style={styles.firstLoad}>
-          <ImagotipoAnimado height={72} />
+          <Imagotipo height={72} />
           <Text style={styles.firstLoadText}>Buscando conciertos…</Text>
         </View>
       )}
@@ -297,13 +257,13 @@ export default function HomeScreen() {
                   </Text>
                   {/* Si puedes ir según tus turnos (solo con turnos configurados) */}
                   <AvailabilityPill availability={availability(item)} style={styles.availability} />
-                  <Text style={styles.going}>
-                    {count === 0
-                      ? 'Sé el primero en apuntarte'
-                      : `${count} ${count === 1 ? 'persona va' : 'personas van'}`}
-                  </Text>
+                  {count > 0 && (
+                    <Text style={styles.going}>
+                      {count} {count === 1 ? 'persona va' : 'personas van'}
+                    </Text>
+                  )}
                 </View>
-                {/* Corazón (lista de deseos) junto a "Meeet In!" */}
+                {/* Corazón (lista de deseos) junto a "¡Voy!" */}
                 <View style={styles.cardActions}>
                   <WishButton concert={item} />
                   <GoButton isGoing={going} onPress={() => toggleGoing(item)} />
@@ -327,11 +287,7 @@ export default function HomeScreen() {
               { fontSize: logoSize, lineHeight: logoLine, letterSpacing: logoSpacing },
             ]}
           >
-            {/* Las "eee" en la escala del salmón, de clara a oscura */}m
-            {/* Las "eee" en la escala del color de tu perfil (sin fondo, el salmón de la marca) */}
-            <Text style={{ color: theme.logo[0] }}>e</Text>
-            <Text style={{ color: theme.logo[1] }}>e</Text>
-            <Text style={{ color: theme.logo[2] }}>e</Text>t
+            Eventos
             <Text style={{ color: theme.accent }}>.</Text>
           </Animated.Text>
           {/* Buscar (ya no es pestaña: en la barra solo caben 5) */}
@@ -346,12 +302,6 @@ export default function HomeScreen() {
           </Pressable>
         </Animated.View>
 
-        <Animated.Text
-          numberOfLines={1}
-          style={[styles.slogan, { height: sloganHeight, opacity: sloganOpacity }]}
-        >
-          Every event. Everyone.
-        </Animated.Text>
 
         <View style={styles.tools} onLayout={(e) => setToolsHeight(e.nativeEvent.layout.height)}>
           {concerts.length > 0 && (
@@ -441,21 +391,10 @@ const makeStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    // Logo y lema, centrados
+    // Título como el de las demás pestañas (ScreenTitle)
     logo: {
-      alignSelf: 'center',
       color: COLORS.text,
       fontWeight: '700',
-    },
-    slogan: {
-      alignSelf: 'center',
-      color: COLORS.muted,
-      fontSize: 15,
-      lineHeight: 20,
-      fontWeight: '500',
-      letterSpacing: 0.2,
-      marginTop: -6,
-      overflow: 'hidden',
     },
     line: {
       position: 'absolute',
@@ -467,7 +406,6 @@ const makeStyles = (theme: Theme) =>
     },
     listHeader: { marginBottom: 20 },
     pull: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-    burst: { width: 1, height: 36 }, // centro de la explosión, donde estaba el imagotipo
     firstLoad: {
       ...StyleSheet.absoluteFill,
       alignItems: 'center',

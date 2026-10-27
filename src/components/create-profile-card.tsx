@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ImagotipoAnimado } from '@/components/imagotipo';
+import { Imagotipo } from '@/components/imagotipo';
 import { useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
 
@@ -43,9 +43,9 @@ export function CreateProfileCard({ intro }: { intro?: string }) {
     <View>
       {intro ? <Text style={styles.intro}>{intro}</Text> : null}
       <View style={styles.card}>
-        <ImagotipoAnimado height={64} />
+        <Imagotipo height={64} />
         <Text style={styles.title}>Crea tu perfil</Text>
-        <Text style={styles.text}>Es un momento y te abre lo mejor de meeet:</Text>
+        <Text style={styles.text}>Es un momento y te abre lo mejor de DayStage:</Text>
         <View style={styles.benefits}>
           {PROFILE_BENEFITS.map((b) => (
             <BenefitRow key={b.text} {...b} />

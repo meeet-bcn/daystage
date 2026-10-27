@@ -58,7 +58,7 @@ export function MediaViewer({ media, onClose }: Props) {
       if (!ok) {
         Alert.alert(
           'Sin permiso para guardar',
-          'Permite a meeet guardar en Fotos desde los ajustes del móvil.',
+          'Permite a DayStage guardar en Fotos desde los ajustes del móvil.',
         );
       }
       setSaving(ok ? 'saved' : 'idle');

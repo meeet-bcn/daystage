@@ -101,7 +101,7 @@ export default function SearchScreen() {
                 {item.genre ? ` · ${item.genre}` : ''}
               </Text>
             </View>
-            {isGoing(item.id) && <Text style={styles.going}>Meeet In!</Text>}
+            {isGoing(item.id) && <Text style={styles.going}>Voy</Text>}
           </Pressable>
         )}
       />
