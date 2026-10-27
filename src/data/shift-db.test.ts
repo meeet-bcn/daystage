@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
-import { planFromRows } from '@/data/shift-db';
+import { MIGRATIONS, planFromRows } from '@/data/shift-db';
 
 // Solo se prueba el montaje del plan: SQLite no existe en los tests (jest sube el mock arriba)
 jest.mock('expo-sqlite', () => ({ openDatabaseSync: jest.fn() }));
@@ -53,5 +53,18 @@ describe('planFromRows', () => {
 
   it('sin rotación', () => {
     expect(planFromRows([], null, [], [])).toEqual({ types: [], rotation: null, overrides: {} });
+  });
+});
+
+describe('instalación nueva', () => {
+  it('las migraciones crean las tablas sin ningún turno', () => {
+    const sql: string[] = [];
+    const db = {
+      execSync: (q: string) => sql.push(q),
+      runSync: (q: string) => sql.push(q),
+    } as unknown as Parameters<(typeof MIGRATIONS)[number]>[0];
+    MIGRATIONS.forEach((migrate) => migrate(db));
+    expect(sql.join('\n')).toContain('CREATE TABLE shift_types');
+    expect(sql.filter((q) => /INSERT/i.test(q))).toEqual([]);
   });
 });

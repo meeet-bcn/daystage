@@ -1,6 +1,6 @@
-// Fondo de la bienvenida y de la creación de perfil: el imagotipo, gigante,
-// desbordando la pantalla. Se desplaza, gira y respira muy despacio, y sus
-// círculos se juntan y se separan a cámara lenta. Todo muy relajante. Con
+// Fondo de la creación de perfil: el imagotipo, gigante,
+// desbordando la pantalla. Se desplaza y gira muy despacio, sin crecer ni
+// encoger. Con
 // "Reducir movimiento", quieto.
 
 import { useEffect } from 'react';
@@ -15,7 +15,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { ImagotipoAnimado } from '@/components/imagotipo';
+import { Imagotipo } from '@/components/imagotipo';
 import { COLORS } from '@/theme';
 
 // Ajustes del movimiento (lento a propósito)
@@ -24,9 +24,6 @@ const DRIFT = 60; // pt que se desplaza a cada lado
 const DRIFT_X_MS = 17000;
 const DRIFT_Y_MS = 23000; // distinto del horizontal: el recorrido nunca se repite igual
 const TURN_MS = 120000; // una vuelta entera, dos minutos
-const BREATH_MS = 9000; // crece y decrece
-const MEET_MS = 6000; // los círculos tardan 6 s en juntarse
-const HOLD_MS = 2500;
 
 export function OrganicBackdrop() {
   const { width, height } = useWindowDimensions();
@@ -34,7 +31,6 @@ export function OrganicBackdrop() {
   const driftX = useSharedValue(0);
   const driftY = useSharedValue(0);
   const turn = useSharedValue(0);
-  const breath = useSharedValue(0);
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -42,9 +38,8 @@ export function OrganicBackdrop() {
     driftX.set(withRepeat(withTiming(1, { duration: DRIFT_X_MS, easing: sine }), -1, true));
     driftY.set(withRepeat(withTiming(1, { duration: DRIFT_Y_MS, easing: sine }), -1, true));
     turn.set(withRepeat(withTiming(1, { duration: TURN_MS, easing: Easing.linear }), -1));
-    breath.set(withRepeat(withTiming(1, { duration: BREATH_MS, easing: sine }), -1, true));
-    return () => [driftX, driftY, turn, breath].forEach(cancelAnimation);
-  }, [reduceMotion, driftX, driftY, turn, breath]);
+    return () => [driftX, driftY, turn].forEach(cancelAnimation);
+  }, [reduceMotion, driftX, driftY, turn]);
 
   const markHeight = width * SIZE;
   const style = useAnimatedStyle(() => ({
@@ -52,7 +47,6 @@ export function OrganicBackdrop() {
       { translateX: (driftX.get() * 2 - 1) * DRIFT },
       { translateY: (driftY.get() * 2 - 1) * DRIFT },
       { rotate: `${turn.get() * 360}deg` },
-      { scale: 1 + breath.get() * 0.08 },
     ],
   }));
 
@@ -65,7 +59,7 @@ export function OrganicBackdrop() {
           style,
         ]}
       >
-        <ImagotipoAnimado height={markHeight} meetMs={MEET_MS} holdMs={HOLD_MS} />
+        <Imagotipo height={markHeight} />
       </Animated.View>
       {/* Velo blanco: el imagotipo queda de fondo, suave, y el texto se lee bien */}
       <View style={[StyleSheet.absoluteFill, styles.veil]} />

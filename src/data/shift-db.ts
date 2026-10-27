@@ -9,7 +9,6 @@
 import { openDatabaseSync, type SQLiteDatabase } from 'expo-sqlite';
 
 import {
-  DEFAULT_SHIFT_TYPES,
   type DayOverride,
   type Rotation,
   type ShiftPlan,
@@ -19,8 +18,10 @@ import type { ShiftColor } from '@/theme';
 
 const DB_NAME = 'daystage.db';
 
-const MIGRATIONS: ((db: SQLiteDatabase) => void)[] = [
-  // 1: tablas y los tres tipos de turno por defecto (solo al crear la base)
+export const MIGRATIONS: ((db: SQLiteDatabase) => void)[] = [
+  // 1: tablas. Antes también creaba tres tipos de ejemplo (Mañana, Tarde y
+  // Noche); se quitaron para que una instalación nueva empiece sin ningún turno.
+  // Las bases que ya los tenían no cambian: esta migración no vuelve a correr.
   (db) => {
     db.execSync(`
       CREATE TABLE shift_types (
@@ -50,7 +51,6 @@ const MIGRATIONS: ((db: SQLiteDatabase) => void)[] = [
         note TEXT
       );
     `);
-    DEFAULT_SHIFT_TYPES.forEach((t, i) => insertType(db, t, i));
   },
   // 2: tipos de día libre todo el día (vacaciones)
   (db) => {

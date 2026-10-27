@@ -15,7 +15,7 @@ import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/chip';
-import { ImagotipoAnimado } from '@/components/imagotipo';
+import { Imagotipo } from '@/components/imagotipo';
 import { SparkleBurst } from '@/components/meeet-in-burst';
 import { OrganicBackdrop } from '@/components/organic-backdrop';
 import { useApp } from '@/data/app-context';
@@ -248,7 +248,7 @@ export default function OnboardingScreen() {
         {step === 'done' && (
           <View style={styles.done}>
             <View style={styles.doneMark}>
-              <ImagotipoAnimado height={90} />
+              <Imagotipo height={90} />
               {burst && <SparkleBurst onEnd={() => setBurst(false)} />}
             </View>
             <Text style={[styles.title, styles.center]}>¡Listo, @{nick}!</Text>
