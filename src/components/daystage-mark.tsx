@@ -4,15 +4,15 @@ import { StyleSheet, Text, View } from 'react-native';
 import { BRAND_GRADIENT, COLORS } from '@/theme';
 
 // El imagotipo es una imagen: lo dibuja scripts/generate-brand-assets.swift
-// (hoja de calendario con el degradado de escenario, dos anillas y el glifo ♪
-// de Noto Music), igual que el icono y el splash.
+// (hoja de calendario con el degradado de escenario, dos anillas y dos corcheas
+// unidas, ♫), igual que el icono y el splash.
 const MARK = require('@/assets/images/brand-mark.png');
 const RING_TOP = -0.08;
 
 /** Alto total / lado de la hoja (las anillas asoman por arriba). */
 export const MARK_HEIGHT = 1 - RING_TOP;
 
-/** Imagotipo de DayStage: un calendario con una corchea. `size` = lado de la hoja. */
+/** Imagotipo de DayStage: un calendario con dos corcheas unidas (♫). `size` = lado de la hoja. */
 export function DayStageMark({ size }: { size: number }) {
   return (
     <Image

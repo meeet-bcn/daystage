@@ -1,5 +1,5 @@
 // Genera los iconos y el splash de DayStage a partir del imagotipo (hoja de
-// calendario con el degradado de escenario, dos anillas y una corchea).
+// calendario con el degradado de escenario, dos anillas y dos corcheas unidas (♫)).
 // Uso (macOS): swift scripts/generate-brand-assets.swift
 //
 // Los colores y la geometría deben coincidir con src/theme.ts y
@@ -28,38 +28,41 @@ let RING_W: CGFloat = 0.09
 let RING_H: CGFloat = 0.2
 let RING_TOP: CGFloat = -0.08
 let RINGS_X: [CGFloat] = [0.32, 0.68]
-// Corchea: el glifo ♪ (U+266A) de Noto Music (SIL Open Font License 1.1,
-// https://github.com/notofonts/music), en unidades de fuente a 200 pt con la y hacia arriba
-let NOTE_GLYPH = """
-M 13.0 5.4 Q 10.2 8.2 10.2 12.6 Q 10.2 17.8 13.0 22.0 Q 15.8 26.2 20.4 28.8 Q 25.0 31.4 30.0 31.4
-Q 34.4 31.4 38.8 29.6 L 38.8 112.6 L 46.2 112.6 L 46.2 102.8 L 61.0 84.0 Q 66.6 77.2 69.2 69.2
-Q 71.8 61.2 71.8 53.0 Q 71.8 38.2 62.6 26.6 L 58.0 26.6 Q 63.6 38.6 63.6 50.8 Q 63.6 58.6 61.0 64.7
-Q 58.4 70.8 54.4 74.6 Q 50.4 78.4 46.2 79.0 L 46.2 29.6 Q 46.2 17.6 39.1 10.2 Q 32.0 2.8 21.4 2.8
-Q 15.8 2.8 13.0 5.4 Z
-"""
-/// Alto de la corchea / lado de la hoja, y cuánto se engrosa (unidades del glifo); fina, como el glifo
-let NOTE_SHARE: CGFloat = 0.64
-let NOTE_BOLD: CGFloat = 0
-/// Algo estrechada, para una corchea más estilizada
-let NOTE_NARROW: CGFloat = 0.86
+// Dos corcheas unidas por una barra (♫), dibujo propio. Unidades del lado de la
+// hoja, con la y hacia abajo: cabezas ovaladas inclinadas (la izquierda más baja),
+// plicas finas desde su lado derecho hacia arriba y una barra recta que sube
+let NOTE_DX: CGFloat = 0.02 // para centrar el conjunto en la hoja
+let HEADS: [CGPoint] = [CGPoint(x: 0.33, y: 0.70), CGPoint(x: 0.63, y: 0.62)]
+let HEAD_W: CGFloat = 0.2
+let HEAD_H: CGFloat = 0.135
+let HEAD_ANGLE: CGFloat = -25
+let STEM_W: CGFloat = 0.05
+let STEM_RIGHT: CGFloat = 0.086 // borde derecho de la plica, desde el centro de su cabeza
+let STEM_TOPS: [CGFloat] = [0.27, 0.19]
+let BEAM_H: CGFloat = 0.08
 
-/// Lee el trazado M/L/Q/Z del glifo.
-func glyphPath() -> CGPath {
+/// Las dos corcheas como un solo trazado, en unidades de la hoja.
+func notePath() -> CGPath {
   let path = CGMutablePath()
-  var tokens = NOTE_GLYPH.split(whereSeparator: { $0 == " " || $0 == "\n" }).map(String.init)[...]
-  func num() -> CGFloat { CGFloat(Double(tokens.removeFirst())!) }
-  while let cmd = tokens.popFirst() {
-    switch cmd {
-    case "M": path.move(to: CGPoint(x: num(), y: num()))
-    case "L": path.addLine(to: CGPoint(x: num(), y: num()))
-    case "Q":
-      let c = CGPoint(x: num(), y: num())
-      path.addQuadCurve(to: CGPoint(x: num(), y: num()), control: c)
-    default: path.closeSubpath()
-    }
+  for (i, head) in HEADS.enumerated() {
+    let c = CGPoint(x: head.x + NOTE_DX, y: head.y)
+    let t = CGAffineTransform(translationX: c.x, y: c.y).rotated(by: HEAD_ANGLE * .pi / 180)
+    path.addEllipse(in: CGRect(x: -HEAD_W / 2, y: -HEAD_H / 2, width: HEAD_W, height: HEAD_H), transform: t)
+    let right = c.x + STEM_RIGHT
+    // La plica nace dentro de la barra, para que no asome por encima de su borde inclinado
+    let top = STEM_TOPS[i] + BEAM_H / 2
+    path.addRect(CGRect(x: right - STEM_W, y: top, width: STEM_W, height: c.y - top))
   }
+  let left = HEADS[0].x + NOTE_DX + STEM_RIGHT - STEM_W
+  let right = HEADS[1].x + NOTE_DX + STEM_RIGHT
+  path.move(to: CGPoint(x: left, y: STEM_TOPS[0]))
+  path.addLine(to: CGPoint(x: right, y: STEM_TOPS[1]))
+  path.addLine(to: CGPoint(x: right, y: STEM_TOPS[1] + BEAM_H))
+  path.addLine(to: CGPoint(x: left, y: STEM_TOPS[0] + BEAM_H))
+  path.closeSubpath()
   return path
 }
+
 /// Alto total / lado (las anillas asoman por arriba).
 let MARK_H: CGFloat = 1 - RING_TOP
 
@@ -98,22 +101,13 @@ func drawMark(_ ctx: CGContext, origin: CGPoint, side u: CGFloat, colors: MarkCo
   fillGradient(ctx, colors.sheet, in: sheet)
   ctx.restoreGState()
 
-  // Corchea: el glifo, centrado en la hoja (por su caja)
-  let glyph = glyphPath()
-  let box = glyph.boundingBox.insetBy(dx: -NOTE_BOLD, dy: -NOTE_BOLD)
-  let k = NOTE_SHARE * u / box.height
+  // Las corcheas
   ctx.saveGState()
-  ctx.translateBy(x: u / 2, y: top + u / 2)
-  ctx.scaleBy(x: k * NOTE_NARROW, y: -k)
-  ctx.translateBy(x: -box.midX, y: -box.midY)
-  ctx.addPath(glyph)
+  ctx.translateBy(x: 0, y: top)
+  ctx.scaleBy(x: u, y: u)
+  ctx.addPath(notePath())
   ctx.setFillColor(colors.note.cgColor)
-  ctx.fillPath()
-  ctx.addPath(glyph)
-  ctx.setStrokeColor(colors.note.cgColor)
-  ctx.setLineWidth(NOTE_BOLD * 2)
-  ctx.setLineJoin(.round)
-  ctx.strokePath()
+  ctx.fillPath(using: .winding)
   ctx.restoreGState()
 
   ctx.setFillColor(colors.rings.cgColor)

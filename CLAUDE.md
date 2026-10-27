@@ -1,4 +1,4 @@
-> **DayStage Calendar.** Este repo es DayStage Calendar (calendario de turnos con conciertos), nacido de meeet el 2026-10-27. El plan está en https://claude.ai/artifact/71ygyNNPbihGnzva6Ro1zR. La marca ya es DayStage (logotipo «daystage.», imagotipo de calendario con una corchea y el degradado de escenario); las notas de abajo sobre la marca meeet son históricas salvo donde se diga lo contrario.
+> **DayStage Calendar.** Este repo es DayStage Calendar (calendario de turnos con conciertos), nacido de meeet el 2026-10-27. El plan está en https://claude.ai/artifact/71ygyNNPbihGnzva6Ro1zR. La marca ya es DayStage (logotipo «daystage.», imagotipo de calendario con dos corcheas (♫) y el degradado de escenario); las notas de abajo sobre la marca meeet son históricas salvo donde se diga lo contrario.
 
 @AGENTS.md
 
@@ -215,7 +215,7 @@ scripts/jest-timezone.js              # globalSetup de jest: los tests corren si
 
 **Nombre:** DayStage. En el logotipo, siempre en minúsculas y con punto violeta: `daystage.` (`DayStageLogo` en `daystage-mark.tsx`), en tinta y peso 800. En prosa, «DayStage».
 
-**Imagotipo:** una hoja de calendario con el degradado de escenario (`BRAND_GRADIENT`: `stageViolet` → `stageMagenta` → `stageOrange`, a 135°), dos anillas en tinta y, dentro, una corchea blanca: el glifo ♪ de Noto Music (OFL), algo estrechado. Lo dibuja solo `generate-brand-assets.swift`; la app usa su PNG (`assets/images/brand-mark.png`, en `DayStageMark`). El punto de «daystage.» lleva el mismo degradado. Las variantes de color se generan con `swift scripts/generate-brand-assets.swift <carpeta> variantes`. `Imagotipo` / `ImagotipoAnimado` (`imagotipo.tsx`) lo pintan en todas partes (el animado late despacio; quieto con «Reducir movimiento»). La geometría está también en `scripts/generate-brand-assets.swift` (icono sobre `mist`, splash con «daystage.»): si cambia, cámbiala en los dos.
+**Imagotipo:** una hoja de calendario con el degradado de escenario (`BRAND_GRADIENT`: `stageViolet` → `stageMagenta` → `stageOrange`, a 135°), dos anillas en tinta y, dentro, dos corcheas unidas por una barra (♫), en blanco y con trazo fino, dibujo propio. Lo dibuja solo `generate-brand-assets.swift`; la app usa su PNG (`assets/images/brand-mark.png`, en `DayStageMark`). El punto de «daystage.» lleva el mismo degradado. Las variantes de color se generan con `swift scripts/generate-brand-assets.swift <carpeta> variantes`. `Imagotipo` / `ImagotipoAnimado` (`imagotipo.tsx`) lo pintan en todas partes (el animado late despacio; quieto con «Reducir movimiento»). La geometría está también en `scripts/generate-brand-assets.swift` (icono sobre `mist`, splash con «daystage.»): si cambia, cámbiala en los dos.
 
 **Botón de ir a un concierto:** «¡Voy!» (activo: «Voy ✓»); la pestaña de tus planes y sus chats se llama «Planes» (internamente sigue siendo `meeet-in.tsx`, `isGoing`/`toggleGoing`).
 
