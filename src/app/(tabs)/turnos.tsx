@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvailabilityPill } from '@/components/availability-pill';
 import { ConcertImage } from '@/components/concert-image';
+import { MonthReportCard } from '@/components/month-report-card';
 import { ScreenHeader } from '@/components/screen-header';
 import { ScreenSubtitle } from '@/components/screen-title';
 import { ShiftBadge } from '@/components/shift-badge';
@@ -18,6 +19,7 @@ import {
   formatMonth,
   formatShiftTime,
   monthGrid,
+  MONTHS,
   shiftHours,
   shortTime,
   toDateKey,
@@ -209,6 +211,10 @@ export default function TurnosScreen() {
           </View>
         </View>
         <Text style={styles.hint}>Toca un día para cambiar su turno o ver sus conciertos.</Text>
+
+        {/* Informe del mes que se ve: horas, extra, ganancias y semanas */}
+        <Text style={styles.sectionTitle}>Informe de {MONTHS[month.month - 1]}</Text>
+        <MonthReportCard year={month.year} month={month.month} />
 
         {monthPlans.length > 0 && (
           <>

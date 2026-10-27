@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { DEFAULT_SETTINGS, languageLabel, withDefaults } from '@/data/settings';
+import { DEFAULT_SETTINGS, languageLabel, parseRate, withDefaults } from '@/data/settings';
 
 describe('withDefaults', () => {
   it('sin nada guardado, los de por defecto', () => {
@@ -35,5 +35,24 @@ describe('languageLabel', () => {
   it('cada idioma en su idioma', () => {
     expect(languageLabel('en')).toBe('English');
     expect(languageLabel('ca')).toBe('Català');
+  });
+});
+
+describe('informes', () => {
+  it('jornada y tarifa: lo guardado si vale; si no, por defecto', () => {
+    expect(withDefaults({}).workdayHours).toBe(8);
+    expect(withDefaults({ workdayHours: 7.5 }).workdayHours).toBe(7.5);
+    expect(withDefaults({ workdayHours: 30 }).workdayHours).toBe(8);
+    expect(withDefaults({}).hourlyRate).toBeNull();
+    expect(withDefaults({ hourlyRate: 12.5 }).hourlyRate).toBe(12.5);
+    expect(withDefaults({ hourlyRate: -1 }).hourlyRate).toBeNull();
+  });
+
+  it('parseRate', () => {
+    expect(parseRate('12,5')).toBe(12.5);
+    expect(parseRate(' 10 ')).toBe(10);
+    expect(parseRate('')).toBeNull();
+    expect(parseRate('abc')).toBeNull();
+    expect(parseRate('0')).toBeNull();
   });
 });

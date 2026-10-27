@@ -31,6 +31,10 @@ export type Settings = {
   shiftMarginMinutes: number;
   /** Compartir tus próximos días (libre o trabajas) con tus amigos (os seguís los dos). */
   shareDays: boolean;
+  /** Informes: tu jornada por día (horas), para las horas extra. */
+  workdayHours: number;
+  /** Informes: lo que cobras por hora (€), o null para no calcular ganancias. */
+  hourlyRate: number | null;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -43,6 +47,8 @@ export const DEFAULT_SETTINGS: Settings = {
   sounds: true,
   shiftMarginMinutes: 60,
   shareDays: false,
+  workdayHours: 8,
+  hourlyRate: null,
 };
 
 export const MESSAGES_FROM_OPTIONS: { key: MessagesFrom; label: string }[] = [
@@ -62,9 +68,24 @@ export function withDefaults(saved: Partial<Settings>): Settings {
       typeof saved.shiftMarginMinutes === 'number' && saved.shiftMarginMinutes >= 0
         ? saved.shiftMarginMinutes
         : DEFAULT_SETTINGS.shiftMarginMinutes,
+    workdayHours:
+      typeof saved.workdayHours === 'number' && saved.workdayHours > 0 && saved.workdayHours <= 24
+        ? saved.workdayHours
+        : DEFAULT_SETTINGS.workdayHours,
+    hourlyRate:
+      typeof saved.hourlyRate === 'number' && saved.hourlyRate > 0 ? saved.hourlyRate : null,
   };
 }
 
 export function languageLabel(code: string) {
   return LANGUAGES.find((l) => l.code === code)?.label ?? code;
+}
+
+/** Jornadas que se pueden elegir en Ajustes › Turnos (horas por día). */
+export const WORKDAY_OPTIONS = [6, 7, 7.5, 8, 9];
+
+/** "12,5" o "12.5" → 12.5; vacío o no válido → null. */
+export function parseRate(text: string): number | null {
+  const n = Number(text.replace(',', '.').trim());
+  return text.trim() && Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
 }

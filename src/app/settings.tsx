@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { ComponentProps, ReactNode, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '@/components/chip';
@@ -12,7 +12,7 @@ import { SHIFT_MARGIN_OPTIONS } from '@/data/concert-shifts';
 import { LANGUAGES } from '@/data/filters';
 import { deleteTabIcons, saveProfilePhoto } from '@/data/profile-photo';
 import { useSession } from '@/data/session-context';
-import { MESSAGES_FROM_OPTIONS, Settings } from '@/data/settings';
+import { MESSAGES_FROM_OPTIONS, parseRate, Settings, WORKDAY_OPTIONS } from '@/data/settings';
 import { useTheme } from '@/hooks/use-theme';
 import { COLORS } from '@/theme';
 
@@ -294,6 +294,38 @@ export default function SettingsScreen() {
               }
             />
           )}
+          <View style={[styles.row, styles.rowLine, styles.rowColumn]}>
+            <View style={styles.rowHead}>
+              <Ionicons name="hourglass-outline" size={20} color={theme.accent} />
+              <Text style={styles.rowLabel}>Tu jornada (para las horas extra)</Text>
+            </View>
+            <View style={styles.chipsInline}>
+              {WORKDAY_OPTIONS.map((h) => (
+                <Chip
+                  key={h}
+                  label={`${String(h).replace('.', ',')} h`}
+                  active={settings.workdayHours === h}
+                  onPress={() => updateSettings({ workdayHours: h })}
+                />
+              ))}
+            </View>
+          </View>
+          <View style={[styles.row, styles.rowLine]}>
+            <Ionicons name="cash-outline" size={20} color={theme.accent} />
+            <View style={styles.rowText}>
+              <Text style={styles.rowLabel}>Tarifa por hora</Text>
+              <Text style={styles.rowDetail}>Para ver lo que ganas cada mes (opcional)</Text>
+            </View>
+            <TextInput
+              style={styles.rateInput}
+              defaultValue={settings.hourlyRate != null ? String(settings.hourlyRate).replace('.', ',') : ''}
+              onEndEditing={(e) => updateSettings({ hourlyRate: parseRate(e.nativeEvent.text) })}
+              placeholder="€/h"
+              placeholderTextColor={COLORS.muted}
+              keyboardType="decimal-pad"
+              maxLength={6}
+            />
+          </View>
           <Row icon="calendar-outline" label="Tus turnos" onPress={() => router.navigate('/turnos')} />
         </Section>
 
@@ -427,5 +459,15 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.6 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 14 },
   chipsInline: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  rateInput: {
+    width: 76,
+    height: 36,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: COLORS.surface,
+    color: COLORS.text,
+    fontSize: 16,
+    textAlign: 'right',
+  },
   slogan: { color: COLORS.muted, fontSize: 13, textAlign: 'center', marginTop: 8 },
 });
