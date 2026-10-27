@@ -94,6 +94,7 @@ export function monthHtml(plan: ShiftPlan, year: number, month: number, report: 
     .join('');
 
   return `<!doctype html><html><head><meta charset="utf-8"><style>
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body { font-family: -apple-system, Helvetica, sans-serif; color: #2A2540; margin: 32px; }
     h1 { font-size: 28px; margin: 0 0 4px; } p { color: #6E6E73; margin: 0 0 20px; }
     table { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
