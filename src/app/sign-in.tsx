@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { NavHeader } from '@/components/nav-header';
+import { authErrorMessage } from '@/data/auth-errors';
 import { useSession } from '@/data/session-context';
 import { useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
@@ -25,7 +26,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  */
 export default function SignInScreen() {
   const styles = useThemedStyles(makeStyles);
-  const { enabled, sendCode, verifyCode } = useSession();
+  const { enabled, sendCode, verifyCode, signInAnonymously } = useSession();
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [step, setStep] = useState<'email' | 'code'>('email');
@@ -38,7 +39,7 @@ export default function SignInScreen() {
     try {
       await task();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Algo ha fallado. Inténtalo otra vez.');
+      setError(authErrorMessage(e));
     } finally {
       setBusy(false);
     }
@@ -53,6 +54,13 @@ export default function SignInScreen() {
   const submitCode = () =>
     run(async () => {
       await verifyCode(email, code);
+      router.back();
+    });
+
+  // Solo en desarrollo: entrar sin email para probar el chat (ver session-context)
+  const tryWithoutEmail = () =>
+    run(async () => {
+      await signInAnonymously();
       router.back();
     });
 
@@ -133,6 +141,12 @@ export default function SignInScreen() {
             )}
           </Pressable>
         )}
+
+        {__DEV__ && enabled && step === 'email' && (
+          <Pressable onPress={tryWithoutEmail} disabled={busy} hitSlop={8} style={styles.devButton}>
+            <Text style={styles.link}>Probar sin email (desarrollo)</Text>
+          </Pressable>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -153,6 +167,7 @@ const makeStyles = (theme: Theme) =>
       fontSize: 17,
     },
     code: { fontSize: 20, letterSpacing: 4, textAlign: 'center', fontVariant: ['tabular-nums'] },
+    devButton: { alignSelf: 'center', marginTop: 8 },
     small: { color: COLORS.muted, fontSize: 13, marginTop: 18 },
     link: { color: theme.accent, fontSize: 14, fontWeight: '600' },
     error: { color: COLORS.danger, fontSize: 14 },

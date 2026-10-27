@@ -20,6 +20,13 @@ type SessionState = {
   verifyCode: (email: string, code: string) => Promise<void>;
   /** Canjea el `code` del enlace del email (auth-callback). */
   exchangeLink: (code: string) => Promise<void>;
+  /**
+   * Solo desarrollo: cuenta anónima, sin email (el correo gratuito de Supabase
+   * manda muy pocos por hora). Desactivar enable_anonymous_sign_ins antes de publicar.
+   */
+  signInAnonymously: () => Promise<void>;
+  /** La sesión es anónima (de prueba). */
+  anonymous: boolean;
   signOut: () => Promise<void>;
 };
 
@@ -63,6 +70,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           token: code.trim(),
           type: 'email',
         });
+        if (error) throw error;
+      },
+      anonymous: session?.user.is_anonymous ?? false,
+      signInAnonymously: async () => {
+        const { error } = await required().auth.signInAnonymously();
         if (error) throw error;
       },
       exchangeLink: async (code) => {

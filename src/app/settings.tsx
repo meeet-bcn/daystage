@@ -154,7 +154,7 @@ export default function SettingsScreen() {
               <Row
                 icon="log-out-outline"
                 label="Cerrar sesión"
-                detail={session.email ?? undefined}
+                detail={session.anonymous ? 'Cuenta de prueba, sin email' : (session.email ?? undefined)}
                 onPress={() => session.signOut()}
               />
             ) : (

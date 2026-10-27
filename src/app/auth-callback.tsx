@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { authErrorMessage } from '@/data/auth-errors';
 import { useSession } from '@/data/session-context';
 import { useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
@@ -15,7 +16,9 @@ export default function AuthCallback() {
   const styles = useThemedStyles(makeStyles);
   const params = useLocalSearchParams<{ code?: string; error_description?: string }>();
   const { exchangeLink } = useSession();
-  const [error, setError] = useState<string | null>(params.error_description ?? null);
+  const [error, setError] = useState<string | null>(
+    params.error_description ? authErrorMessage(new Error(params.error_description)) : null
+  );
 
   // Un código solo se canjea una vez (al entrar cambia la sesión y con ella exchangeLink)
   const exchanged = useRef(false);
@@ -24,7 +27,7 @@ export default function AuthCallback() {
     exchanged.current = true;
     exchangeLink(params.code)
       .then(() => router.replace('/'))
-      .catch((e) => setError(e instanceof Error ? e.message : 'No se pudo entrar.'));
+      .catch((e) => setError(authErrorMessage(e)));
   }, [params.code, exchangeLink]);
 
   return (
