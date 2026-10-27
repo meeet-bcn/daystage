@@ -371,7 +371,7 @@ export default function TurnosScreen() {
       <ScreenHeader
         title="Calendario"
         accessory={
-          <Pressable onPress={() => router.push('/calendar-sections')} hitSlop={10}>
+          <Pressable onPress={() => router.push('/calendar-sections')} hitSlop={10} style={styles.headerEdit}>
             <Text style={styles.edit}>Editar</Text>
           </Pressable>
         }
@@ -387,6 +387,8 @@ const makeStyles = (theme: Theme) =>
     ticket: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginTop: 20 },
     ticketText: { flex: 1, color: COLORS.text, fontSize: 15, fontWeight: '600' },
     ticketTextBox: { flex: 1 },
+    // «Editar» a la derecha de la cabecera
+    headerEdit: { marginLeft: 'auto' },
     empty: { alignItems: 'center', gap: 8, marginHorizontal: 20, marginTop: 28 },
     emptyTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', letterSpacing: -0.4, marginTop: 4 },
     emptyText: { color: COLORS.muted, fontSize: 15, textAlign: 'center', marginBottom: 6 },

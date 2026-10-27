@@ -371,7 +371,7 @@ export default function SettingsScreen() {
               <View style={[styles.row, styles.rowLine, styles.rowColumn]}>
                 <View style={styles.rowHead}>
                   <Ionicons name="time-outline" size={20} color={theme.accent} />
-                  <Text style={styles.rowLabel}>Horas mínimas trabajadas al día</Text>
+                  <Text style={styles.rowLabel}>Horas mínimas trabajadas al día (sin el descanso)</Text>
                 </View>
                 <View style={styles.chipsInline}>
                   {MEAL_TICKET_HOURS.map((h) => (
@@ -388,7 +388,7 @@ export default function SettingsScreen() {
                 <Ionicons name="pricetag-outline" size={20} color={theme.accent} />
                 <View style={styles.rowText}>
                   <Text style={styles.rowLabel}>Importe por ticket</Text>
-                  <Text style={styles.rowDetail}>Sin contar el descanso no computado</Text>
+                  <Text style={styles.rowDetail}>Por cada día que llegues al mínimo</Text>
                 </View>
                 <TextInput
                   style={styles.rateInput}
