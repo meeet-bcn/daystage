@@ -12,6 +12,7 @@ _Actualizado: 2026-10-27_
 - Fase 3 (rama `fase-3-backend`): backend con Supabase (proyecto fafutqrkpnasiccrebpo). Migración en supabase/migrations con RLS, Storage y Realtime; cliente opcional (sin claves, modo local); cuenta con código por email; "Meeet In!" y recuento reales; chat remoto paginado con Realtime, fotos/vídeos y no leídos; denunciar y bloquear manteniendo pulsado un mensaje. 274 tests.
 - Migración aplicada en el proyecto remoto (2026-10-27, `db push`); tablas verificadas por REST. Plantillas de email: no se pueden cambiar en el plan gratuito con el correo por defecto, así que se entra con el enlace (PKCE, daystage://auth-callback).
 - `daystage://**` añadido a las URL de redirección del proyecto (2026-10-27, `config push`; el remoto coincide con config.toml).
+- Para probar en Expo Go: añadida también `exp://192.168.1.241:8081/--/auth-callback` (la IP del iMac en la red de casa). `exp://**` lo bloqueó el control de permisos por demasiado amplio. Quitarla cuando la app esté instalada.
 - Sin probar: entrar con un email real en el móvil o el simulador (el enlace debe abrir la app).
 - Pendiente de código: foto de perfil al servidor, lista real de "Gente" en la info de la sala (y bloquear/denunciar desde ahí), Apple y Google, notificaciones push.
 - Siguiente fase (anterior): cruzar turnos con conciertos (`availabilityFor`) en las fichas e Inicio.
