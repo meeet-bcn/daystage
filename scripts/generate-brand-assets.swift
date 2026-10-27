@@ -37,9 +37,11 @@ Q 71.8 61.2 71.8 53.0 Q 71.8 38.2 62.6 26.6 L 58.0 26.6 Q 63.6 38.6 63.6 50.8 Q 
 Q 58.4 70.8 54.4 74.6 Q 50.4 78.4 46.2 79.0 L 46.2 29.6 Q 46.2 17.6 39.1 10.2 Q 32.0 2.8 21.4 2.8
 Q 15.8 2.8 13.0 5.4 Z
 """
-/// Alto de la corchea / lado de la hoja, y cuánto se engrosa (unidades del glifo) para que se lea en pequeño
-let NOTE_SHARE: CGFloat = 0.62
-let NOTE_BOLD: CGFloat = 5
+/// Alto de la corchea / lado de la hoja, y cuánto se engrosa (unidades del glifo); fina, como el glifo
+let NOTE_SHARE: CGFloat = 0.64
+let NOTE_BOLD: CGFloat = 0
+/// Algo estrechada, para una corchea más estilizada
+let NOTE_NARROW: CGFloat = 0.86
 
 /// Lee el trazado M/L/Q/Z del glifo.
 func glyphPath() -> CGPath {
@@ -96,13 +98,13 @@ func drawMark(_ ctx: CGContext, origin: CGPoint, side u: CGFloat, colors: MarkCo
   fillGradient(ctx, colors.sheet, in: sheet)
   ctx.restoreGState()
 
-  // Corchea: el glifo, centrado en la hoja (por su caja) y algo engrosado
+  // Corchea: el glifo, centrado en la hoja (por su caja)
   let glyph = glyphPath()
   let box = glyph.boundingBox.insetBy(dx: -NOTE_BOLD, dy: -NOTE_BOLD)
   let k = NOTE_SHARE * u / box.height
   ctx.saveGState()
   ctx.translateBy(x: u / 2, y: top + u / 2)
-  ctx.scaleBy(x: k, y: -k)
+  ctx.scaleBy(x: k * NOTE_NARROW, y: -k)
   ctx.translateBy(x: -box.midX, y: -box.midY)
   ctx.addPath(glyph)
   ctx.setFillColor(colors.note.cgColor)
