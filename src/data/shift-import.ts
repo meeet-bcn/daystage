@@ -1,7 +1,7 @@
 // Importar turnos pegando un texto (Turnos › Importar): una entrada por día,
 // "AAMMDD=HH:MM-HH:MM" o "AAMMDD=V" (vacaciones, todo el día libre), separadas
 // por espacios, comas o saltos de línea. Por ejemplo:
-//   261102=8:00-17:00 261103=12:00-21:00 261106=V
+//   330301=7:30-15:30 330302=14:00-22:00 330303=V
 // Cada horario distinto es un tipo de turno: de mañana (verde) si acaba a las
 // 19:00 o antes, de tarde (rojo) si acaba más tarde; las vacaciones, ámbar.
 

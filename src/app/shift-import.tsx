@@ -55,14 +55,14 @@ export default function ShiftImportScreen() {
       >
         <Text style={styles.help}>
           Pega tus turnos: un día por entrada, separados por espacios o saltos de línea. Por ejemplo{' '}
-          <Text style={styles.mono}>261102=8:00-17:00 261103=12:00-21:00 261106=V</Text> (año, mes
+          <Text style={styles.mono}>330301=7:30-15:30 330302=14:00-22:00 330303=V</Text> (año, mes
           y día; «V» son vacaciones). Los días que importes mandan sobre tu rotación.
         </Text>
         <TextInput
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder="261102=8:00-17:00 …"
+          placeholder="330301=7:30-15:30 …"
           placeholderTextColor={COLORS.muted}
           multiline
           autoCapitalize="none"
