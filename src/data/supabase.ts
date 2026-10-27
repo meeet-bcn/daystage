@@ -20,6 +20,8 @@ export const supabase =
           autoRefreshToken: true,
           persistSession: true,
           detectSessionInUrl: false,
+          // El enlace del email vuelve a la app (daystage://auth-callback?code=…) y se canjea allí
+          flowType: 'pkce',
         },
       })
     : null;

@@ -1,6 +1,6 @@
 // Prueba de punta a punta del backend contra Supabase LOCAL (Docker), con las
 // mismas llamadas que src/data/chat-service.ts: dos usuarios entran con el
-// código por email (leído de Mailpit), se apuntan a un concierto, chatean,
+// enlace del email (leído de Mailpit) y PKCE, como la app, se apuntan a un concierto, chatean,
 // suben una foto, marcan como leído, denuncian y bloquean, y se comprueba RLS.
 //
 // Uso: npx supabase start  →  npm run backend:e2e  →  npx supabase stop
@@ -31,32 +31,50 @@ const ok = (label, cond, extra = '') => {
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function codeFor(email) {
+/** El enlace del email (la plantilla por defecto solo trae enlace, sin código). */
+async function linkFor(email) {
   for (let i = 0; i < 20; i++) {
     const list = await (await fetch(`${MAIL}/api/v1/search?query=to:${encodeURIComponent(email)}`)).json();
     const id = list.messages?.[0]?.ID;
     if (id) {
       const msg = await (await fetch(`${MAIL}/api/v1/message/${id}`)).json();
-      const m = /(\d{6})/.exec(msg.Text ?? '');
-      if (m) return m[1];
+      const m = /(http\S+\/auth\/v1\/verify\?[^\s)"]+)/.exec(msg.Text ?? '');
+      if (m) return m[1].replace(/&amp;/g, '&');
     }
     await sleep(500);
   }
-  throw new Error(`Sin código para ${email} (¿plantilla sin {{ .Token }}?)`);
+  throw new Error(`Sin enlace para ${email}`);
 }
 
+// Memoria para la sesión y el verificador PKCE, como el kv-store de la app
+const memoryStorage = () => {
+  const m = new Map();
+  return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => void m.set(k, v), removeItem: (k) => void m.delete(k) };
+};
+
+/** Igual que la app: PKCE, enlace que vuelve a daystage://auth-callback?code=… y canje del código. */
 async function signIn(email) {
-  const c = createClient(URL, KEY, { auth: { persistSession: false } });
-  const sent = await c.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  const c = createClient(URL, KEY, {
+    auth: { persistSession: true, storage: memoryStorage(), flowType: 'pkce', detectSessionInUrl: false },
+  });
+  const sent = await c.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true, emailRedirectTo: 'daystage://auth-callback' },
+  });
   if (sent.error) throw sent.error;
-  const { data, error } = await c.auth.verifyOtp({ email, token: await codeFor(email), type: 'email' });
+  // Abrir el enlace: el servidor redirige a la app con el código
+  const res = await fetch(await linkFor(email), { redirect: 'manual' });
+  const location = res.headers.get('location') ?? '';
+  const code = /^daystage:\/\/auth-callback\?code=([^&]+)/.exec(location)?.[1];
+  if (!code) throw new Error(`Redirección inesperada: ${location.slice(0, 80)}`);
+  const { data, error } = await c.auth.exchangeCodeForSession(code);
   if (error) throw error;
   return { c, id: data.user.id };
 }
 
 const a = await signIn(`ana.${RUN}@daystage.test`);
 const b = await signIn(`bruno.${RUN}@daystage.test`);
-ok('registro e inicio con código por email (2 usuarios)', a.id && b.id);
+ok('registro e inicio con el enlace del email y PKCE, como la app (2 usuarios)', a.id && b.id);
 
 // Perfil (upsertProfile)
 let r = await a.c.from('profiles').upsert({ id: a.id, nick: `ana.${RUN}`, name: 'Ana', bio: '', background: 'none', updated_at: new Date().toISOString() });

@@ -1,8 +1,10 @@
 // SessionProvider / useSession(): tu cuenta en Supabase. El primer método es
-// el código por email (OTP); Apple y Google quedan para después. Sin backend
+// el email: un enlace que vuelve a la app (auth-callback, PKCE) o, si la
+// plantilla lo lleva, un código. Apple y Google quedan para después. Sin backend
 // configurado, `enabled` es false y no hay sesión: la app sigue en modo local.
 
 import type { Session } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 
 import { supabase } from '@/data/supabase';
@@ -13,9 +15,11 @@ type SessionState = {
   session: Session | null;
   userId: string | null;
   email: string | null;
-  /** Envía el código de 6 cifras; crea la cuenta si no existe. */
+  /** Envía el email para entrar (enlace y, si la plantilla lo lleva, código); crea la cuenta si no existe. */
   sendCode: (email: string) => Promise<void>;
   verifyCode: (email: string, code: string) => Promise<void>;
+  /** Canjea el `code` del enlace del email (auth-callback). */
+  exchangeLink: (code: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -45,7 +49,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       sendCode: async (email) => {
         const { error } = await required().auth.signInWithOtp({
           email: email.trim(),
-          options: { shouldCreateUser: true },
+          options: {
+            shouldCreateUser: true,
+            // Debe estar en las URL de redirección permitidas del proyecto (daystage://**)
+            emailRedirectTo: Linking.createURL('auth-callback'),
+          },
         });
         if (error) throw error;
       },
@@ -55,6 +63,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           token: code.trim(),
           type: 'email',
         });
+        if (error) throw error;
+      },
+      exchangeLink: async (code) => {
+        const { error } = await required().auth.exchangeCodeForSession(code);
         if (error) throw error;
       },
       signOut: async () => {

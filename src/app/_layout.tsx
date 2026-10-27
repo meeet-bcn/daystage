@@ -31,6 +31,7 @@ export default function RootLayout() {
               <Stack.Screen name="shift-type" options={{ headerShown: false, presentation: 'modal' }} />
               {/* Cuenta: código por email (Supabase) */}
               <Stack.Screen name="sign-in" options={{ headerShown: false, presentation: 'modal' }} />
+              <Stack.Screen name="auth-callback" options={{ headerShown: false, animation: 'fade' }} />
               <Stack.Screen name="rotation" options={{ headerShown: false }} />
               <Stack.Screen
                 name="shift-day"

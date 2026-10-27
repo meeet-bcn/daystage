@@ -19,7 +19,8 @@ import { COLORS, Theme } from '@/theme';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Crear cuenta o entrar con un código de 6 cifras por email (Supabase OTP).
+ * Crear cuenta o entrar por email (Supabase): con el enlace, que vuelve a la app
+ * (auth-callback), o con el código si la plantilla lo lleva (8 cifras en el proyecto).
  * Apple y Google llegarán después. Modal desde el chat o desde Ajustes.
  */
 export default function SignInScreen() {
@@ -55,7 +56,7 @@ export default function SignInScreen() {
       router.back();
     });
 
-  const canSend = step === 'email' ? EMAIL_RE.test(email.trim()) : /^\d{6}$/.test(code.trim());
+  const canSend = step === 'email' ? EMAIL_RE.test(email.trim()) : /^\d{6,10}$/.test(code.trim());
 
   return (
     <KeyboardAvoidingView
@@ -73,7 +74,7 @@ export default function SignInScreen() {
           <>
             <Text style={styles.title}>Crea tu cuenta o entra</Text>
             <Text style={styles.text}>
-              Te enviaremos un código de 6 cifras a tu email. Sin contraseñas.
+              Te enviaremos un email para entrar. Sin contraseñas.
             </Text>
             <TextInput
               style={styles.input}
@@ -93,12 +94,15 @@ export default function SignInScreen() {
         ) : (
           <>
             <Text style={styles.title}>Revisa tu email</Text>
-            <Text style={styles.text}>Escribe el código que te hemos enviado a {email.trim()}.</Text>
+            <Text style={styles.text}>
+              Te hemos enviado un email a {email.trim()}. Ábrelo en este móvil y toca el enlace:
+              volverás aquí con la sesión iniciada. Si el email trae un código, escríbelo abajo.
+            </Text>
             <TextInput
               style={[styles.input, styles.code]}
               value={code}
-              onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
-              placeholder="000000"
+              onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 10))}
+              placeholder="00000000"
               placeholderTextColor={COLORS.muted}
               keyboardType="number-pad"
               autoComplete="one-time-code"
@@ -106,7 +110,7 @@ export default function SignInScreen() {
               autoFocus
             />
             <Pressable onPress={() => setStep('email')} hitSlop={8}>
-              <Text style={styles.link}>Cambiar el email o pedir otro código</Text>
+              <Text style={styles.link}>Cambiar el email o pedir otro</Text>
             </Pressable>
           </>
         )}
@@ -123,7 +127,7 @@ export default function SignInScreen() {
               <ActivityIndicator color={COLORS.white} />
             ) : (
               <Text style={styles.buttonText}>
-                {step === 'email' ? 'Enviarme el código' : 'Entrar'}
+                {step === 'email' ? 'Enviarme el email' : 'Entrar con el código'}
               </Text>
             )}
           </Pressable>
