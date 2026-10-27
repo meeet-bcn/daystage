@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -322,6 +323,16 @@ export default function HomeScreen() {
             <Text style={{ color: theme.logo[2] }}>e</Text>t
             <Text style={{ color: theme.accent }}>.</Text>
           </Animated.Text>
+          {/* Buscar (ya no es pestaña: en la barra solo caben 5) */}
+          <Pressable
+            onPress={() => router.push('/buscar')}
+            hitSlop={10}
+            style={styles.searchButton}
+            accessibilityRole="button"
+            accessibilityLabel="Buscar conciertos"
+          >
+            <Ionicons name="search" size={24} color={COLORS.text} />
+          </Pressable>
         </Animated.View>
 
         <Animated.Text
@@ -401,6 +412,15 @@ const makeStyles = (theme: Theme) =>
     },
     glass: { backgroundColor: 'rgba(255,255,255,0.45)' },
     logoRow: { justifyContent: 'center' },
+    searchButton: {
+      position: 'absolute',
+      right: 16,
+      top: 0,
+      bottom: 0,
+      width: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     // Logo y lema, centrados
     logo: {
       alignSelf: 'center',

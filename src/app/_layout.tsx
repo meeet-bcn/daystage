@@ -21,6 +21,8 @@ export default function RootLayout() {
             <Stack.Screen name="chat/[id]/info" options={{ headerShown: false }} />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
             <Stack.Screen name="follows" options={{ headerShown: false }} />
+            {/* Buscar: desde la lupa de la cabecera de Inicio (ya no es pestaña) */}
+            <Stack.Screen name="buscar" options={{ headerShown: false }} />
             {/* Turnos: tipos de turno, su editor (modal), la rotación y la hoja de un día */}
             <Stack.Screen name="shift-types" options={{ headerShown: false }} />
             <Stack.Screen name="shift-type" options={{ headerShown: false, presentation: 'modal' }} />

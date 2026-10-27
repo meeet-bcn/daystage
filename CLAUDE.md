@@ -28,7 +28,6 @@ src/
       index.tsx             # Inicio: cabecera fija (logo y lema que se encogen, chips Todos · Filtros · Hoy · Mañana · Próxima semana · Calendario siempre visibles) y lista filtrada que carga más al bajar
       turnos.tsx            # Turnos (DayStage): vista de mes (lunes primero, flechas, abreviatura y color de cada turno, hoy marcado, punto en los días cambiados), tarjeta de la rotación y leyenda de tipos
       descubrir.tsx         # Descubrir: "Tinder" de conciertos. Pide perfil; la primera vez explica, eliges 5 artistas (TastePicker) y explica las cartas
-      buscar.tsx            # Buscar (botón de búsqueda del sistema en la barra): conciertos cargados + búsqueda en las ticketeras
       meeet-in.tsx          # Meeet in: próximos planes arriba y "Conciertos pasados" plegables abajo, cada uno con su chat y su burbuja de no leídos
       perfil.tsx            # Perfil estilo Instagram: nick, foto cuadrada con esquinas redondeadas (104 pt) y a su lado, con el mismo alto, la pastilla del próximo concierto (abre su ficha) sobre meeet in / seguidores / seguidos (se tocan: columna Meeet in y `/follows`); nombre, estilos, ubicación, bio, canción, redes, fondo en todo el perfil y cuadrícula en tres columnas: Meeet in (próximos), Lista de deseos y Pasados: un paginador horizontal (las columnas se arrastran con el dedo y la raya de las pestañas las sigue; la página mide lo que la columna que se ve)
     concert/[id].tsx        # Detalle (fuera de las pestañas): hero, "Meeet In!", "Comprar entradas" / "Entrada gratuita", compartir, "Ir a la sala de chat" (solo si vas), fragmento de la canción más popular del artista, pestañas Información/Lugar con icono y texto debajo, como las columnas del perfil
@@ -39,6 +38,7 @@ src/
     follows.tsx             # Seguidores · Seguidos (desde sus números en Perfil); vacías y explicado hasta que haya cuentas
     settings.tsx            # Ajustes (Perfil › engranaje): idioma principal, privacidad, notificaciones, vibración, caché, borrar datos, información
     filters.tsx             # Hoja nativa (formSheet): ordenar, género, precio
+    buscar.tsx              # Buscar (lupa de la cabecera de Inicio; ya no es pestaña): conciertos cargados + búsqueda en las ticketeras
     calendar.tsx            # Hoja del calendario: intervalo de días, con punto en los días con conciertos; al bajar por los meses pide más páginas y "Quitar fechas" vacía la caché (`trimConcerts`)
     edit-profile.tsx        # Modal de editar perfil: foto, nick (@, reglas tipo Instagram), nombre, pronombres, bio, ubicación (texto libre), canción y redes (Instagram, TikTok, X, Apple Music, Spotify); solo se aplica al pulsar "Guardar"
     shift-day.tsx           # Hoja (formSheet) de un día de Turnos: elegir otro turno o libre (cambio del día) o "Volver a la rotación"
@@ -71,7 +71,7 @@ src/
     profile-song.tsx        # Tarjeta de la canción en Perfil, con el enlace a Apple Music
     screen-title.tsx        # Título grande con el punto violeta, y ScreenSubtitle
     screen-header.tsx       # Cabecera fija de cristal de las pestañas (título y, si hace falta, buscador): la lista pasa por debajo
-    app-tabs.tsx            # NativeTabs (iOS/Android): Inicio · Descubrir · Meeet in · Perfil, con el badge de no leídos
+    app-tabs.tsx            # NativeTabs (iOS/Android): Inicio · Turnos · Descubrir · Meeet in · Perfil, con el badge de no leídos
     app-tabs.web.tsx        # Barra de pestañas para web (expo-router/ui), con un punto rojo como badge
     splash-overlay*.tsx     # Relevo del splash nativo con fundido (en web no hace nada)
     shift-badge.tsx         # Abreviatura de un turno sobre su color (libre: "L" gris)
@@ -122,7 +122,7 @@ scripts/jest-timezone.js              # globalSetup de jest: los tests corren si
 
 - **Turnos** (`shifts.ts`): las fechas son días locales en texto `'YYYY-MM-DD'`; los días se suman en UTC (sin cambios de hora) y las horas reales se calculan con la hora local, así que la noche del último domingo de octubre dura 9 h y la de marzo, 7 h. Un turno cuyo fin es igual o anterior al inicio acaba al día siguiente. Antes de `startDate` la rotación sigue hacia atrás (módulo positivo). Un cambio del día (`DayOverride`, `shiftTypeId: null` = libre) manda sobre la rotación; elegir en la hoja lo mismo que dice la rotación borra el cambio. `availabilityFor` da por hecho que un concierto dura 3 h y deja 60 min tras el turno (los dos se pueden cambiar). Los colores de turno se guardan como clave de `SHIFT_COLORS` (`theme.ts`), nunca como hex. Solo hay una rotación.
 - **Base de datos de turnos** (`shift-db.ts`): síncrona, se lee entera al arrancar y cada cambio se escribe al momento. Para cambiar el esquema, añade una función al final de `MIGRATIONS` (nunca edites una publicada). Los tres tipos por defecto (Mañana 06–14, Tarde 14–22, Noche 22–06) solo se crean en la migración 1.
-- Barra de pestañas con Turnos: Inicio · Turnos · Descubrir · Meeet in · Perfil + Buscar. En iPhone caben 5: con 6, iOS mete Perfil y Buscar en "More". Pendiente de decidir qué sale de la barra.
+- Barra de pestañas: Inicio · Turnos · Descubrir · Meeet in · Perfil. En iPhone caben 5 (con más, iOS mete las últimas en "More"), así que Buscar no es pestaña: se abre con la lupa de la cabecera de Inicio (`/buscar`). No añadas otra pestaña sin quitar una.
 - Alias de importación: `@/*` → `src/*` y `@/assets/*` → `assets/*`.
 - `typedRoutes` y `reactCompiler` están activados en `app.json`. Navega con rutas tipadas: `router.push({ pathname: '/concert/[id]', params: { id } })`.
 - Variable de entorno: `EXPO_PUBLIC_TICKETMASTER_KEY` en `.env.local` (no está versionado). Al llevar el prefijo `EXPO_PUBLIC_`, la clave se incrusta en el bundle. No metas ahí secretos de verdad.
@@ -150,7 +150,7 @@ scripts/jest-timezone.js              # globalSetup de jest: los tests corren si
 - Canción del artista en el detalle: `fetchTopSong` coge el primer resultado de iTunes del artista principal (iTunes ordena por relevancia, no da la popularidad). Si hay homónimos (varios `artistId` con ese nombre), `pickTopSong` devuelve null.
 - Los nombres de pestaña y los títulos de pantalla van con mayúscula inicial, también "Meeet in" (Inicio · Descubrir · Meeet in · Perfil). El logo, en cambio, siempre en minúscula: `meeet.`.
 - En Inicio, el logo y el lema van centrados (también el logo encogido). Ya no hay aviso de beta: no lo vuelvas a poner.
-- Las demás pestañas (Descubrir, Meeet in, Perfil, Buscar) llevan `ScreenHeader`: cabecera fija de cristal (blur + blanco al 45 %, como Inicio), puesta después de la lista, que recibe su alto como `paddingTop`. En Perfil ese margen va dentro del bloque del degradado, para que el fondo se vea a través del cristal. El subtítulo (`ScreenSubtitle`) va en la lista y se desplaza.
+- Las demás pestañas (Turnos, Descubrir, Meeet in, Perfil) y Buscar llevan `ScreenHeader`: cabecera fija de cristal (blur + blanco al 45 %, como Inicio), puesta después de la lista, que recibe su alto como `paddingTop`. En Perfil ese margen va dentro del bloque del degradado, para que el fondo se vea a través del cristal. El subtítulo (`ScreenSubtitle`) va en la lista y se desplaza.
 - Recargar Inicio: suena `assets/sounds/refresh.wav` (generado con `scripts/generate-sounds.py`; ajuste "Sonidos") y vibra; al terminar, el imagotipo crece y se desvanece mientras estallan los destellos (`SparkleBurst`), y el hueco se cierra con `LayoutAnimation`.
 - Inicio y el imagotipo animado (`ImagotipoAnimado`): sale en la primera carga (en el centro) y al tirar hacia abajo para recargar. El "tirar para recargar" es propio (`onScrollEndDrag` + `refreshConcerts`), porque el RefreshControl de iOS solo admite su ruedecita: el imagotipo va detrás de la lista y asoma en el hueco. Tocar Inicio estando en Inicio sube arriba (`tabPress`).
 - Al darle a "Meeet In!" (`toggleGoing`), `celebration` guarda ese concierto: su foto hace entrar la insignia con rebote, un reflejo y destellos (`MeeetInBurst`), y al acabar se limpia (`endCelebration`). Con "Reducir movimiento", sin destellos.

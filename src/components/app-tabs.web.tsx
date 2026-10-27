@@ -37,9 +37,6 @@ export default function AppTabs() {
           <TabTrigger name="perfil" href="/perfil" asChild>
             <TabButton>Perfil</TabButton>
           </TabTrigger>
-          <TabTrigger name="buscar" href="/buscar" asChild>
-            <TabButton>Buscar</TabButton>
-          </TabTrigger>
         </CustomTabList>
       </TabList>
     </Tabs>

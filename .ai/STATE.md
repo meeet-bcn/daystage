@@ -6,7 +6,8 @@ _Actualizado: 2026-10-27_
 - Fase 0 (rama `fase-0-daystage`): repo nacido de meeet, renombrado a DayStage (bundle `com.elcantantemudo.daystage`). Compila y arranca en el simulador iOS. Android sin probar: falta Android Studio, el SDK y JDK 17.
 - Fase 1 (rama `fase-1-turnos`): pestaña Turnos con vista de mes, hoja del día, tipos de turno, asistente de rotación (plantilla 2M-2T-2N-4L) y SQLite (`daystage.db`). 245 tests. Visto en el simulador (capturas): mes con rotación y un día cambiado, rotación, editor de tipo, hoja del día, lista de tipos.
 - Sin verificar a mano (el simulador no se pudo tocar): guardar desde la interfaz (la rotación de ejemplo se metió en la base con sqlite3; la app la leyó bien), escribir horas, borrar un tipo, flechas de mes.
-- Pendiente: con 6 pestañas iOS muestra "More" (Perfil y Buscar quedan dentro). Decidir qué sale de la barra. Siguiente fase: cruzar turnos con conciertos (`availabilityFor`) en las fichas e Inicio.
+- Barra en 5 pestañas (Inicio · Turnos · Descubrir · Meeet in · Perfil); Buscar se abre con la lupa de Inicio.
+- Siguiente fase: cruzar turnos con conciertos (`availabilityFor`) en las fichas e Inicio.
 
 ---
 

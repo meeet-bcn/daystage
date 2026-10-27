@@ -14,7 +14,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConcertImage } from '@/components/concert-image';
 import { ScreenHeader } from '@/components/screen-header';
 import { SearchBar } from '@/components/search-bar';
-import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
 import { Concert } from '@/data/concerts';
 import { useConcertSearch } from '@/hooks/use-concert-search';
@@ -48,7 +47,7 @@ export default function SearchScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           paddingTop: headerHeight,
-          paddingBottom: insets.bottom + BottomTabInset + 32,
+          paddingBottom: insets.bottom + 32,
         }}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={
@@ -88,9 +87,23 @@ export default function SearchScreen() {
         )}
       />
       {/* Fija arriba, de cristal, con el buscador siempre a mano */}
-      <ScreenHeader title="Buscar" scrollY={scrollY} onHeight={setHeaderHeight}>
+      <ScreenHeader
+        title="Buscar"
+        scrollY={scrollY}
+        onHeight={setHeaderHeight}
+        accessory={
+          <Pressable onPress={() => router.back()} hitSlop={10} style={styles.close}>
+            <Text style={styles.closeText}>Cerrar</Text>
+          </Pressable>
+        }
+      >
         <View style={styles.search}>
-          <SearchBar value={query} onChangeText={setQuery} placeholder="Artista, sala o género" />
+          <SearchBar
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Artista, sala o género"
+            autoFocus
+          />
         </View>
       </ScreenHeader>
     </View>
@@ -99,6 +112,8 @@ export default function SearchScreen() {
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    close: { marginLeft: 'auto' },
+    closeText: { color: theme.accent, fontSize: 16, fontWeight: '600' },
     container: { flex: 1, backgroundColor: COLORS.background },
     search: { paddingHorizontal: 20, paddingBottom: 12 },
     spinner: { marginTop: 24 },

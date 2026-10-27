@@ -17,6 +17,8 @@ export default function AppTabs() {
       <TabAvatarMaker />
       {/* disableAutomaticContentInsets en cada pestaña: cada pantalla pone ya su margen
           superior (ScreenTitle, cabecera de Inicio); si no, iOS suma otra vez la zona segura */}
+      {/* En iPhone caben 5 pestañas: con más, iOS mete las últimas en "More".
+          Buscar se abre desde la lupa de Inicio (src/app/buscar.tsx) */}
       <NativeTabs
         backgroundColor={COLORS.background}
         tintColor={theme.accent}
@@ -100,18 +102,6 @@ export default function AppTabs() {
               md="account_circle"
             />
           )}
-        </NativeTabs.Trigger>
-
-        {/* Botón de búsqueda del sistema: en iOS 26 va aparte, en un círculo a la derecha */}
-        <NativeTabs.Trigger
-          name="buscar"
-          disableAutomaticContentInsets
-          role="search"
-          // Desde iOS 26.1 la pestaña de búsqueda activa sola su campo nativo: la pantalla ya trae el suyo
-          disableAutomaticSearchActivation
-        >
-          <NativeTabs.Trigger.Label>Buscar</NativeTabs.Trigger.Label>
-          <NativeTabs.Trigger.Icon md="search" />
         </NativeTabs.Trigger>
       </NativeTabs>
     </>
