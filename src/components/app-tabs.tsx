@@ -30,27 +30,28 @@ export default function AppTabs() {
           selected: { color: theme.accent },
         }}
       >
+        {/* Primero el calendario (turnos y planes): la app se abre aquí */}
         <NativeTabs.Trigger name="index" disableAutomaticContentInsets>
-          <NativeTabs.Trigger.Label>Inicio</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>Calendario</NativeTabs.Trigger.Label>
           {/* Todos los iconos son PNG de scripts/generate-tab-icons.swift: VectorIcon se
               carga de forma asíncrona y, si el seleccionado llega antes, la barra falla */}
-          <NativeTabs.Trigger.Icon
-            src={{
-              default: require('@/assets/images/tabs/home.png'),
-              selected: require('@/assets/images/tabs/home-fill.png'),
-            }}
-            md="home"
-          />
-        </NativeTabs.Trigger>
-
-        <NativeTabs.Trigger name="turnos" disableAutomaticContentInsets>
-          <NativeTabs.Trigger.Label>Turnos</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon
             src={{
               default: require('@/assets/images/tabs/shifts.png'),
               selected: require('@/assets/images/tabs/shifts-fill.png'),
             }}
             md="calendar_month"
+          />
+        </NativeTabs.Trigger>
+
+        <NativeTabs.Trigger name="eventos" disableAutomaticContentInsets>
+          <NativeTabs.Trigger.Label>Eventos</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon
+            src={{
+              default: require('@/assets/images/tabs/events.png'),
+              selected: require('@/assets/images/tabs/events-fill.png'),
+            }}
+            md="music_note"
           />
         </NativeTabs.Trigger>
 

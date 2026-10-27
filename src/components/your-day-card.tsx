@@ -25,13 +25,13 @@ export function YourDayCard({ concert }: { concert: Concert }) {
 
   if (!hasShifts) {
     return (
-      <Pressable style={styles.card} onPress={() => router.navigate('/turnos')}>
+      <Pressable style={styles.card} onPress={() => router.navigate('/')}>
         <Text style={styles.title}>Tu día</Text>
         <Text style={styles.text}>
           Configura tus turnos y te diremos si ese día libras, sales a tiempo o trabajas.
         </Text>
         <View style={styles.linkRow}>
-          <Text style={styles.link}>Configurar en Turnos</Text>
+          <Text style={styles.link}>Configurar en Calendario</Text>
           <Ionicons name="chevron-forward" size={16} color={theme.accent} />
         </View>
       </Pressable>
@@ -44,7 +44,7 @@ export function YourDayCard({ concert }: { concert: Concert }) {
     <Pressable
       style={styles.card}
       onPress={() => router.push({ pathname: '/shift-day', params: { date } })}
-      accessibilityHint="Abre el día en Turnos para cambiar el turno"
+      accessibilityHint="Abre el día en el Calendario para cambiar el turno"
     >
       <View style={styles.head}>
         <Text style={styles.title}>Tu día</Text>

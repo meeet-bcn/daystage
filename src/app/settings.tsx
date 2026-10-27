@@ -353,7 +353,7 @@ export default function SettingsScreen() {
               maxLength={6}
             />
           </View>
-          <Row icon="calendar-outline" label="Tus turnos" onPress={() => router.navigate('/turnos')} />
+          <Row icon="calendar-outline" label="Tus turnos" onPress={() => router.navigate('/')} />
         </Section>
 
         <Section title="Experiencia">
