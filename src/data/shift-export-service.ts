@@ -7,6 +7,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
+import type { MealTickets } from '@/data/meal-tickets';
 import type { MonthReport } from '@/data/reports';
 import { calendarEvents, CALENDAR_TITLE, EVENT_MARK, monthHtml } from '@/data/shift-export';
 import { addDays, type ShiftPlan, toDateKey } from '@/data/shifts';
@@ -76,8 +77,14 @@ export async function syncToCalendar(plan: ShiftPlan): Promise<CalendarSyncResul
 }
 
 /** PDF del mes (calendario y resumen) y la hoja de compartir del sistema. */
-export async function shareMonthPdf(plan: ShiftPlan, year: number, month: number, report: MonthReport) {
-  const { uri } = await Print.printToFileAsync({ html: monthHtml(plan, year, month, report) });
+export async function shareMonthPdf(
+  plan: ShiftPlan,
+  year: number,
+  month: number,
+  report: MonthReport,
+  tickets: MealTickets | null = null
+) {
+  const { uri } = await Print.printToFileAsync({ html: monthHtml(plan, year, month, report, tickets) });
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: 'Mis turnos' });
   }

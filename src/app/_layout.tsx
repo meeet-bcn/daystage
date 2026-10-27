@@ -40,6 +40,8 @@ export default function RootLayout() {
                 <Stack.Screen name="sign-in" options={{ headerShown: false, presentation: 'modal' }} />
                 <Stack.Screen name="auth-callback" options={{ headerShown: false, animation: 'fade' }} />
                 <Stack.Screen name="rotation" options={{ headerShown: false }} />
+                {/* Calendario › Editar: qué secciones se ven bajo el mes */}
+                <Stack.Screen name="calendar-sections" options={{ headerShown: false }} />
                 <Stack.Screen name="shift-import" options={{ headerShown: false, presentation: 'modal' }} />
                 <Stack.Screen
                   name="shift-day"

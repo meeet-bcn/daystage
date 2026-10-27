@@ -51,6 +51,13 @@ describe('monthHtml', () => {
     expect(html.match(/<td/g)?.length).toBeGreaterThanOrEqual(31);
   });
 
+  it('con ticket comida, su línea en el resumen', () => {
+    const report = monthReport(plan, 2033, 3, { dailyHours: 8, hourlyRate: null });
+    const html = monthHtml(plan, 2033, 3, report, { count: 2, amount: 9.5, total: 19 });
+    expect(html).toContain('<b>19,00 €</b><span>Ticket comida (2 × 9,50 €)</span>');
+    expect(monthHtml(plan, 2033, 3, report)).not.toContain('Ticket comida');
+  });
+
   it('escapa los nombres', () => {
     const weird: ShiftPlan = {
       types: [{ ...V, abbr: '<b>' }],

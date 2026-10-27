@@ -1,6 +1,7 @@
 // Exportar turnos (funciones puras): los eventos para el calendario del iPhone
 // (un calendario «DayStage» propio) y el HTML del PDF del mes para compartir.
 
+import type { MealTickets } from '@/data/meal-tickets';
 import { formatEuros, formatHours, type MonthReport } from '@/data/reports';
 import {
   addDays,
@@ -60,7 +61,13 @@ const escape = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /** HTML de una página con el mes (como en la app) y el resumen del informe. */
-export function monthHtml(plan: ShiftPlan, year: number, month: number, report: MonthReport) {
+export function monthHtml(
+  plan: ShiftPlan,
+  year: number,
+  month: number,
+  report: MonthReport,
+  tickets: MealTickets | null = null
+) {
   const rows = monthGrid(year, month)
     .map(
       (week) =>
@@ -89,6 +96,7 @@ export function monthHtml(plan: ShiftPlan, year: number, month: number, report: 
     ['Vacaciones', String(report.vacationDays)],
     ['Horas extra', formatHours(report.overtime)],
     ...(report.earnings != null ? [['Ganancias', formatEuros(report.earnings)]] : []),
+    ...(tickets ? [[`Ticket comida (${tickets.count} × ${formatEuros(tickets.amount)})`, formatEuros(tickets.total)]] : []),
   ]
     .map(([label, value]) => `<div class="stat"><b>${value}</b><span>${label}</span></div>`)
     .join('');
