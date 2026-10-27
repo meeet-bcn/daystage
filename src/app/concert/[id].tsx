@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ArtistCard } from '@/components/artist-card';
 import { EventImage } from '@/components/event-image';
+import { FriendsCard } from '@/components/friends-card';
 import { GoButton } from '@/components/go-button';
 import { MediaViewer } from '@/components/media-viewer';
 import { SongCard } from '@/components/song-card';
@@ -262,6 +263,8 @@ export default function ConcertDetail() {
 
           {/* DayStage: tu turno ese día y si puedes ir */}
           <YourDayCard concert={concert} />
+          {/* Quién de tu gente va o está libre ese día */}
+          <FriendsCard concert={concert} />
 
           {topSong ? <SongCard song={topSong} title="Escucha a este artista" /> : null}
 

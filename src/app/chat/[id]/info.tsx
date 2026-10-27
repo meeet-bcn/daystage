@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  Alert,
   ActivityIndicator,
   Pressable,
   ScrollView,
@@ -16,8 +17,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ConcertImage } from '@/components/concert-image';
 import { Media, MediaViewer } from '@/components/media-viewer';
 import { ProfileAvatar } from '@/components/profile-avatar';
+import { PersonRow } from '@/components/person-row';
 import { VideoThumb } from '@/components/video-thumb';
 import { useApp } from '@/data/app-context';
+import { blockUser, reportUser } from '@/data/chat-service';
+import { canonicalConcertId } from '@/data/merge';
+import { useSession } from '@/data/session-context';
+import { displayName, type PublicProfile } from '@/data/social';
+import { fetchRoomMembers } from '@/data/social-service';
 import { useChatRoom } from '@/hooks/use-chat-room';
 import { membersLabel } from '@/data/chat';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
@@ -61,6 +68,44 @@ export default function ChatInfoScreen() {
   const artist = concert?.artist ?? '';
   // Con cuenta, las fotos y vídeos de la sala del servidor; sin backend, los de este móvil
   const room = useChatRoom(id, concert, { live: false });
+  // Con cuenta, la gente que va de verdad (attendance); sin ella, solo tú
+  const { userId } = useSession();
+  const [people, setPeople] = useState<PublicProfile[] | null>(null);
+  useEffect(() => {
+    if (!userId || !concert) return;
+    let alive = true;
+    fetchRoomMembers(canonicalConcertId(concert))
+      .then((list) => alive && setPeople(list))
+      .catch((e) => console.warn('[sala] Gente:', e));
+    return () => {
+      alive = false;
+    };
+    // Solo al abrir (el concierto cambia de objeto con cada página cargada)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, id]);
+
+  const moderate = (person: PublicProfile) =>
+    Alert.alert(displayName(person), undefined, [
+      {
+        text: 'Denunciar',
+        onPress: () =>
+          reportUser(person.id, userId!)
+            .then(() => Alert.alert('Gracias. Lo revisaremos.'))
+            .catch(() => Alert.alert('No se pudo enviar', 'Inténtalo otra vez.')),
+      },
+      {
+        text: 'Bloquear',
+        style: 'destructive',
+        onPress: () =>
+          blockUser(person.id, userId!)
+            .then(() => {
+              setPeople((list) => list?.filter((p) => p.id !== person.id) ?? null);
+              Alert.alert('Bloqueada', 'Ya no verás sus mensajes.');
+            })
+            .catch(() => Alert.alert('No se pudo bloquear', 'Inténtalo otra vez.')),
+      },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
   const sent = room.mode === 'remote' ? room.messages : messagesOfConcert(id);
   const photos = sent.filter((m) => m.photo);
   const videos = sent.filter((m) => m.video);
@@ -117,7 +162,35 @@ export default function ChatInfoScreen() {
           ))}
         </View>
 
-        {tab === 'people' && (
+        {tab === 'people' && people && (
+          <View style={styles.members}>
+            {people.map((person) =>
+              person.id === userId ? (
+                <PersonRow key={person.id} person={person} hideFollow detail="Tú" />
+              ) : (
+                <PersonRow
+                  key={person.id}
+                  person={person}
+                  onLongPress={() => moderate(person)}
+                  accessory={
+                    <Pressable
+                      onPress={() => moderate(person)}
+                      hitSlop={10}
+                      accessibilityLabel={`Más opciones de ${displayName(person)}`}
+                    >
+                      <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.muted} />
+                    </Pressable>
+                  }
+                />
+              )
+            )}
+            {people.length === 0 && (
+              <Text style={styles.note}>Cuando la gente le dé a «Meeet In!», la verás aquí.</Text>
+            )}
+          </View>
+        )}
+
+        {tab === 'people' && !people && (
           <View>
             <View style={styles.member}>
               <ProfileAvatar size={44} uri={profile.photo || undefined} />
@@ -306,6 +379,7 @@ const makeStyles = (theme: Theme) =>
     memberName: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
     you: { color: COLORS.muted, fontWeight: '400' },
     memberSub: { color: COLORS.muted, fontSize: 13, marginTop: 2 },
+    members: { paddingHorizontal: 20, paddingTop: 8 },
     note: {
       color: COLORS.muted,
       fontSize: 14,

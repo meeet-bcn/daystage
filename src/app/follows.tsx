@@ -1,10 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PersonRow } from '@/components/person-row';
+import { SearchBar } from '@/components/search-bar';
 import { useApp } from '@/data/app-context';
+import { useSession } from '@/data/session-context';
+import { nickQuery, type PublicProfile } from '@/data/social';
+import { useSocial } from '@/data/social-context';
+import { searchProfiles } from '@/data/social-service';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
 
@@ -14,18 +20,18 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'following', label: 'Seguidos' },
 ];
 
-// Aún no hay cuentas de otras personas: las listas están vacías y se dice por qué
+// Sin cuenta (o sin nadie aún), las listas están vacías y se dice por qué
 const EMPTY: Record<Tab, { icon: 'people-outline' | 'person-add-outline'; title: string; text: string }> =
   {
     followers: {
       icon: 'people-outline',
       title: 'Aún no te sigue nadie',
-      text: 'Cuando haya cuentas, aquí verás a la gente que te sigue. Ve a conciertos y dale a «Meeet In!»: así te encontrarán.',
+      text: 'Aquí verás a la gente que te sigue. Ve a conciertos y dale a «Meeet In!»: así te encontrarán.',
     },
     following: {
       icon: 'person-add-outline',
       title: 'Aún no sigues a nadie',
-      text: 'Cuando haya cuentas, podrás seguir a la gente que conozcas en las salas de los conciertos y aparecerá aquí.',
+      text: 'Busca a tus amigos por su nick o síguelos desde la sala de un concierto. Si os seguís los dos, podréis ver qué días tenéis libres.',
     },
   };
 
@@ -36,9 +42,29 @@ export default function FollowsScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ tab?: Tab }>();
   const { profile } = useApp();
+  const { userId, enabled } = useSession();
+  const { following, followers } = useSocial();
   const [tab, setTab] = useState<Tab>(params.tab === 'following' ? 'following' : 'followers');
-  const counts: Record<Tab, number> = { followers: profile.followers, following: profile.following };
+  const counts: Record<Tab, number> = userId
+    ? { followers: followers.length, following: following.length }
+    : { followers: profile.followers, following: profile.following };
   const empty = EMPTY[tab];
+
+  // Buscar gente por nick (con una pequeña espera mientras escribes)
+  const [query, setQuery] = useState('');
+  const [found, setFound] = useState<PublicProfile[]>([]);
+  const q = nickQuery(query);
+  useEffect(() => {
+    if (!userId || q.length < 2) return;
+    const timer = setTimeout(() => {
+      searchProfiles(q, userId)
+        .then(setFound)
+        .catch((e) => console.warn('[social] Buscar:', e));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [q, userId]);
+  const searching = q.length >= 2;
+  const list = searching ? found : tab === 'followers' ? followers : following;
 
   return (
     <View style={styles.container}>
@@ -68,12 +94,44 @@ export default function FollowsScreen() {
         ))}
       </View>
 
-      {/* Cuando haya cuentas, aquí irá la lista de personas */}
-      <View style={[styles.empty, { paddingBottom: insets.bottom + 80 }]}>
-        <Ionicons name={empty.icon} size={36} color={COLORS.lavender} />
-        <Text style={styles.emptyTitle}>{empty.title}</Text>
-        <Text style={styles.emptyText}>{empty.text}</Text>
-      </View>
+      {userId ? (
+        <FlatList
+          data={list}
+          keyExtractor={(p) => p.id}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 32 }}
+          ListHeaderComponent={
+            <View style={styles.search}>
+              <SearchBar value={query} onChangeText={setQuery} placeholder="Buscar por nick" />
+            </View>
+          }
+          renderItem={({ item }) => <PersonRow person={item} />}
+          ListEmptyComponent={
+            searching ? (
+              <Text style={styles.noResults}>Nadie con ese nick.</Text>
+            ) : (
+              <View style={styles.emptyInList}>
+                <Ionicons name={empty.icon} size={36} color={COLORS.lavender} />
+                <Text style={styles.emptyTitle}>{empty.title}</Text>
+                <Text style={styles.emptyText}>{empty.text}</Text>
+              </View>
+            )
+          }
+        />
+      ) : (
+        <View style={[styles.empty, { paddingBottom: insets.bottom + 80 }]}>
+          <Ionicons name={empty.icon} size={36} color={COLORS.lavender} />
+          <Text style={styles.emptyTitle}>{empty.title}</Text>
+          <Text style={styles.emptyText}>
+            {enabled ? 'Para seguir a gente y ver a tus seguidores, entra con tu cuenta.' : empty.text}
+          </Text>
+          {enabled && (
+            <Pressable style={styles.signIn} onPress={() => router.push('/sign-in')}>
+              <Text style={styles.signInText}>Crear cuenta o entrar</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -113,4 +171,17 @@ const makeStyles = (theme: Theme) =>
     },
     emptyTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700', marginTop: 6 },
     emptyText: { color: COLORS.muted, fontSize: 15, lineHeight: 22, textAlign: 'center' },
+    emptyInList: { alignItems: 'center', gap: 8, paddingTop: 48, paddingHorizontal: 20 },
+    search: { paddingVertical: 12 },
+    noResults: { color: COLORS.muted, fontSize: 15, textAlign: 'center', marginTop: 24 },
+    signIn: {
+      marginTop: 12,
+      height: 46,
+      paddingHorizontal: 24,
+      borderRadius: 23,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.accent,
+    },
+    signInText: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
   });

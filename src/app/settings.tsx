@@ -284,6 +284,16 @@ export default function SettingsScreen() {
               ))}
             </View>
           </View>
+          {session.userId && (
+            <Row
+              icon="people-outline"
+              label="Compartir mis días libres"
+              detail="Tus amigos (os seguís los dos) verán qué días libras; nunca tu horario"
+              right={
+                <Toggle value={settings.shareDays} onChange={(shareDays) => updateSettings({ shareDays })} />
+              }
+            />
+          )}
           <Row icon="calendar-outline" label="Tus turnos" onPress={() => router.navigate('/turnos')} />
         </Section>
 

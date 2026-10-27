@@ -29,6 +29,8 @@ export type Settings = {
   sounds: boolean;
   /** DayStage: minutos que necesitas tras acabar el turno para llegar a un concierto. */
   shiftMarginMinutes: number;
+  /** Compartir tus próximos días (libre o trabajas) con tus amigos (os seguís los dos). */
+  shareDays: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   haptics: true,
   sounds: true,
   shiftMarginMinutes: 60,
+  shareDays: false,
 };
 
 export const MESSAGES_FROM_OPTIONS: { key: MessagesFrom; label: string }[] = [
