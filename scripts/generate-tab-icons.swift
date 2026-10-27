@@ -1,6 +1,7 @@
 // Iconos de la barra de pestañas, como PNG: la casa de Inicio (sin puerta),
 // el imagotipo de meeet in (dos círculos que se encuentran) y, desde la fuente
-// de Ionicons, las estrellas de Descubrir y el usuario de Perfil. Cada uno en
+// de Ionicons, el calendario de Turnos, las estrellas de Descubrir y el
+// usuario de Perfil. Cada uno en
 // versión normal (trazo) y seleccionada (relleno), a 1x, 2x y 3x. Son negros
 // sobre transparente: la barra los tiñe (template).
 //
@@ -99,6 +100,8 @@ for scale: CGFloat in [1, 2, 3] {
   try render("meeet-in-fill", scale: scale) { circles($0, filled: true) }
   try render("discover", scale: scale) { ionicon($0, 0xF58D) } // sparkles-outline
   try render("discover-fill", scale: scale) { ionicon($0, 0xF58C) } // sparkles
+  try render("shifts", scale: scale) { ionicon($0, 0xF1D1) } // calendar-clear-outline
+  try render("shifts-fill", scale: scale) { ionicon($0, 0xF1D0) } // calendar-clear
   try render("profile", scale: scale) { ionicon($0, 0xF4AA) } // person-circle-outline
   try render("profile-fill", scale: scale) { ionicon($0, 0xF4A9) } // person-circle
 }

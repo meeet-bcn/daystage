@@ -67,6 +67,7 @@
     "moduleNameMapper": {
       "^@/assets/(.*)$": "<rootDir>/assets/$1",
       "^@/(.*)$": "<rootDir>/src/$1"
-    }
+    },
+    "globalSetup": "<rootDir>/scripts/jest-timezone.js"
   }
 }

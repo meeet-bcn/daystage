@@ -26,6 +26,7 @@ src/
     (tabs)/
       _layout.tsx           # Renderiza <AppTabs />
       index.tsx             # Inicio: cabecera fija (logo y lema que se encogen, chips Todos · Filtros · Hoy · Mañana · Próxima semana · Calendario siempre visibles) y lista filtrada que carga más al bajar
+      turnos.tsx            # Turnos (DayStage): vista de mes (lunes primero, flechas, abreviatura y color de cada turno, hoy marcado, punto en los días cambiados), tarjeta de la rotación y leyenda de tipos
       descubrir.tsx         # Descubrir: "Tinder" de conciertos. Pide perfil; la primera vez explica, eliges 5 artistas (TastePicker) y explica las cartas
       buscar.tsx            # Buscar (botón de búsqueda del sistema en la barra): conciertos cargados + búsqueda en las ticketeras
       meeet-in.tsx          # Meeet in: próximos planes arriba y "Conciertos pasados" plegables abajo, cada uno con su chat y su burbuja de no leídos
@@ -40,6 +41,10 @@ src/
     filters.tsx             # Hoja nativa (formSheet): ordenar, género, precio
     calendar.tsx            # Hoja del calendario: intervalo de días, con punto en los días con conciertos; al bajar por los meses pide más páginas y "Quitar fechas" vacía la caché (`trimConcerts`)
     edit-profile.tsx        # Modal de editar perfil: foto, nick (@, reglas tipo Instagram), nombre, pronombres, bio, ubicación (texto libre), canción y redes (Instagram, TikTok, X, Apple Music, Spotify); solo se aplica al pulsar "Guardar"
+    shift-day.tsx           # Hoja (formSheet) de un día de Turnos: elegir otro turno o libre (cambio del día) o "Volver a la rotación"
+    shift-types.tsx         # Tipos de turno: lista y "Añadir tipo de turno"
+    shift-type.tsx          # Modal para crear o editar un tipo: nombre, abreviatura, horas (HH:MM), descanso y color de SHIFT_COLORS
+    rotation.tsx            # Asistente de rotación: nombre, fecha de inicio, secuencia tocando tipos/Libre, plantilla 2M-2T-2N-4L y vista previa de 14 días
   components/
     go-button.tsx           # Botón "Meeet In!" (antes "Voy"): confeti y háptica. Es el componente central de la marca
     profile-backdrop.tsx    # Fondo de Perfil a pantalla completa (también bajo la cuadrícula): el degradado elegido y tres manchas de sus colores que derivan (quieto con "Reducir movimiento")
@@ -69,6 +74,8 @@ src/
     app-tabs.tsx            # NativeTabs (iOS/Android): Inicio · Descubrir · Meeet in · Perfil, con el badge de no leídos
     app-tabs.web.tsx        # Barra de pestañas para web (expo-router/ui), con un punto rojo como badge
     splash-overlay*.tsx     # Relevo del splash nativo con fundido (en web no hace nada)
+    shift-badge.tsx         # Abreviatura de un turno sobre su color (libre: "L" gris)
+    nav-header.tsx          # Cabecera de las pantallas de Turnos que se abren encima (flecha o "Cancelar", título, botón a la derecha)
   data/
     concerts.ts             # Tipos `Concert` / `TicketOffer` + fetchConcerts({ page, keyword }): una página de todas las fuentes en paralelo (si falla una, sigue con las demás). La fusión se hace en app-context con todas las páginas juntas
     sources/                # Una ticketera por archivo (`EventProvider`)
@@ -99,6 +106,9 @@ src/
     save-media.ts           # Guarda una foto o vídeo en la galería (expo-media-library); las remotas se bajan antes
     profile-photo.ts        # Elegir foto (expo-image-picker, recorte cuadrado) y guardarla en documentos (expo-file-system)
     storage.ts              # Persistencia local (expo-sqlite/kv-store): planes y perfil, claves versionadas (`meeet.plans.v1`…)
+    shifts.ts               # Turnos (funciones puras): ShiftType, Rotation, DayOverride, ShiftPlan; shiftForDate, shiftInterval, freeWindows, availabilityFor ('libre' | 'tras-turno' | 'trabajas'), monthGrid, shiftHours; fechas 'YYYY-MM-DD'
+    shift-db.ts             # Turnos en SQLite (`daystage.db`): tablas shift_types, rotations, rotation_days, day_overrides; migraciones con PRAGMA user_version
+    shifts-context.tsx      # ShiftsProvider / useShifts(): el plan de turnos y sus cambios (aparte de app-context)
   theme.ts                  # ✅ Paleta de MEEET (COLORS). Úsala siempre
   constants/theme.ts        # Medidas de layout: BottomTabInset, MaxContentWidth
 assets/images/              # Iconos y splash de MEEET (provisionales: monograma "m." y marca "meeet.")
@@ -106,9 +116,13 @@ scripts/generate-brand-assets.swift   # Regenera los PNG de assets/images: `swif
 scripts/build-bcn-agenda.mjs          # Genera feed/bcn-concerts.json desde Open Data BCN (`npm run feed:build`)
 scripts/publish-bcn-agenda.sh         # Lo genera y lo sube a la rama gh-pages (`npm run feed:publish`); a diario desde este Mac con scripts/com.meeet.bcn-agenda.plist
 scripts/serve-feed.mjs                # Sirve ese archivo en la red local para probar en desarrollo (`npm run feed:serve`)
-scripts/generate-tab-icons.swift      # Iconos propios de la barra (casa sin puerta, imagotipo de dos círculos) en assets/images/tabs
+scripts/generate-tab-icons.swift      # Iconos propios de la barra (casa sin puerta, calendario de Turnos, imagotipo de dos círculos) en assets/images/tabs
+scripts/jest-timezone.js              # globalSetup de jest: los tests corren siempre en Europe/Madrid
 ```
 
+- **Turnos** (`shifts.ts`): las fechas son días locales en texto `'YYYY-MM-DD'`; los días se suman en UTC (sin cambios de hora) y las horas reales se calculan con la hora local, así que la noche del último domingo de octubre dura 9 h y la de marzo, 7 h. Un turno cuyo fin es igual o anterior al inicio acaba al día siguiente. Antes de `startDate` la rotación sigue hacia atrás (módulo positivo). Un cambio del día (`DayOverride`, `shiftTypeId: null` = libre) manda sobre la rotación; elegir en la hoja lo mismo que dice la rotación borra el cambio. `availabilityFor` da por hecho que un concierto dura 3 h y deja 60 min tras el turno (los dos se pueden cambiar). Los colores de turno se guardan como clave de `SHIFT_COLORS` (`theme.ts`), nunca como hex. Solo hay una rotación.
+- **Base de datos de turnos** (`shift-db.ts`): síncrona, se lee entera al arrancar y cada cambio se escribe al momento. Para cambiar el esquema, añade una función al final de `MIGRATIONS` (nunca edites una publicada). Los tres tipos por defecto (Mañana 06–14, Tarde 14–22, Noche 22–06) solo se crean en la migración 1.
+- Barra de pestañas con Turnos: Inicio · Turnos · Descubrir · Meeet in · Perfil + Buscar. En iPhone caben 5: con 6, iOS mete Perfil y Buscar en "More". Pendiente de decidir qué sale de la barra.
 - Alias de importación: `@/*` → `src/*` y `@/assets/*` → `assets/*`.
 - `typedRoutes` y `reactCompiler` están activados en `app.json`. Navega con rutas tipadas: `router.push({ pathname: '/concert/[id]', params: { id } })`.
 - Variable de entorno: `EXPO_PUBLIC_TICKETMASTER_KEY` en `.env.local` (no está versionado). Al llevar el prefijo `EXPO_PUBLIC_`, la clave se incrusta en el bundle. No metas ahí secretos de verdad.

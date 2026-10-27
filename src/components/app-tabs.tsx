@@ -41,6 +41,17 @@ export default function AppTabs() {
           />
         </NativeTabs.Trigger>
 
+        <NativeTabs.Trigger name="turnos" disableAutomaticContentInsets>
+          <NativeTabs.Trigger.Label>Turnos</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon
+            src={{
+              default: require('@/assets/images/tabs/shifts.png'),
+              selected: require('@/assets/images/tabs/shifts-fill.png'),
+            }}
+            md="calendar_month"
+          />
+        </NativeTabs.Trigger>
+
         <NativeTabs.Trigger name="descubrir" disableAutomaticContentInsets>
           <NativeTabs.Trigger.Label>Descubrir</NativeTabs.Trigger.Label>
           {/* Las mismas estrellas que la tarjeta "Recomendaciones para ti" */}

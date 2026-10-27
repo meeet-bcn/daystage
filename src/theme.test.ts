@@ -1,6 +1,15 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { COLORS, PROFILE_BACKGROUNDS, ProfileBackground, themeFor, tint } from '@/theme';
+import {
+  COLORS,
+  PROFILE_BACKGROUNDS,
+  ProfileBackground,
+  SHIFT_COLORS,
+  ShiftColor,
+  shiftColor,
+  themeFor,
+  tint,
+} from '@/theme';
 
 // Contraste WCAG entre un color y el blanco
 function contrastOnWhite(hex: string) {
@@ -48,5 +57,25 @@ describe('logo de Inicio', () => {
     const light = (hex: string) => parseInt(hex.slice(1, 3), 16) + parseInt(hex.slice(3, 5), 16);
     expect(light(logo[0])).toBeGreaterThan(light(logo[1]));
     expect(light(logo[1])).toBeGreaterThan(light(logo[2]));
+  });
+});
+
+// Contraste WCAG entre dos colores
+function contrast(a: string, b: string) {
+  const l = (hex: string) => 1.05 / contrastOnWhite(hex) - 0.05;
+  const [hi, lo] = [l(a), l(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+describe('SHIFT_COLORS', () => {
+  it.each(Object.keys(SHIFT_COLORS) as ShiftColor[])(
+    '%s: la abreviatura se lee sobre su fondo (al menos 4,5:1)',
+    (key) => {
+      expect(contrast(SHIFT_COLORS[key].ink, SHIFT_COLORS[key].fill)).toBeGreaterThanOrEqual(4.5);
+    }
+  );
+
+  it('una clave desconocida cae en el color por defecto', () => {
+    expect(shiftColor('nope')).toBe(SHIFT_COLORS.cielo);
   });
 });

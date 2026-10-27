@@ -180,3 +180,28 @@ export function themeFor(key: ProfileBackground): Theme {
       : [tint(accent, LOGO_TINTS[0]), tint(accent, LOGO_TINTS[1]), accent];
   return { accent, accentSoft, logo };
 }
+
+/**
+ * Colores de los tipos de turno (pestaña Turnos): `fill` es el fondo del día en
+ * el calendario y `ink`, su abreviatura y su punto en la leyenda. `ink` tiene
+ * un contraste de al menos 4,5:1 sobre `fill` (lo comprueba `theme.test.ts`).
+ */
+export const SHIFT_COLORS = {
+  sol: { label: 'Sol', fill: '#FFF0C2', ink: '#8A5A00' },
+  coral: { label: 'Coral', fill: '#FFDCD2', ink: '#B23A1E' },
+  indigo: { label: 'Índigo', fill: '#DCD8FF', ink: '#4434B0' },
+  menta: { label: 'Menta', fill: '#CFF3E3', ink: '#17694D' },
+  cielo: { label: 'Cielo', fill: '#D3E6FF', ink: '#1D5BAF' },
+  rosa: { label: 'Rosa', fill: '#FFD6E7', ink: '#A12E62' },
+  lila: { label: 'Lila', fill: '#EED8FB', ink: '#7A3399' },
+  pizarra: { label: 'Pizarra', fill: '#E3E5EC', ink: '#3F4459' },
+} as const;
+
+export type ShiftColor = keyof typeof SHIFT_COLORS;
+
+export const DEFAULT_SHIFT_COLOR: ShiftColor = 'cielo';
+
+/** El color de un tipo de turno; si la clave guardada ya no existe, el de por defecto. */
+export function shiftColor(key: string) {
+  return SHIFT_COLORS[key as ShiftColor] ?? SHIFT_COLORS[DEFAULT_SHIFT_COLOR];
+}
