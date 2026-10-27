@@ -178,10 +178,7 @@ export default function WelcomeScreen() {
         <ImagotipoAnimado height={56} />
       </View>
       <Text style={styles.logo}>
-        m<Text style={{ color: COLORS.peach }}>e</Text>
-        <Text style={{ color: COLORS.peachMid }}>e</Text>
-        <Text style={{ color: COLORS.peachDeep }}>e</Text>t
-        <Text style={{ color: COLORS.accent }}>.</Text>
+        daystage<Text style={{ color: COLORS.accent }}>.</Text>
       </Text>
 
       <ScrollView

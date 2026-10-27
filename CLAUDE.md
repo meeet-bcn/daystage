@@ -1,4 +1,4 @@
-> **DayStage Calendar.** Este repo es DayStage Calendar (calendario de turnos con conciertos), nacido de meeet el 2026-10-27. El plan está en https://claude.ai/artifact/71ygyNNPbihGnzva6Ro1zR. Mientras no se diga lo contrario, la marca visual y los textos de la interfaz siguen siendo los de meeet.
+> **DayStage Calendar.** Este repo es DayStage Calendar (calendario de turnos con conciertos), nacido de meeet el 2026-10-27. El plan está en https://claude.ai/artifact/71ygyNNPbihGnzva6Ro1zR. La marca ya es DayStage (logotipo «daystage.», imagotipo de calendario con un foco); las notas de abajo sobre la marca meeet son históricas salvo donde se diga lo contrario.
 
 @AGENTS.md
 
@@ -212,20 +212,13 @@ scripts/jest-timezone.js              # globalSetup de jest: los tests corren si
 
 ## Identidad de marca
 
-**Nombre:** se escribe siempre en minúsculas, con tres "e" y un punto violeta: `meeet.`. En el logo, la "m" y la "t" van en tinta y las "eee" en la escala del salmón, de clara a oscura (en Inicio, en la escala del color del perfil: `theme.logo`, que sin fondo es este mismo salmón y con fondo son dos mezclas de su acento con blanco y el acento; el punto de Inicio también va en el acento del tema):
-```tsx
-<Text style={{ color: COLORS.text, fontWeight: '700' }}>
-  m<Text style={{ color: COLORS.peach }}>e</Text>
-  <Text style={{ color: COLORS.peachMid }}>e</Text>
-  <Text style={{ color: COLORS.peachDeep }}>e</Text>t
-  <Text style={{ color: COLORS.accent }}>.</Text>
-</Text>
-```
+**Nombre:** DayStage. En el logotipo, siempre en minúsculas y con punto violeta: `daystage.` (`DayStageLogo` en `daystage-mark.tsx`), en tinta y peso 800. En prosa, «DayStage».
 
-**Imagotipo:** dos círculos que se encuentran: lavanda abajo a la izquierda, melocotón arriba a la derecha y el cruce en violeta (`<Imagotipo height={…} />`, `imagotipo.tsx`). Junto al logotipo (como en la hoja de marca) mide 1,14 × el cuerpo de letra, con 0,37 × el cuerpo de separación. En el logo de Inicio no va: se probó y no quedaba bien. La geometría está también en `scripts/generate-brand-assets.swift` (iconos y splash): si cambia, cámbiala en los dos. Icono de la app: variante "Lavanda" de la hoja de marca (círculo blanco + melocotón sobre lavanda); hay también "Claro" (sobre `mist`) y "Oscuro".
-En prosa, "MEEET" o "meeet". Nunca "Meet" ni "Meeet".
+**Imagotipo:** una hoja de calendario violeta (`accent`) con dos anillas en tinta y, dentro, el haz blanco de un foco que ilumina el escenario (`DayStageMark`). Minimalista: dos colores y la tinta. `Imagotipo` / `ImagotipoAnimado` (`imagotipo.tsx`) lo pintan en todas partes (el animado late despacio; quieto con «Reducir movimiento»). La geometría está también en `scripts/generate-brand-assets.swift` (icono sobre `mist`, splash con «daystage.»): si cambia, cámbiala en los dos.
 
-**Lema:** `Every event. Everyone.` (va en inglés aunque la interfaz esté en español).
+**Botón de ir a un concierto:** «¡Voy!» (activo: «Voy ✓»); la pestaña de tus planes y sus chats se llama «Planes» (internamente sigue siendo `meeet-in.tsx`, `isGoing`/`toggleGoing`).
+
+**Estilo minimalista:** días libres sin fondo en el calendario, tarjetas sin relleno, menos texto secundario; secciones largas plegables (`CollapsibleSection`).
 
 **Paleta** (`src/theme.ts`, importa `COLORS` desde `@/theme`):
 

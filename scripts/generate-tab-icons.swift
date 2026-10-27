@@ -100,6 +100,8 @@ for scale: CGFloat in [1, 2, 3] {
   try render("meeet-in-fill", scale: scale) { circles($0, filled: true) }
   try render("discover", scale: scale) { ionicon($0, 0xF58D) } // sparkles-outline
   try render("discover-fill", scale: scale) { ionicon($0, 0xF58C) } // sparkles
+  try render("plans", scale: scale) { ionicon($0, 0xF5DB) } // ticket-outline
+  try render("plans-fill", scale: scale) { ionicon($0, 0xF5DA) } // ticket
   try render("events", scale: scale) { ionicon($0, 0xF46A) } // musical-notes-outline
   try render("events-fill", scale: scale) { ionicon($0, 0xF469) } // musical-notes
   try render("shifts", scale: scale) { ionicon($0, 0xF1D1) } // calendar-clear-outline

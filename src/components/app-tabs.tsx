@@ -71,8 +71,8 @@ export default function AppTabs() {
           <NativeTabs.Trigger.Label>Planes</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon
             src={{
-              default: require('@/assets/images/tabs/meeet-in.png'),
-              selected: require('@/assets/images/tabs/meeet-in-fill.png'),
+              default: require('@/assets/images/tabs/plans.png'),
+              selected: require('@/assets/images/tabs/plans-fill.png'),
             }}
             md="confirmation_number"
           />

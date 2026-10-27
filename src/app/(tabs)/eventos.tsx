@@ -45,15 +45,16 @@ import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
 
 // Ajustes del banner (puedes tocar estos números)
-const LOGO_MAX = 72; // tamaño del logo arriba del todo
-const LOGO_MIN = TITLE_SIZE; // ya encogido: igual que los títulos de Descubrir, meeet in y Perfil
-const LINE_MAX = 83; // altura de la caja del logo grande
-const LINE_MIN = TITLE_LINE_HEIGHT; // caja del logo encogido = la de los títulos de pestaña
-const PAD_MAX = 8; // aire inferior con el logo grande
-const PAD_MIN = 12; // aire inferior con el logo encogido (bajo los chips)
-const TOP_MAX = 50; // aire superior con el logo grande
-const TOP_MIN = TITLE_TOP; // aire superior con el logo encogido (= títulos de pestaña)
-const SLOGAN_H = 22; // altura del lema
+// El título «Eventos» es como el de las demás pestañas: no crece ni se encoge
+const LOGO_MAX = TITLE_SIZE;
+const LOGO_MIN = TITLE_SIZE;
+const LINE_MAX = TITLE_LINE_HEIGHT;
+const LINE_MIN = TITLE_LINE_HEIGHT;
+const PAD_MAX = 12; // aire bajo los chips
+const PAD_MIN = 12;
+const TOP_MAX = TITLE_TOP;
+const TOP_MIN = TITLE_TOP;
+const SLOGAN_H = 0; // sin lema
 const TOOLS_GAP = 14; // aire entre el logo (o el aviso) y los chips, también con el logo encogido
 const SCROLL_RANGE = 80; // cuánto scroll dura la animación
 // Tirar hacia abajo para recargar
@@ -149,15 +150,9 @@ export default function HomeScreen() {
 
   const logoSize = shrink(LOGO_MAX, LOGO_MIN);
   const logoLine = shrink(LINE_MAX, LINE_MIN);
-  const logoSpacing = shrink(-2, TITLE_SPACING);
+  const logoSpacing = shrink(TITLE_SPACING, TITLE_SPACING);
   const headerPadTop = shrink(insets.top + TOP_MAX, insets.top + TOP_MIN);
   const headerPadBottom = shrink(PAD_MAX, PAD_MIN);
-  const sloganHeight = shrink(SLOGAN_H, 0);
-  const sloganOpacity = scrollY.interpolate({
-    inputRange: [0, SCROLL_RANGE * 0.5],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
   const lineOpacity = scrollY.interpolate({
     inputRange: [SCROLL_RANGE - 20, SCROLL_RANGE],
     outputRange: [0, 1],
@@ -297,11 +292,11 @@ export default function HomeScreen() {
                   </Text>
                   {/* Si puedes ir según tus turnos (solo con turnos configurados) */}
                   <AvailabilityPill availability={availability(item)} style={styles.availability} />
-                  <Text style={styles.going}>
-                    {count === 0
-                      ? 'Sé el primero en apuntarte'
-                      : `${count} ${count === 1 ? 'persona va' : 'personas van'}`}
-                  </Text>
+                  {count > 0 && (
+                    <Text style={styles.going}>
+                      {count} {count === 1 ? 'persona va' : 'personas van'}
+                    </Text>
+                  )}
                 </View>
                 {/* Corazón (lista de deseos) junto a "¡Voy!" */}
                 <View style={styles.cardActions}>
@@ -327,11 +322,7 @@ export default function HomeScreen() {
               { fontSize: logoSize, lineHeight: logoLine, letterSpacing: logoSpacing },
             ]}
           >
-            {/* Las "eee" en la escala del salmón, de clara a oscura */}m
-            {/* Las "eee" en la escala del color de tu perfil (sin fondo, el salmón de la marca) */}
-            <Text style={{ color: theme.logo[0] }}>e</Text>
-            <Text style={{ color: theme.logo[1] }}>e</Text>
-            <Text style={{ color: theme.logo[2] }}>e</Text>t
+            Eventos
             <Text style={{ color: theme.accent }}>.</Text>
           </Animated.Text>
           {/* Buscar (ya no es pestaña: en la barra solo caben 5) */}
@@ -346,12 +337,6 @@ export default function HomeScreen() {
           </Pressable>
         </Animated.View>
 
-        <Animated.Text
-          numberOfLines={1}
-          style={[styles.slogan, { height: sloganHeight, opacity: sloganOpacity }]}
-        >
-          Every event. Everyone.
-        </Animated.Text>
 
         <View style={styles.tools} onLayout={(e) => setToolsHeight(e.nativeEvent.layout.height)}>
           {concerts.length > 0 && (
@@ -441,21 +426,10 @@ const makeStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    // Logo y lema, centrados
+    // Título como el de las demás pestañas (ScreenTitle)
     logo: {
-      alignSelf: 'center',
       color: COLORS.text,
       fontWeight: '700',
-    },
-    slogan: {
-      alignSelf: 'center',
-      color: COLORS.muted,
-      fontSize: 15,
-      lineHeight: 20,
-      fontWeight: '500',
-      letterSpacing: 0.2,
-      marginTop: -6,
-      overflow: 'hidden',
     },
     line: {
       position: 'absolute',

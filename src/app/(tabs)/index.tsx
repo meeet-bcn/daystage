@@ -10,7 +10,6 @@ import { ConcertImage } from '@/components/concert-image';
 import { ExportButtons } from '@/components/export-buttons';
 import { MonthReportCard } from '@/components/month-report-card';
 import { ScreenHeader } from '@/components/screen-header';
-import { ScreenSubtitle } from '@/components/screen-title';
 import { ShiftBadge } from '@/components/shift-badge';
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
@@ -80,7 +79,6 @@ export default function TurnosScreen() {
           paddingBottom: insets.bottom + BottomTabInset + 32,
         }}
       >
-        <ScreenSubtitle>Tu calendario de trabajo</ScreenSubtitle>
 
         <View style={styles.monthRow}>
           <Pressable
@@ -165,7 +163,7 @@ export default function TurnosScreen() {
                         numberOfLines={1}
                         adjustsFontSizeToFit
                       >
-                        {type ? type.abbr : rotation ? 'L' : ''}
+                        {type ? type.abbr : ''}
                       </Text>
                     )}
                     {changed && <View style={styles.changedDot} />}
@@ -212,7 +210,6 @@ export default function TurnosScreen() {
             <Text style={styles.legendText}>Conciertos que te encajan</Text>
           </View>
         </View>
-        <Text style={styles.hint}>Toca un día para cambiar su turno o ver sus conciertos.</Text>
 
         {monthPlans.length > 0 && (
           <>
@@ -347,11 +344,11 @@ const makeStyles = (theme: Theme) =>
       letterSpacing: 0.4,
       paddingVertical: 4,
     },
+    // Minimalista: los días libres sin fondo; solo los turnos llevan color
     day: {
       flex: 1,
       aspectRatio: 0.6,
       borderRadius: 12,
-      backgroundColor: COLORS.surface,
       alignItems: 'center',
       paddingTop: 5,
     },
@@ -475,9 +472,7 @@ const makeStyles = (theme: Theme) =>
     edit: { color: theme.accent, fontSize: 15, fontWeight: '600', marginTop: 20 },
     card: {
       marginHorizontal: 20,
-      padding: 16,
-      borderRadius: 18,
-      backgroundColor: COLORS.mist,
+      paddingVertical: 4,
       gap: 8,
     },
     cardTitle: { color: COLORS.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.3 },
