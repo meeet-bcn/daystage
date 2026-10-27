@@ -32,6 +32,7 @@ import {
   validateDraft,
   type Visibility,
 } from '@/data/user-events';
+import { readEventUrl } from '@/data/event-from-url-service';
 import { fetchUserEventRow, saveUserEvent } from '@/data/user-events-service';
 import { useTheme, useThemedStyles } from '@/hooks/use-theme';
 import { COLORS, Theme } from '@/theme';
@@ -77,6 +78,11 @@ export default function EventFormScreen() {
   const [errors, setErrors] = useState<DraftErrors>({});
   const [saving, setSaving] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(!!id);
+  // Rellenar desde la web del evento: qué campos se completaron y cuáles faltan
+  const [link, setLink] = useState('');
+  const [reading, setReading] = useState(false);
+  const [filled, setFilled] = useState<Set<keyof EventDraft>>(new Set());
+  const [missing, setMissing] = useState<Set<keyof EventDraft>>(new Set());
 
   // Editar: se carga la fila del servidor
   useEffect(() => {
@@ -97,6 +103,43 @@ export default function EventFormScreen() {
   const set = <K extends keyof EventDraft>(key: K, value: EventDraft[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));
     setErrors((e) => ({ ...e, [key]: undefined }));
+    setMissing((m) => {
+      if (!m.has(key)) return m;
+      const next = new Set(m);
+      next.delete(key);
+      return next;
+    });
+  };
+  // Borde del acento en lo que vino de la web; aviso en lo imprescindible que no venía
+  const mark = (key: keyof EventDraft) => [
+    filled.has(key) && styles.inputFilled,
+    missing.has(key) && styles.inputMissing,
+    errors[key] && styles.inputError,
+  ];
+
+  const fillFromLink = async () => {
+    setReading(true);
+    const result = await readEventUrl(link, concerts);
+    setReading(false);
+    if (result.kind === 'error') return Alert.alert('No se ha podido rellenar', result.message);
+    if (result.kind === 'existing') {
+      const c = result.concert;
+      addConcerts([c]);
+      return Alert.alert('Ya está en DayStage', `«${c.artist}» (${c.date}, ${c.venue}) ya está en la app.`, [
+        { text: 'Verlo', onPress: () => router.replace({ pathname: '/concert/[id]', params: { id: c.id } }) },
+        { text: 'Cancelar', style: 'cancel' },
+      ]);
+    }
+    const { info } = result;
+    setDraft((d) => ({
+      ...d,
+      ...info.draft,
+      ...(info.coords ? { latitude: info.coords.latitude, longitude: info.coords.longitude } : {}),
+    }));
+    if (info.imageUrl && !photoUri) setPhotoUri(info.imageUrl);
+    setFilled(new Set(info.found));
+    setMissing(new Set(info.missing));
+    setErrors({});
   };
 
   const pickPhoto = async () => {
@@ -174,13 +217,17 @@ export default function EventFormScreen() {
     <>
       <Text style={styles.label}>{label}</Text>
       <TextInput
-        style={[styles.input, errors[key] && styles.inputError]}
+        style={[styles.input, ...mark(key)]}
         value={draft[key] as string}
         onChangeText={(t) => set(key, t as never)}
         placeholderTextColor={COLORS.muted}
         {...props}
       />
-      {errors[key] && <Text style={styles.error}>{errors[key]}</Text>}
+      {errors[key] ? (
+        <Text style={styles.error}>{errors[key]}</Text>
+      ) : (
+        missing.has(key) && <Text style={styles.missing}>La web no lo dice: rellénalo tú.</Text>
+      )}
     </>
   );
 
@@ -204,6 +251,45 @@ export default function EventFormScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }}
       >
+        {/* Lo más rápido: pegar la web del evento y que se rellene sola */}
+        {!id && (
+          <View style={styles.linkBox}>
+            <Text style={styles.linkTitle}>¿Tienes la web del concierto?</Text>
+            <Text style={styles.linkText}>Pega el enlace y rellenamos la ficha por ti. Luego revísala.</Text>
+            <View style={styles.linkRow}>
+              <TextInput
+                style={[styles.input, styles.linkInput]}
+                value={link}
+                onChangeText={setLink}
+                placeholder="Pega el enlace del evento"
+                placeholderTextColor={COLORS.muted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                returnKeyType="go"
+                onSubmitEditing={() => link.trim() && fillFromLink()}
+              />
+              <Pressable
+                style={[styles.fillButton, (!link.trim() || reading) && styles.fillDisabled]}
+                onPress={fillFromLink}
+                disabled={!link.trim() || reading}
+              >
+                {reading ? (
+                  <ActivityIndicator color={COLORS.white} />
+                ) : (
+                  <Text style={styles.fillText}>Rellenar</Text>
+                )}
+              </Pressable>
+            </View>
+            {filled.size > 0 && (
+              <Text style={styles.filledNote}>
+                Hemos rellenado {filled.size} {filled.size === 1 ? 'campo' : 'campos'} (marcados).
+                {missing.size > 0 ? ' Completa los que faltan.' : ''}
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* Público o privado, lo primero: cambia quién lo verá */}
         <Text style={styles.label}>¿Quién lo verá? *</Text>
         <View style={styles.visibility}>
@@ -231,7 +317,7 @@ export default function EventFormScreen() {
         {field('title', 'Artista o nombre del concierto *', { placeholder: 'Los Invento', maxLength: 120 })}
 
         <Text style={styles.label}>Fecha *</Text>
-        <View style={[styles.dateRow, errors.date && styles.inputError]}>
+        <View style={[styles.dateRow, ...mark('date')]}>
           <Pressable onPress={() => set('date', addDays(draft.date || toDateKey(), -1))} hitSlop={8} style={styles.dateArrow} accessibilityLabel="Día anterior">
             <Ionicons name="chevron-back" size={22} color={theme.accent} />
           </Pressable>
@@ -253,7 +339,7 @@ export default function EventFormScreen() {
           <View style={styles.half}>
             <Text style={styles.label}>Empieza *</Text>
             <TextInput
-              style={[styles.input, errors.startTime && styles.inputError]}
+              style={[styles.input, ...mark('startTime')]}
               value={draft.startTime}
               onChangeText={(t) => set('startTime', normalizeTimeInput(t))}
               placeholder="21:00"
@@ -265,7 +351,7 @@ export default function EventFormScreen() {
           <View style={styles.half}>
             <Text style={styles.label}>Acaba</Text>
             <TextInput
-              style={[styles.input, errors.endTime && styles.inputError]}
+              style={[styles.input, ...mark('endTime')]}
               value={draft.endTime}
               onChangeText={(t) => set('endTime', normalizeTimeInput(t))}
               placeholder="Opcional"
@@ -356,6 +442,25 @@ const makeStyles = (theme: Theme) =>
     },
     textarea: { minHeight: 110 },
     inputError: { borderColor: COLORS.danger },
+    inputFilled: { borderColor: theme.accent },
+    inputMissing: { borderColor: COLORS.peachDeep },
+    missing: { color: COLORS.muted, fontSize: 13, marginTop: 6 },
+    linkBox: { padding: 14, borderRadius: 16, backgroundColor: theme.accentSoft, gap: 6 },
+    linkTitle: { color: COLORS.text, fontSize: 16, fontWeight: '700' },
+    linkText: { color: COLORS.muted, fontSize: 13, lineHeight: 18 },
+    linkRow: { flexDirection: 'row', gap: 8, marginTop: 6 },
+    linkInput: { flex: 1, backgroundColor: COLORS.background, borderColor: COLORS.background },
+    fillButton: {
+      height: 48,
+      paddingHorizontal: 16,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.accent,
+    },
+    fillDisabled: { opacity: 0.4 },
+    fillText: { color: COLORS.white, fontSize: 15, fontWeight: '700' },
+    filledNote: { color: theme.accent, fontSize: 13, fontWeight: '600', marginTop: 4 },
     error: { color: COLORS.danger, fontSize: 13, marginTop: 6 },
     visibility: { gap: 8 },
     visOption: {

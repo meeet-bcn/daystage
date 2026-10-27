@@ -25,6 +25,9 @@ export type EventDraft = {
   ticketUrl: string;
   description: string;
   visibility: Visibility | null;
+  /** Coordenadas del lugar, si se conocen (p. ej. de la web del evento): mapa en la ficha. */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export const EMPTY_DRAFT: EventDraft = {
@@ -117,6 +120,8 @@ export function draftToRow(d: EventDraft, imagePath: string | null) {
     ticket_url: d.ticketUrl.trim(),
     image_path: imagePath,
     description: d.description.trim(),
+    latitude: d.latitude ?? null,
+    longitude: d.longitude ?? null,
   };
 }
 
@@ -140,6 +145,8 @@ export function rowToDraft(row: UserEventRow): EventDraft {
     ticketUrl: row.ticket_url,
     description: row.description,
     visibility: row.visibility,
+    latitude: row.latitude,
+    longitude: row.longitude,
   };
 }
 
