@@ -35,6 +35,8 @@ export type Settings = {
   workdayHours: number;
   /** Informes: lo que cobras por hora (€), o null para no calcular ganancias. */
   hourlyRate: number | null;
+  /** Aviso antes de cada turno (minutos), o null para no avisar. */
+  shiftReminderMinutes: number | null;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -49,6 +51,7 @@ export const DEFAULT_SETTINGS: Settings = {
   shareDays: false,
   workdayHours: 8,
   hourlyRate: null,
+  shiftReminderMinutes: null,
 };
 
 export const MESSAGES_FROM_OPTIONS: { key: MessagesFrom; label: string }[] = [
@@ -74,6 +77,9 @@ export function withDefaults(saved: Partial<Settings>): Settings {
         : DEFAULT_SETTINGS.workdayHours,
     hourlyRate:
       typeof saved.hourlyRate === 'number' && saved.hourlyRate > 0 ? saved.hourlyRate : null,
+    shiftReminderMinutes: SHIFT_REMINDER_OPTIONS.includes(saved.shiftReminderMinutes as number)
+      ? (saved.shiftReminderMinutes as number)
+      : null,
   };
 }
 
@@ -89,3 +95,6 @@ export function parseRate(text: string): number | null {
   const n = Number(text.replace(',', '.').trim());
   return text.trim() && Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
 }
+
+/** Aviso antes del turno que se puede elegir (minutos); null = no avisar. */
+export const SHIFT_REMINDER_OPTIONS = [30, 60, 120];

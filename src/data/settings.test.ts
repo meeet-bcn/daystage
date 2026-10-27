@@ -56,3 +56,11 @@ describe('informes', () => {
     expect(parseRate('0')).toBeNull();
   });
 });
+
+describe('aviso antes del turno', () => {
+  it('solo los minutos que se ofrecen; si no, sin aviso', () => {
+    expect(withDefaults({}).shiftReminderMinutes).toBeNull();
+    expect(withDefaults({ shiftReminderMinutes: 60 }).shiftReminderMinutes).toBe(60);
+    expect(withDefaults({ shiftReminderMinutes: 45 }).shiftReminderMinutes).toBeNull();
+  });
+});

@@ -1,6 +1,7 @@
 import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 
+import { ReminderScheduler } from '@/components/reminder-scheduler';
 import { AnimatedSplashOverlay } from '@/components/splash-overlay';
 import { AppProvider } from '@/data/app-context';
 import { SessionProvider } from '@/data/session-context';
@@ -19,6 +20,8 @@ export default function RootLayout() {
           <AppProvider>
             <SocialProvider>
               <AnimatedSplashOverlay />
+              {/* Avisos antes del turno y el día antes de cada concierto */}
+              <ReminderScheduler />
               <Stack screenOptions={{ contentStyle: { backgroundColor: COLORS.background } }}>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="concert/[id]" options={{ headerShown: false }} />
