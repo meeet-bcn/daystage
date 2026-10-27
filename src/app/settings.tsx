@@ -12,7 +12,13 @@ import { SHIFT_MARGIN_OPTIONS } from '@/data/concert-shifts';
 import { LANGUAGES } from '@/data/filters';
 import { deleteTabIcons, saveProfilePhoto } from '@/data/profile-photo';
 import { useSession } from '@/data/session-context';
-import { MESSAGES_FROM_OPTIONS, parseRate, Settings, WORKDAY_OPTIONS } from '@/data/settings';
+import {
+  MESSAGES_FROM_OPTIONS,
+  parseRate,
+  Settings,
+  SHIFT_REMINDER_OPTIONS,
+  WORKDAY_OPTIONS,
+} from '@/data/settings';
 import { useTheme } from '@/hooks/use-theme';
 import { COLORS } from '@/theme';
 
@@ -230,7 +236,7 @@ export default function SettingsScreen() {
 
         <Section
           title="Notificaciones"
-          footer="La app aún no envía notificaciones: tus preferencias se guardan para cuando lo haga."
+          footer="Los avisos de turno y de conciertos llegan aunque la app esté cerrada. Los de chats y conciertos nuevos llegarán más adelante."
         >
           <Row
             first
@@ -243,7 +249,7 @@ export default function SettingsScreen() {
           <Row
             icon="alarm-outline"
             label="Recordatorio el día antes"
-            detail="De los conciertos a los que vas"
+            detail="De los conciertos a los que vas, y si ese día trabajas"
             right={
               <Toggle
                 value={settings.notifications.reminders}
@@ -251,6 +257,27 @@ export default function SettingsScreen() {
               />
             }
           />
+          <View style={[styles.row, styles.rowLine, styles.rowColumn]}>
+            <View style={styles.rowHead}>
+              <Ionicons name="briefcase-outline" size={20} color={theme.accent} />
+              <Text style={styles.rowLabel}>Aviso antes de tu turno</Text>
+            </View>
+            <View style={styles.chipsInline}>
+              <Chip
+                label="No"
+                active={settings.shiftReminderMinutes == null}
+                onPress={() => updateSettings({ shiftReminderMinutes: null })}
+              />
+              {SHIFT_REMINDER_OPTIONS.map((m) => (
+                <Chip
+                  key={m}
+                  label={m < 60 ? `${m} min antes` : `${m / 60} h antes`}
+                  active={settings.shiftReminderMinutes === m}
+                  onPress={() => updateSettings({ shiftReminderMinutes: m })}
+                />
+              ))}
+            </View>
+          </View>
           <Row
             icon="sparkles-outline"
             label="Conciertos nuevos"
