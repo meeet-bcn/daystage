@@ -195,6 +195,8 @@ export const SHIFT_COLORS = {
   rosa: { label: 'Rosa', fill: '#FFD6E7', ink: '#A12E62' },
   lila: { label: 'Lila', fill: '#EED8FB', ink: '#7A3399' },
   pizarra: { label: 'Pizarra', fill: '#E3E5EC', ink: '#3F4459' },
+  verde: { label: 'Verde', fill: '#C9EFC9', ink: '#1E6B2A' },
+  rojo: { label: 'Rojo', fill: '#FFCFCF', ink: '#A51D24' },
 } as const;
 
 export type ShiftColor = keyof typeof SHIFT_COLORS;

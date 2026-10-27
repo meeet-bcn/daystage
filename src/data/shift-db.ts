@@ -52,6 +52,10 @@ const MIGRATIONS: ((db: SQLiteDatabase) => void)[] = [
     `);
     DEFAULT_SHIFT_TYPES.forEach((t, i) => insertType(db, t, i));
   },
+  // 2: tipos de día libre todo el día (vacaciones)
+  (db) => {
+    db.execSync('ALTER TABLE shift_types ADD COLUMN off INTEGER NOT NULL DEFAULT 0;');
+  },
 ];
 
 let db: SQLiteDatabase | null = null;
@@ -82,6 +86,8 @@ export type ShiftTypeRow = {
   start_time: string;
   end_time: string;
   break_minutes: number;
+  /** 1 = día libre todo el día (desde la migración 2; antes, undefined). */
+  off?: number;
 };
 export type RotationRow = { id: string; name: string; start_date: string };
 export type RotationDayRow = { position: number; shift_type_id: string | null };
@@ -103,6 +109,7 @@ export function planFromRows(
       start: r.start_time,
       end: r.end_time,
       breakMinutes: r.break_minutes,
+      ...(r.off ? { off: true } : {}),
     })),
     rotation: rotation
       ? {
@@ -132,6 +139,16 @@ function insertType(target: SQLiteDatabase, t: ShiftType, position: number) {
   );
 }
 
+/** Marca o desmarca un tipo como día libre (columna de la migración 2). */
+function setOff(target: SQLiteDatabase, t: ShiftType) {
+  target.runSync('UPDATE shift_types SET off = ? WHERE id = ?', t.off ? 1 : 0, t.id);
+}
+
+function upsertType(target: SQLiteDatabase, t: ShiftType, position: number) {
+  insertType(target, t, position);
+  setOff(target, t);
+}
+
 // --- API ---------------------------------------------------------------------------
 
 /** Lee todo. Solo hay una rotación activa (la última guardada). */
@@ -153,7 +170,7 @@ export function loadShiftPlan(): ShiftPlan {
 export function saveShiftType(type: ShiftType) {
   const d = database();
   const next = d.getFirstSync<{ n: number }>('SELECT COALESCE(MAX(position) + 1, 0) AS n FROM shift_types');
-  insertType(d, type, next?.n ?? 0);
+  upsertType(d, type, next?.n ?? 0);
 }
 
 /** Borra un tipo: en la rotación y en los cambios, esos días pasan a libres. */
@@ -196,4 +213,27 @@ export function saveOverride(override: DayOverride) {
 /** El día vuelve a seguir la rotación. */
 export function deleteOverride(date: string) {
   database().runSync('DELETE FROM day_overrides WHERE date = ?', date);
+}
+
+/** Importar (Turnos › Importar): tipos nuevos y cambios de día, todo de una vez. */
+export function importShifts(types: ShiftType[], overrides: DayOverride[]) {
+  const d = database();
+  d.withTransactionSync(() => {
+    const next = d.getFirstSync<{ n: number }>('SELECT COALESCE(MAX(position) + 1, 0) AS n FROM shift_types');
+    types.forEach((t, i) => upsertType(d, t, (next?.n ?? 0) + i));
+    for (const o of overrides) saveOverride(o);
+  });
+}
+
+/** Sustituye todos los turnos del móvil por `plan` (al bajar la copia de tu cuenta). */
+export function replaceShiftPlan(plan: ShiftPlan) {
+  const d = database();
+  d.withTransactionSync(() => {
+    d.runSync('DELETE FROM day_overrides');
+    d.runSync('DELETE FROM rotations');
+    d.runSync('DELETE FROM shift_types');
+    plan.types.forEach((t, i) => upsertType(d, t, i));
+    saveRotation(plan.rotation);
+    for (const o of Object.values(plan.overrides)) saveOverride(o);
+  });
 }
