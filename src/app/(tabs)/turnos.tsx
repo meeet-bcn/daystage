@@ -4,12 +4,15 @@ import { useMemo, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, useAnimatedValue, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AvailabilityPill } from '@/components/availability-pill';
+import { ConcertImage } from '@/components/concert-image';
 import { ScreenHeader } from '@/components/screen-header';
 import { ScreenSubtitle } from '@/components/screen-title';
 import { ShiftBadge } from '@/components/shift-badge';
 import { BottomTabInset } from '@/constants/theme';
 import { useApp } from '@/data/app-context';
-import { canGo, concertsByDate } from '@/data/concert-shifts';
+import { canGo, concertsByDate, plansInMonth } from '@/data/concert-shifts';
+import type { Concert } from '@/data/concerts';
 import {
   formatDay,
   formatMonth,
@@ -29,8 +32,10 @@ export default function TurnosScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { plan } = useShifts();
-  const { concerts, availability } = useApp();
+  const { concerts, availability, plans, isGoing } = useApp();
   const byDate = useMemo(() => concertsByDate(concerts), [concerts]);
+  // Tus planes ("Meeet In!", también los pasados) por día, para verlos en el mes
+  const plansByDate = useMemo(() => concertsByDate(plans), [plans]);
   const today = toDateKey();
   const [month, setMonth] = useState(() => ({
     year: Number(today.slice(0, 4)),
@@ -48,6 +53,9 @@ export default function TurnosScreen() {
     setMonth({ year: Number(today.slice(0, 4)), month: Number(today.slice(5, 7)) });
 
   const openDay = (date: string) => router.push({ pathname: '/shift-day', params: { date } });
+  const openConcert = (concert: Concert) =>
+    router.push({ pathname: '/concert/[id]', params: { id: concert.id } });
+  const monthPlans = plansInMonth(plans, month.year, month.month);
 
   const scrollY = useAnimatedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -106,8 +114,11 @@ export default function TurnosScreen() {
                 const type = typeForDate(date, plan);
                 const isToday = date === today;
                 const changed = date in plan.overrides;
-                // Conciertos cargados ese día a los que puedes ir (libre o tras el turno)
-                const fits = (byDate[date] ?? []).filter((c) => canGo(availability(c))).length;
+                // Conciertos cargados ese día a los que puedes ir (libre, antes o tras el turno)
+                const fits = (byDate[date] ?? []).filter(
+                  (c) => !isGoing(c.id) && canGo(availability(c))
+                ).length;
+                const dayPlans = plansByDate[date] ?? [];
                 return (
                   <Pressable
                     key={date}
@@ -118,7 +129,7 @@ export default function TurnosScreen() {
                       !inMonth && styles.outside,
                       pressed && styles.pressed,
                     ]}
-                    accessibilityLabel={`${formatDay(date)}: ${type ? type.name : 'libre'}${changed ? ', cambiado' : ''}${fits > 0 ? `, ${fits} ${fits === 1 ? 'concierto' : 'conciertos'} para ti` : ''}`}
+                    accessibilityLabel={`${formatDay(date)}: ${type ? type.name : 'libre'}${changed ? ', cambiado' : ''}${dayPlans.length > 0 ? `, vas a ${dayPlans.map((c) => c.artist).join(' y ')}` : ''}${fits > 0 ? `, ${fits} ${fits === 1 ? 'concierto' : 'conciertos'} para ti` : ''}`}
                   >
                     <View style={[styles.dayNumberBox, isToday && styles.todayBox]}>
                       <Text style={[styles.dayNumber, isToday && styles.todayNumber]}>
@@ -132,17 +143,77 @@ export default function TurnosScreen() {
                       {type ? type.abbr : rotation ? 'L' : ''}
                     </Text>
                     {changed && <View style={styles.changedDot} />}
-                    {fits > 0 && <View style={styles.concertDot} />}
+                    {dayPlans.length > 0 ? (
+                      // Tu plan: la foto del concierto con el aro del acento; tocarla abre la ficha
+                      // (con varios, el día abre la hoja con todos)
+                      <Pressable
+                        style={styles.planBadge}
+                        hitSlop={6}
+                        onPress={() =>
+                          dayPlans.length === 1 ? openConcert(dayPlans[0]) : openDay(date)
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Abrir ${dayPlans[0].artist}`}
+                      >
+                        <ConcertImage concert={dayPlans[0]} style={styles.planThumb} iconSize={10} />
+                        {dayPlans.length > 1 && (
+                          <View style={styles.planCount}>
+                            <Text style={styles.planCountText}>{dayPlans.length}</Text>
+                          </View>
+                        )}
+                      </Pressable>
+                    ) : (
+                      fits > 0 && <View style={styles.concertDot} />
+                    )}
                   </Pressable>
                 );
               })}
             </View>
           ))}
         </View>
-        <Text style={styles.hint}>
-          Toca un día para cambiar su turno o ver sus conciertos. El punto de abajo marca los
-          días con conciertos a los que puedes ir.
-        </Text>
+        {/* Leyenda: turno · tus planes · conciertos que te encajan */}
+        <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View style={styles.legendShift} />
+            <Text style={styles.legendText}>Turno</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={styles.legendPlan} />
+            <Text style={styles.legendText}>Vas (Meeet In!)</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={styles.legendDot} />
+            <Text style={styles.legendText}>Conciertos que te encajan</Text>
+          </View>
+        </View>
+        <Text style={styles.hint}>Toca un día para cambiar su turno o ver sus conciertos.</Text>
+
+        {monthPlans.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Tus planes este mes</Text>
+            <View style={[styles.card, styles.plansCard]}>
+              {monthPlans.map((c, i) => (
+                <Pressable
+                  key={c.id}
+                  onPress={() => openConcert(c)}
+                  style={({ pressed }) => [styles.planRow, i > 0 && styles.planRowLine, pressed && styles.pressed]}
+                >
+                  <ConcertImage concert={c} style={styles.planRowThumb} iconSize={16} />
+                  <View style={styles.planRowText}>
+                    <Text style={styles.planRowDate}>{c.date}</Text>
+                    <Text style={styles.planRowArtist} numberOfLines={1}>
+                      {c.artist}
+                    </Text>
+                    <Text style={styles.planRowVenue} numberOfLines={1}>
+                      {c.venue}
+                    </Text>
+                  </View>
+                  <AvailabilityPill availability={availability(c)} />
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>Rotación</Text>
         <View style={styles.card}>
@@ -233,7 +304,7 @@ const makeStyles = (theme: Theme) =>
     },
     day: {
       flex: 1,
-      aspectRatio: 0.78,
+      aspectRatio: 0.6,
       borderRadius: 12,
       backgroundColor: COLORS.surface,
       alignItems: 'center',
@@ -251,7 +322,7 @@ const makeStyles = (theme: Theme) =>
     todayBox: { backgroundColor: theme.accent },
     dayNumber: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
     todayNumber: { color: COLORS.white, fontWeight: '800' },
-    abbr: { fontSize: 15, fontWeight: '800', marginTop: 2 },
+    abbr: { fontSize: 15, lineHeight: 18, fontWeight: '800', marginTop: 1 },
     changedDot: {
       position: 'absolute',
       top: 5,
@@ -261,6 +332,64 @@ const makeStyles = (theme: Theme) =>
       borderRadius: 3,
       backgroundColor: theme.accent,
     },
+    planBadge: { marginTop: 3 },
+    planThumb: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      borderWidth: 2,
+      borderColor: theme.accent,
+      backgroundColor: COLORS.surface,
+      overflow: 'hidden',
+    },
+    planCount: {
+      position: 'absolute',
+      top: -4,
+      right: -7,
+      minWidth: 14,
+      height: 14,
+      borderRadius: 7,
+      paddingHorizontal: 3,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.accent,
+    },
+    planCountText: { color: COLORS.white, fontSize: 9, fontWeight: '800' },
+    legend: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      columnGap: 16,
+      rowGap: 6,
+      marginTop: 12,
+      marginHorizontal: 20,
+    },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    legendText: { color: COLORS.muted, fontSize: 12, fontWeight: '600' },
+    legendShift: { width: 14, height: 14, borderRadius: 4, backgroundColor: COLORS.lavender },
+    legendPlan: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      borderWidth: 2,
+      borderColor: theme.accent,
+      backgroundColor: COLORS.surface,
+    },
+    legendDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.text },
+    plansCard: { padding: 0, gap: 0, overflow: 'hidden' },
+    planRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 },
+    planRowLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.line },
+    planRowThumb: { width: 48, height: 48, borderRadius: 12, overflow: 'hidden' },
+    planRowText: { flex: 1 },
+    planRowDate: {
+      color: theme.accent,
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    planRowArtist: { color: COLORS.text, fontSize: 16, fontWeight: '700', letterSpacing: -0.3 },
+    planRowVenue: { color: COLORS.muted, fontSize: 13, marginTop: 1 },
     concertDot: {
       position: 'absolute',
       bottom: 6,
@@ -274,7 +403,7 @@ const makeStyles = (theme: Theme) =>
       fontSize: 13,
       lineHeight: 18,
       textAlign: 'center',
-      marginTop: 10,
+      marginTop: 8,
       marginHorizontal: 24,
     },
     sectionRow: {

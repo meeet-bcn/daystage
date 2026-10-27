@@ -70,3 +70,15 @@ export function concertsByDate(concerts: Concert[]): Record<string, Concert[]> {
   for (const list of Object.values(out)) list.sort((a, b) => a.startsAt! - b.startsAt!);
   return out;
 }
+
+/**
+ * Tus planes ("Meeet In!", también los pasados) de un mes, por fecha y hora:
+ * los que se ven en el calendario de Turnos. `month` de 1 a 12.
+ */
+export function plansInMonth(plans: Concert[], year: number, month: number) {
+  const prefix = `${year}-${String(month).padStart(2, '0')}-`;
+  return Object.entries(concertsByDate(plans))
+    .filter(([date]) => date.startsWith(prefix))
+    .sort(([a], [b]) => a.localeCompare(b))
+    .flatMap(([, list]) => list);
+}

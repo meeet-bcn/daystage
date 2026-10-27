@@ -7,6 +7,7 @@ import {
   concertAvailability,
   concertsByDate,
   effectiveStart,
+  plansInMonth,
   hasSchedule,
 } from '@/data/concert-shifts';
 import { DEFAULT_SHIFT_TYPES, EMPTY_PLAN, type ShiftPlan, templateCycle } from '@/data/shifts';
@@ -94,5 +95,19 @@ describe('concertsByDate', () => {
     expect(Object.keys(byDate).sort()).toEqual(['2026-10-08', '2026-10-09']);
     expect(byDate['2026-10-08'].map((c) => c.id)).toEqual(['early', 'late']);
     expect(byDate['2026-10-09'].map((c) => c.id)).toEqual(['other']);
+  });
+});
+
+describe('plansInMonth', () => {
+  it('los planes del mes por fecha y hora, también los pasados; sin fecha, fuera', () => {
+    const past = makeConcert({ id: 'past', startsAt: new Date(2026, 9, 2, 21).getTime() });
+    const late = makeConcert({ id: 'late', startsAt: at(31, 23) });
+    const early = makeConcert({ id: 'early', startsAt: at(31, 18) });
+    const november = makeConcert({ id: 'nov', startsAt: new Date(2026, 10, 1, 21).getTime() });
+    const tbc = makeConcert({ id: 'tbc', startsAt: null });
+    const plans = [november, late, tbc, past, early];
+    expect(plansInMonth(plans, 2026, 10).map((c) => c.id)).toEqual(['past', 'early', 'late']);
+    expect(plansInMonth(plans, 2026, 11).map((c) => c.id)).toEqual(['nov']);
+    expect(plansInMonth([], 2026, 10)).toEqual([]);
   });
 });
